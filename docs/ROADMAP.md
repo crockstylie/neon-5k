@@ -26,21 +26,21 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
 ---
 
 ## Lot 2 : IA Locale, Persistance Room (Reprise + Logs IA) & Personnalisation Complète
-- [ ] Création de la base Room (`data/local/AppDatabase.kt`) :
+- [x] Création de la base Room (`data/local/AppDatabase.kt`) :
     - `SavedMatchEntity` & `MatchDao` (sauvegarde automatique en cours de partie + reprise depuis l'accueil + historique)
     - `PlayerStatsEntity` & `StatsDao` (parties jouées/gagnées, meilleur tour, nb de mains pleines, nb de crashs, plus gros repiquage)
     - `DecisionLogEntity` & `DecisionLogDao` (enregistrement état/action/issue + `rulesFingerprint`)
-- [ ] Création de `AiDatasetExporter` (`data/export/`) : export `.jsonl` et `.csv` via SAF (zéro permission stockage) pour entraîner de futures IA
-- [ ] Implémentation de l'IA locale dans `domain/ai/` :
+- [x] Création de `AiDatasetExporter` (`data/export/`) : export `.jsonl` et `.csv` via SAF (zéro permission stockage) pour entraîner de futures IA
+- [x] Implémentation de l'IA locale dans `domain/ai/` :
     - `RollProbabilityTable` (probabilité exacte de coup nul et espérance selon nb de dés restants)
     - Interface `BotPolicy` et implémentation `HeuristicBotPolicy` (3 profils : *Safe Runner*, *Cyber Balanced*, *Overclock Kamikaze*)
     - Intégration transparente des bots dans `SetupScreen` et `GameViewModel` (avec délai lisible pour voir les choix du bot)
-- [ ] Création de `UserPreferencesRepository` (DataStore) et `CustomizationScreen` :
+- [x] Création de `UserPreferencesRepository` (DataStore) et `CustomizationScreen` :
     - 5 presets cyberpunk/pixel (*Neon Night*, *Terminal Phosphor*, *CRT Amber*, *Pocket Mono*, *OLED Minimal*)
     - Mode `CUSTOM` avec `ColorPickerDialog` (roue HSV + `#RRGGBB`) et contrôle de contraste WCAG
     - Choix du style de dés (*Pixel Solid*, *Neon Wireframe*, *Dot Matrix*), scanlines CRT, mode droitier/gaucher, haptique, secousse pour lancer et `keepScreenOn`
-- [ ] Création de `StatsScreen` (statistiques locales + bouton d'export dataset IA)
-- [ ] Tests unitaires JVM sur `HeuristicBotPolicy`, `RollProbabilityTable` et tests instrumentés Room (`DecisionLogDao`, `MatchDao`)
+- [x] Création de `StatsScreen` (statistiques locales + bouton d'export dataset IA)
+- [x] Tests unitaires JVM sur `HeuristicBotPolicy`, `RollProbabilityTable` et tests instrumentés Room (`DecisionLogDao`, `MatchDao`)
 
 ---
 

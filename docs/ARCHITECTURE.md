@@ -158,10 +158,24 @@ fr.antoinehory.neon5k/
 | `app/src/test/java/fr/antoinehory/neon5k/domain/rules/DiceScorerTest.kt` | Tests unitaires JVM de `DiceScorer` | Actif |
 | `app/src/test/java/fr/antoinehory/neon5k/domain/rules/FiveThousandEngineTest.kt` | Tests unitaires JVM de `FiveThousandEngine` | Actif |
 | `app/src/test/java/fr/antoinehory/neon5k/domain/entropy/EntropySeedGeneratorTest.kt` | Tests unitaires JVM de `EntropySeedGenerator` | Actif |
-| `domain/ai/*` | `BotPolicy`, `HeuristicBotPolicy`, probabilités (Lot 2) | À créer |
-| `data/local/*` | Room (`AppDatabase`, `SavedMatchEntity`, `PlayerStatsEntity`, `DecisionLogEntity`) (Lot 2) | À créer |
-| `data/preferences/UserPreferencesRepository.kt` | Préférences DataStore (thème, couleurs, règles, haptique) (Lot 2) | À créer |
-| `data/export/AiDatasetExporter.kt` | Export SAF `.jsonl` / `.csv` des logs IA (Lot 2) | À créer |
+| `app/src/main/java/fr/antoinehory/neon5k/domain/ai/RollProbabilityTable.kt` | Calculateur exact et cache des probabilités de coup nul et d'espérance ($6^N$) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/domain/ai/BotPolicy.kt` | Contrat de stratégie IA et profils `BotProfile` (`SAFE_RUNNER`, `CYBER_BALANCED`, `OVERCLOCK_KAMIKAZE`) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicy.kt` | IA probabiliste V1 évaluant les sous-ensembles scorants et l'EV nette | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/AppDatabase.kt` | Base Room `neon_5k.db` | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/SavedMatchEntity.kt` | Entité Room de sauvegarde/reprise de partie et mappers JSON | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/PlayerStatsEntity.kt` | Entité Room des statistiques locales cumulées | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/DecisionLogEntity.kt` | Entité Room du journal des décisions pour dataset IA | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/dao/MatchDao.kt` | DAO Room des parties sauvegardées | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/dao/StatsDao.kt` | DAO Room des statistiques locales | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/dao/DecisionLogDao.kt` | DAO Room des logs IA (avec `updateTurnOutcome` et `updateMatchOutcome`) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/repository/GameRepository.kt` | Orchestration Room sur `Dispatchers.IO` (reprise, stats, logs IA non-bloquants) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/preferences/UserPreferencesRepository.kt` | Préférences DataStore (thème, palette custom, style dés, règles favorites, ergonomie) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/export/AiDatasetExporter.kt` | Export SAF `.jsonl` / `.csv` des logs IA sans permission de stockage | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/components/ColorPickerDialog.kt` | Sélecteur de couleur HSV + `#RRGGBB` avec contrôle contraste WCAG 2.1 | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/customization/CustomizationScreen.kt` | Studio de personnalisation du thème, des dés et de l'ergonomie | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/stats/StatsScreen.kt` | Écran des statistiques locales et de l'export SAF du dataset IA | Actif |
+| `app/src/test/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicyTest.kt` | Tests unitaires JVM de `RollProbabilityTable` et `HeuristicBotPolicy` | Actif |
+| `app/src/androidTest/java/fr/antoinehory/neon5k/data/local/NeonDatabaseInstrumentedTest.kt` | Tests instrumentés Room (`MatchDao` & `DecisionLogDao`) | Actif |
 | `data/playgames/*` | Intégration Google Play Jeux v2 & succès (Lot 4) | À créer |
 | `data/multiplayer/NearbyTransport.kt` | Multijoueur local sans Internet via Nearby Connections (Lot 5) | À créer |
 | `data/multiplayer/FirebaseRtdbTransport.kt` | Multijoueur en ligne & sync dataset IA opt-in via Firebase RTDB (Lot 6) | À créer |

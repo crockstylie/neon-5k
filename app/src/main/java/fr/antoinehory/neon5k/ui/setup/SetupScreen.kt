@@ -39,8 +39,13 @@ import fr.antoinehory.neon5k.ui.components.CyberPanel
 import fr.antoinehory.neon5k.ui.components.PixelButton
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 
+private data class DraftPlayer(
+    val name: String,
+    val type: PlayerType
+)
+
 /**
- * Écran de configuration d'une partie Solo / Pass & Play (joueurs + presets et variantes du 5000).
+ * Écran de configuration d'une partie Solo vs IA / Pass & Play (joueurs + profils de bots + presets et variantes du 5000).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -52,8 +57,11 @@ fun SetupScreen(
 ) {
     val colors = LocalNeon5KColors.current
     var rules by remember(initialRules) { mutableStateOf(initialRules) }
-    val playerNames = remember {
-        mutableStateListOf("JOUEUR 1", "JOUEUR 2")
+    val draftPlayers = remember {
+        mutableStateListOf(
+            DraftPlayer(name = "JOUEUR 1", type = PlayerType.HUMAN),
+            DraftPlayer(name = "CYBER-BOT", type = PlayerType.BOT_BALANCED)
+        )
     }
 
     Column(
@@ -82,63 +90,119 @@ fun SetupScreen(
             )
         }
 
-        // Section 1 : Joueurs Pass & Play / Solo
+        // Section 1 : Joueurs Humains & Bots Locaux (Safe Runner, Cyber Balanced, Overclock Kamikaze)
         CyberPanel(modifier = Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "JOUEURS (${playerNames.size}/6 — PASS & PLAY / SOLO)",
+                        text = "JOUEURS & IA (${draftPlayers.size}/6)",
                         style = MaterialTheme.typography.labelLarge,
                         color = colors.primaryNeon
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         PixelButton(
                             text = "-1",
-                            enabled = playerNames.size > 1,
+                            enabled = draftPlayers.size > 1,
                             filled = false,
                             accentColor = colors.secondaryNeon,
                             onClick = {
-                                if (playerNames.size > 1) playerNames.removeAt(playerNames.lastIndex)
+                                if (draftPlayers.size > 1) draftPlayers.removeAt(draftPlayers.lastIndex)
                             }
                         )
                         PixelButton(
-                            text = "+1",
-                            enabled = playerNames.size < 6,
+                            text = "+HUMAIN",
+                            enabled = draftPlayers.size < 6,
                             filled = false,
                             accentColor = colors.primaryNeon,
                             onClick = {
-                                if (playerNames.size < 6) {
-                                    playerNames.add("JOUEUR ${playerNames.size + 1}")
+                                if (draftPlayers.size < 6) {
+                                    draftPlayers.add(
+                                        DraftPlayer(
+                                            name = "JOUEUR ${draftPlayers.size + 1}",
+                                            type = PlayerType.HUMAN
+                                        )
+                                    )
+                                }
+                            }
+                        )
+                        PixelButton(
+                            text = "+BOT",
+                            enabled = draftPlayers.size < 6,
+                            filled = false,
+                            accentColor = colors.alertNeon,
+                            onClick = {
+                                if (draftPlayers.size < 6) {
+                                    draftPlayers.add(
+                                        DraftPlayer(
+                                            name = "BOT-${draftPlayers.size + 1}",
+                                            type = PlayerType.BOT_BALANCED
+                                        )
+                                    )
                                 }
                             }
                         )
                     }
                 }
 
-                playerNames.forEachIndexed { idx, name ->
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { newValue ->
-                            playerNames[idx] = newValue.take(18)
-                        },
-                        singleLine = true,
-                        label = {
-                            Text("Joueur #${idx + 1}", style = MaterialTheme.typography.labelSmall)
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = colors.primaryNeon,
-                            unfocusedBorderColor = colors.primaryNeon.copy(alpha = 0.35f),
-                            focusedTextColor = colors.textPrimary,
-                            unfocusedTextColor = colors.textPrimary,
-                            focusedLabelColor = colors.primaryNeon,
-                            unfocusedLabelColor = colors.textMuted
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                draftPlayers.forEachIndexed { idx, draft ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = draft.name,
+                            onValueChange = { newValue ->
+                                draftPlayers[idx] = draft.copy(name = newValue.take(18))
+                            },
+                            singleLine = true,
+                            label = {
+                                Text("Acteur #${idx + 1}", style = MaterialTheme.typography.labelSmall)
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = colors.primaryNeon,
+                                unfocusedBorderColor = colors.primaryNeon.copy(alpha = 0.35f),
+                                focusedTextColor = colors.textPrimary,
+                                unfocusedTextColor = colors.textPrimary,
+                                focusedLabelColor = colors.primaryNeon,
+                                unfocusedLabelColor = colors.textMuted
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                PlayerType.HUMAN to "Humain",
+                                PlayerType.BOT_SAFE to "IA Safe",
+                                PlayerType.BOT_BALANCED to "IA Balanced",
+                                PlayerType.BOT_KAMIKAZE to "IA Kamikaze"
+                            ).forEach { (typeOption, label) ->
+                                val selected = draft.type == typeOption
+                                PixelButton(
+                                    text = label,
+                                    filled = selected,
+                                    accentColor = when {
+                                        !selected -> colors.textMuted
+                                        typeOption == PlayerType.HUMAN -> colors.primaryNeon
+                                        typeOption == PlayerType.BOT_KAMIKAZE -> colors.alertNeon
+                                        else -> colors.secondaryNeon
+                                    },
+                                    onClick = {
+                                        val updatedName = when {
+                                            typeOption == PlayerType.BOT_SAFE && draft.name.startsWith("JOUEUR") -> "SAFE-BOT"
+                                            typeOption == PlayerType.BOT_BALANCED && draft.name.startsWith("JOUEUR") -> "CYBER-BOT"
+                                            typeOption == PlayerType.BOT_KAMIKAZE && draft.name.startsWith("JOUEUR") -> "KAMIKAZE"
+                                            else -> draft.name
+                                        }
+                                        draftPlayers[idx] = draft.copy(name = updatedName, type = typeOption)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -325,11 +389,11 @@ fun SetupScreen(
         PixelButton(
             text = "INITIALISER LA TABLE DE JEU",
             onClick = {
-                val players = playerNames.mapIndexed { idx, rawName ->
+                val players = draftPlayers.mapIndexed { idx, draft ->
                     PlayerState(
                         id = idx,
-                        name = rawName.trim().ifEmpty { "JOUEUR ${idx + 1}" },
-                        type = PlayerType.HUMAN
+                        name = draft.name.trim().ifEmpty { "ACTEUR ${idx + 1}" },
+                        type = draft.type
                     )
                 }
                 onLaunchMatch(rules, players)

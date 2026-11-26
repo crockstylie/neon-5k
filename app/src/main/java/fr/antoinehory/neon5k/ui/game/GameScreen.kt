@@ -1,6 +1,7 @@
 package fr.antoinehory.neon5k.ui.game
 
 import android.os.SystemClock
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,11 +32,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.keepScreenOn
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import fr.antoinehory.neon5k.data.preferences.UserPreferences
+import fr.antoinehory.neon5k.domain.ai.BotProfile
 import fr.antoinehory.neon5k.domain.model.MatchState
 import fr.antoinehory.neon5k.domain.model.PlayerState
 import fr.antoinehory.neon5k.domain.model.TurnPhase
@@ -47,17 +51,18 @@ import fr.antoinehory.neon5k.ui.components.PixelDiceCanvas
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 
 /**
- * Plateau de jeu principal de Neon 5K (Lot 1).
+ * Plateau de jeu principal de Neon 5K (Lots 1 & 2).
  * - Gère le cycle de vie des capteurs via `LifecycleEventEffect(ON_RESUME / ON_PAUSE)`.
- * - Maintient l'écran allumé (`Modifier.keepScreenOn()`) pendant la partie.
- * - Ergonomie à une main : les informations de score et de statut sont placées en haut, tandis que la ligne de dés
- *   et les boutons d'action sont ancrés dans la moitié inférieure de l'écran (zone naturelle du pouce).
+ * - Applique `Modifier.keepScreenOn()` si la préférence utilisateur est activée.
+ * - Ergonomie à une main (droitier/gaucher) : les informations de score et de statut sont placées en haut,
+ *   tandis que la ligne de dés et les boutons d'action sont ancrés dans la moitié inférieure de l'écran.
  * - Capture les coordonnées `(x, y)` et la durée d'appui tactile sur le bouton LANCER pour enrichir la graine `SHA-256`.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GameScreen(
     uiState: GameUiState,
+    preferences: UserPreferences,
     onEvent: (GameUiEvent) -> Unit,
     onResumed: () -> Unit,
     onPaused: () -> Unit,
@@ -72,10 +77,17 @@ fun GameScreen(
         onPaused()
     }
 
+    val view = LocalView.current
     val colors = LocalNeon5KColors.current
     val match = uiState.match
     val turn = match.turn
     val activePlayer = match.activePlayer
+
+    fun triggerHaptic() {
+        if (preferences.hapticEnabled) {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+    }
 
     if (uiState.showEntropyDialog && turn.lastEntropySnapshot != null) {
         EntropyBadgeDialog(
@@ -84,10 +96,14 @@ fun GameScreen(
         )
     }
 
+    val screenModifier = if (preferences.keepScreenOn) {
+        modifier.fillMaxSize().keepScreenOn()
+    } else {
+        modifier.fillMaxSize()
+    }
+
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .keepScreenOn()
+        modifier = screenModifier
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -102,7 +118,10 @@ fun GameScreen(
             ) {
                 PixelButton(
                     text = "← MENU",
-                    onClick = onNavigateHome,
+                    onClick = {
+                        triggerHaptic()
+                        onNavigateHome()
+                    },
                     filled = false,
                     accentColor = colors.textPrimary
                 )
@@ -130,6 +149,7 @@ fun GameScreen(
                             shape = CyberCutShape
                         )
                         .clickable(enabled = snapshot != null) {
+                            triggerHaptic()
                             onEvent(GameUiEvent.ToggleEntropyDialog)
                         }
                         .padding(horizontal = 10.dp, vertical = 6.dp)
@@ -142,7 +162,7 @@ fun GameScreen(
                 }
             }
 
-            // Bandeau des scores joueurs (Pass & Play / Solo)
+            // Bandeau des scores joueurs (Pass & Play / Solo vs IA)
             ScoreboardRow(
                 players = match.players,
                 activePlayerIndex = turn.activePlayerIndex,
@@ -169,8 +189,9 @@ fun GameScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
+                            val botBadge = BotProfile.fromPlayerType(activePlayer.type)?.let { " [IA]" }.orEmpty()
                             Text(
-                                text = "TOUR #${turn.turnNumber} // ${activePlayer.name}",
+                                text = "TOUR #${turn.turnNumber} // ${activePlayer.name}$botBadge",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colors.primaryNeon
                             )
@@ -230,8 +251,15 @@ fun GameScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // 2. Zone Basse (Zone du pouce à une main) : Ligne de dés Pixel Art + Boutons d'action juste en dessous
+        val horizontalThumbAlignment = if (preferences.leftHandedMode) {
+            Alignment.Start
+        } else {
+            Alignment.CenterHorizontally
+        }
+
         Column(
             modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = horizontalThumbAlignment,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             CyberPanel(
@@ -257,18 +285,29 @@ fun GameScreen(
                     }
 
                     // Ligne compacte de dés à portée directe du pouce (58.dp permet d'aligner les 5 dés sur une seule ligne)
+                    val diceRowArrangement = if (preferences.leftHandedMode) {
+                        Arrangement.spacedBy(8.dp, Alignment.Start)
+                    } else {
+                        Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    }
+
                     FlowRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        horizontalArrangement = diceRowArrangement,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         turn.dice.forEach { die ->
                             PixelDiceCanvas(
                                 die = die,
                                 rollTrigger = match.totalRollsInMatch,
-                                onClick = { onEvent(GameUiEvent.ToggleDie(die.index)) },
+                                onClick = {
+                                    if (!uiState.isBotThinking) {
+                                        triggerHaptic()
+                                        onEvent(GameUiEvent.ToggleDie(die.index))
+                                    }
+                                },
                                 dieSize = 58.dp
                             )
                         }
@@ -278,6 +317,9 @@ fun GameScreen(
 
             ActionControlsSection(
                 match = match,
+                isBotThinking = uiState.isBotThinking,
+                shakeEnabled = preferences.shakeToRollEnabled,
+                onTriggerHaptic = ::triggerHaptic,
                 onEvent = onEvent,
                 onNavigateSetup = onNavigateSetup
             )
@@ -318,8 +360,9 @@ private fun ScoreboardRow(
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    val botPrefix = if (BotProfile.fromPlayerType(player.type) != null) "🤖 " else ""
                     Text(
-                        text = if (isWinner) "★ ${player.name}" else player.name,
+                        text = if (isWinner) "★ $botPrefix${player.name}" else "$botPrefix${player.name}",
                         style = MaterialTheme.typography.labelLarge,
                         color = if (isActive) colors.primaryNeon else colors.textPrimary
                     )
@@ -371,6 +414,9 @@ private fun LegendDot(
 @Composable
 private fun ActionControlsSection(
     match: MatchState,
+    isBotThinking: Boolean,
+    shakeEnabled: Boolean,
+    onTriggerHaptic: () -> Unit,
     onEvent: (GameUiEvent) -> Unit,
     onNavigateSetup: () -> Unit
 ) {
@@ -399,13 +445,19 @@ private fun ActionControlsSection(
                 ) {
                     PixelButton(
                         text = "REVANCHE",
-                        onClick = { onEvent(GameUiEvent.RestartSameMatch) },
+                        onClick = {
+                            onTriggerHaptic()
+                            onEvent(GameUiEvent.RestartSameMatch)
+                        },
                         accentColor = colors.primaryNeon,
                         modifier = Modifier.weight(1f)
                     )
                     PixelButton(
                         text = "CONFIGURER",
-                        onClick = onNavigateSetup,
+                        onClick = {
+                            onTriggerHaptic()
+                            onNavigateSetup()
+                        },
                         accentColor = colors.secondaryNeon,
                         filled = false,
                         modifier = Modifier.weight(1f)
@@ -416,27 +468,49 @@ private fun ActionControlsSection(
         return
     }
 
+    if (isBotThinking) {
+        CyberPanel(
+            modifier = Modifier.fillMaxWidth(),
+            borderColor = colors.secondaryNeon.copy(alpha = 0.65f)
+        ) {
+            Text(
+                text = "🤖 ${activePlayer.name} CALCULE SON COUP...",
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.secondaryNeon,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+        }
+        return
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         when (turn.phase) {
             TurnPhase.AWAITING_INITIAL_ROLL -> {
-                // Offre de repiquage si disponible
                 val offer = turn.piggybackOffer
                 if (offer != null && activePlayer.isOpened) {
                     PixelButton(
                         text = "REPIQUER ${offer.inheritedPoints} PTS (${offer.remainingDiceCount} DÉS DE ${offer.fromPlayerName})",
-                        onClick = { onEvent(GameUiEvent.AcceptPiggybackAndRoll()) },
+                        onClick = {
+                            onTriggerHaptic()
+                            onEvent(GameUiEvent.AcceptPiggybackAndRoll())
+                        },
                         accentColor = colors.alertNeon,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
 
+                val shakeHint = if (shakeEnabled) " (OU SECOUER)" else ""
                 EntropyTouchRollButton(
-                    label = "LANCER LES ${match.rules.diceCount} DÉS (OU SECOUER)",
+                    label = "LANCER LES ${match.rules.diceCount} DÉS$shakeHint",
                     accentColor = colors.primaryNeon,
                     onRollWithTouchEntropy = { x, y, durationMs ->
+                        onTriggerHaptic()
                         onEvent(
                             GameUiEvent.RollDice(
                                 touchX = x,
@@ -453,6 +527,7 @@ private fun ActionControlsSection(
                     label = "MAIN PLEINE ! RELANCER LES ${match.rules.diceCount} DÉS",
                     accentColor = colors.secondaryNeon,
                     onRollWithTouchEntropy = { x, y, durationMs ->
+                        onTriggerHaptic()
                         onEvent(
                             GameUiEvent.RollDice(
                                 touchX = x,
@@ -469,7 +544,10 @@ private fun ActionControlsSection(
                 if (hasUnselectedScoring) {
                     PixelButton(
                         text = "TOUT SÉLECTIONNER (DÉS SCORANTS)",
-                        onClick = { onEvent(GameUiEvent.SelectAllScoring) },
+                        onClick = {
+                            onTriggerHaptic()
+                            onEvent(GameUiEvent.SelectAllScoring)
+                        },
                         accentColor = colors.primaryNeon,
                         filled = false,
                         modifier = Modifier.fillMaxWidth()
@@ -488,6 +566,7 @@ private fun ActionControlsSection(
                     enabled = turn.isSelectionValid,
                     accentColor = if (isHotDice) colors.secondaryNeon else colors.primaryNeon,
                     onRollWithTouchEntropy = { x, y, durationMs ->
+                        onTriggerHaptic()
                         onEvent(
                             GameUiEvent.RollDice(
                                 touchX = x,
@@ -520,7 +599,10 @@ private fun ActionControlsSection(
                 PixelButton(
                     text = bankLabel,
                     enabled = canBank,
-                    onClick = { onEvent(GameUiEvent.BankTurn) },
+                    onClick = {
+                        onTriggerHaptic()
+                        onEvent(GameUiEvent.BankTurn)
+                    },
                     accentColor = colors.secondaryNeon,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -534,7 +616,10 @@ private fun ActionControlsSection(
                 }
                 PixelButton(
                     text = bustButtonText,
-                    onClick = { onEvent(GameUiEvent.AcknowledgeBust) },
+                    onClick = {
+                        onTriggerHaptic()
+                        onEvent(GameUiEvent.AcknowledgeBust)
+                    },
                     accentColor = colors.alertNeon,
                     modifier = Modifier.fillMaxWidth()
                 )

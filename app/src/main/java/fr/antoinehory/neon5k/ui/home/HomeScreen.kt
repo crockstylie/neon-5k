@@ -28,7 +28,7 @@ import fr.antoinehory.neon5k.ui.components.PixelDiceCanvas
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 
 /**
- * Écran d'accueil minimaliste cyberpunk de Neon 5K (Lot 1).
+ * Écran d'accueil minimaliste cyberpunk de Neon 5K (Lots 1 & 2).
  */
 @Composable
 fun HomeScreen(
@@ -36,6 +36,8 @@ fun HomeScreen(
     onResumeMatch: () -> Unit,
     onStartQuickMatch: () -> Unit,
     onOpenSetup: () -> Unit,
+    onOpenCustomization: () -> Unit,
+    onOpenStats: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalNeon5KColors.current
@@ -118,11 +120,11 @@ fun HomeScreen(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (hasActiveMatch) {
                 PixelButton(
-                    text = "REPRENDRE LA PARTIE EN COURS",
+                    text = "REPRENDRE LA PARTIE SAUVEGARDÉE",
                     onClick = onResumeMatch,
                     accentColor = colors.alertNeon,
                     modifier = Modifier.fillMaxWidth()
@@ -130,19 +132,39 @@ fun HomeScreen(
             }
 
             PixelButton(
-                text = "NOUVELLE PARTIE & VARIANTES",
+                text = "NOUVELLE PARTIE (BOTS / PASS & PLAY)",
                 onClick = onOpenSetup,
                 accentColor = colors.primaryNeon,
                 modifier = Modifier.fillMaxWidth()
             )
 
             PixelButton(
-                text = "PARTIE RAPIDE (CLASSIQUE 5 DÉS)",
+                text = "DUEL RAPIDE VS BOT CYBER BALANCED",
                 onClick = onStartQuickMatch,
                 accentColor = colors.secondaryNeon,
                 filled = false,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                PixelButton(
+                    text = "THÈME & DÉS",
+                    onClick = onOpenCustomization,
+                    accentColor = colors.primaryNeon,
+                    filled = false,
+                    modifier = Modifier.weight(1f)
+                )
+                PixelButton(
+                    text = "STATS & IA",
+                    onClick = onOpenStats,
+                    accentColor = colors.secondaryNeon,
+                    filled = false,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))

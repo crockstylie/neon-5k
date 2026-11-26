@@ -14,86 +14,131 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.antoinehory.neon5k.domain.model.PlayerState
 import fr.antoinehory.neon5k.domain.model.PlayerType
-import fr.antoinehory.neon5k.domain.rules.GameRulesConfig
 import fr.antoinehory.neon5k.ui.components.ScanlineOverlay
+import fr.antoinehory.neon5k.ui.customization.CustomizationScreen
 import fr.antoinehory.neon5k.ui.game.GameScreen
 import fr.antoinehory.neon5k.ui.game.GameViewModel
 import fr.antoinehory.neon5k.ui.home.HomeScreen
 import fr.antoinehory.neon5k.ui.setup.SetupScreen
+import fr.antoinehory.neon5k.ui.stats.StatsScreen
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
+import fr.antoinehory.neon5k.ui.theme.Neon5KTheme
 
 /**
- * Destinations de navigation de Neon 5K (Lot 1 : Home, Setup, Game).
+ * Destinations de navigation de Neon 5K (Lots 1 & 2 : Home, Setup, Game, Customization, Stats).
  */
 enum class NeonDestination {
     HOME,
     SETUP,
-    GAME
+    GAME,
+    CUSTOMIZATION,
+    STATS
 }
 
 /**
- * Conteneur de navigation principal de Neon 5K avec surcouche CRT Scanlines optionnelle.
+ * Conteneur de navigation principal de Neon 5K appliquant dynamiquement le thème `Neon5KTheme`
+ * issu des préférences utilisateur DataStore.
  */
 @Composable
 fun NeonNavHost(
     modifier: Modifier = Modifier,
     gameViewModel: GameViewModel = viewModel()
 ) {
-    val colors = LocalNeon5KColors.current
     val uiState by gameViewModel.uiState.collectAsStateWithLifecycle()
+    val preferences by gameViewModel.preferencesState.collectAsStateWithLifecycle()
+    val playerStats by gameViewModel.playerStatsState.collectAsStateWithLifecycle()
+    val decisionLogsCount by gameViewModel.decisionLogsCountState.collectAsStateWithLifecycle()
+
     var destination by rememberSaveable { mutableStateOf(NeonDestination.HOME) }
 
     BackHandler(enabled = destination != NeonDestination.HOME) {
         destination = NeonDestination.HOME
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.background)
+    Neon5KTheme(
+        palette = preferences.activePalette,
+        diceStyle = preferences.diceStyle,
+        showScanlines = preferences.showScanlines
     ) {
-        when (destination) {
-            NeonDestination.HOME -> {
-                HomeScreen(
-                    hasActiveMatch = uiState.hasActiveMatch,
-                    onResumeMatch = { destination = NeonDestination.GAME },
-                    onStartQuickMatch = {
-                        gameViewModel.startMatch(
-                            rules = GameRulesConfig.CLASSIC_5_DICE,
-                            players = listOf(
-                                PlayerState(id = 0, name = "JOUEUR 1", type = PlayerType.HUMAN),
-                                PlayerState(id = 1, name = "JOUEUR 2", type = PlayerType.HUMAN)
+        val colors = LocalNeon5KColors.current
+
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(colors.background)
+        ) {
+            when (destination) {
+                NeonDestination.HOME -> {
+                    HomeScreen(
+                        hasActiveMatch = uiState.hasActiveMatch,
+                        onResumeMatch = { destination = NeonDestination.GAME },
+                        onStartQuickMatch = {
+                            gameViewModel.startMatch(
+                                rules = preferences.favoriteRules,
+                                players = listOf(
+                                    PlayerState(id = 0, name = "JOUEUR 1", type = PlayerType.HUMAN),
+                                    PlayerState(id = 1, name = "CYBER-BOT", type = PlayerType.BOT_BALANCED)
+                                )
                             )
-                        )
-                        destination = NeonDestination.GAME
-                    },
-                    onOpenSetup = { destination = NeonDestination.SETUP }
-                )
+                            destination = NeonDestination.GAME
+                        },
+                        onOpenSetup = { destination = NeonDestination.SETUP },
+                        onOpenCustomization = { destination = NeonDestination.CUSTOMIZATION },
+                        onOpenStats = { destination = NeonDestination.STATS }
+                    )
+                }
+
+                NeonDestination.SETUP -> {
+                    SetupScreen(
+                        initialRules = preferences.favoriteRules,
+                        onBack = { destination = NeonDestination.HOME },
+                        onLaunchMatch = { rules, players ->
+                            gameViewModel.startMatch(rules = rules, players = players)
+                            destination = NeonDestination.GAME
+                        }
+                    )
+                }
+
+                NeonDestination.GAME -> {
+                    GameScreen(
+                        uiState = uiState,
+                        preferences = preferences,
+                        onEvent = gameViewModel::onEvent,
+                        onResumed = gameViewModel::onGameScreenResumed,
+                        onPaused = gameViewModel::onGameScreenPaused,
+                        onNavigateHome = { destination = NeonDestination.HOME },
+                        onNavigateSetup = { destination = NeonDestination.SETUP }
+                    )
+                }
+
+                NeonDestination.CUSTOMIZATION -> {
+                    CustomizationScreen(
+                        preferences = preferences,
+                        onSelectThemePreset = gameViewModel::setThemePreset,
+                        onUpdateCustomPalette = gameViewModel::updateCustomPalette,
+                        onSelectDiceStyle = gameViewModel::setDiceStyle,
+                        onToggleScanlines = gameViewModel::setShowScanlines,
+                        onToggleLeftHanded = gameViewModel::setLeftHandedMode,
+                        onToggleHaptic = gameViewModel::setHapticEnabled,
+                        onToggleShakeToRoll = gameViewModel::setShakeToRollEnabled,
+                        onToggleKeepScreenOn = gameViewModel::setKeepScreenOn,
+                        onBack = { destination = NeonDestination.HOME }
+                    )
+                }
+
+                NeonDestination.STATS -> {
+                    StatsScreen(
+                        stats = playerStats,
+                        decisionLogsCount = decisionLogsCount,
+                        exportStatusMessageFr = uiState.exportStatusMessageFr,
+                        onExportDataset = gameViewModel::exportAiDataset,
+                        onClearDataset = gameViewModel::clearAiDataset,
+                        onBack = { destination = NeonDestination.HOME }
+                    )
+                }
             }
 
-            NeonDestination.SETUP -> {
-                SetupScreen(
-                    initialRules = uiState.lastConfiguredRules,
-                    onBack = { destination = NeonDestination.HOME },
-                    onLaunchMatch = { rules, players ->
-                        gameViewModel.startMatch(rules = rules, players = players)
-                        destination = NeonDestination.GAME
-                    }
-                )
-            }
-
-            NeonDestination.GAME -> {
-                GameScreen(
-                    uiState = uiState,
-                    onEvent = gameViewModel::onEvent,
-                    onResumed = gameViewModel::onGameScreenResumed,
-                    onPaused = gameViewModel::onGameScreenPaused,
-                    onNavigateHome = { destination = NeonDestination.HOME },
-                    onNavigateSetup = { destination = NeonDestination.SETUP }
-                )
-            }
+            ScanlineOverlay()
         }
-
-        ScanlineOverlay()
     }
 }
