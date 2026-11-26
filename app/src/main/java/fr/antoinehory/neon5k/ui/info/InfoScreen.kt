@@ -11,6 +11,7 @@ import android.os.LocaleList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -33,6 +34,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,18 +54,23 @@ import androidx.compose.ui.unit.dp
 import fr.antoinehory.neon5k.R
 import fr.antoinehory.neon5k.ui.components.CyberCutShape
 import fr.antoinehory.neon5k.ui.components.CyberPanel
+import fr.antoinehory.neon5k.ui.components.HoloAurebeshEasterEggDialog
+import fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar
 import fr.antoinehory.neon5k.ui.components.PixelButton
+import fr.antoinehory.neon5k.ui.components.PixelIconId
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 import java.util.Locale
 
 /**
  * Fiche Informations & Crédits de Neon 5K (Lot 3), alignée sur l'écran `InfoScreen` d'`OCRAurebesh` :
- * - Coordonnées développeur (`Antoine Crock HORY`, `antoinehory.fr`, `contact@antoinehory.fr`, `paypal.me/kuroku`)
- * - Bouton de don PayPal (`https://paypal.me/kuroku`)
- * - Bouton de notation 5 ★ sur Google Play (`market://details?id=fr.antoinehory.neon5k`)
- * - Lien vers les autres applications du développeur (`OCRAurebesh`, etc.)
- * - Bandeau des 6 icônes vectorielles XML de réseaux sociaux (`LinkedIn`, `Behance`, `Instagram`, `Facebook`, `Spotify`, `Steam`)
- * - Sélecteur de langue in-app (`FR | EN | ES | PT`) et résumé de confidentialité / entropie matérielle.
+ * - En-tête harmonisé via [NeonSubScreenTopBar],
+ * - Coordonnées développeur (`Antoine Crock HORY`, `antoinehory.fr`, `contact@antoinehory.fr`, `paypal.me/kuroku`),
+ * - Bouton de don PayPal (`https://paypal.me/kuroku`),
+ * - Bouton de notation 5 ★ sur Google Play (`market://details?id=fr.antoinehory.neon5k`),
+ * - Lien vers les autres applications du développeur (`pub:Crock`),
+ * - Bandeau des 6 icônes vectorielles XML de réseaux sociaux (`LinkedIn`, `Behance`, `Instagram`, `Facebook`, `Spotify`, `Steam`),
+ * - Sélecteur de langue in-app (`FR | EN | ES | PT`) et résumé de confidentialité / entropie matérielle,
+ * - Easter Egg #3 : 7 taps sur la ligne de version en bas ouvre l'Holocron secret Aurebesh / Sabacc.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -72,6 +83,15 @@ fun InfoScreen(
     val colors = LocalNeon5KColors.current
     val currentLang = Locale.getDefault().language.lowercase(Locale.ROOT)
 
+    var versionTapCount by remember { mutableIntStateOf(0) }
+    var showHoloEasterEgg by remember { mutableStateOf(false) }
+
+    if (showHoloEasterEgg) {
+        HoloAurebeshEasterEggDialog(
+            onDismiss = { showHoloEasterEgg = false }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -81,24 +101,13 @@ fun InfoScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Barre supérieure
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PixelButton(
-                text = "← ${stringResource(R.string.back).uppercase()}",
-                onClick = onBack,
-                filled = false,
-                accentColor = colors.textPrimary
-            )
-            Text(
-                text = stringResource(R.string.personal_info_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.primaryNeon
-            )
-        }
+        // Barre supérieure harmonisée
+        NeonSubScreenTopBar(
+            title = stringResource(R.string.personal_info_title),
+            icon = PixelIconId.INFO,
+            backLabel = stringResource(R.string.back).uppercase(),
+            onBack = onBack
+        )
 
         // Carte principale Développeur + Don PayPal + Note 5 ★ + Autres applications
         CyberPanel(
@@ -139,6 +148,7 @@ fun InfoScreen(
 
                 PixelButton(
                     text = stringResource(R.string.donate_button),
+                    icon = PixelIconId.HEART,
                     onClick = { uriHandler.openUri("https://paypal.me/kuroku") },
                     accentColor = colors.alertNeon,
                     filled = true,
@@ -147,6 +157,7 @@ fun InfoScreen(
 
                 PixelButton(
                     text = stringResource(R.string.rate_app_button),
+                    icon = PixelIconId.STAR,
                     onClick = { openPlayStoreListing(context) },
                     accentColor = colors.primaryNeon,
                     filled = true,
@@ -155,6 +166,7 @@ fun InfoScreen(
 
                 PixelButton(
                     text = stringResource(R.string.other_apps_button),
+                    icon = PixelIconId.GRID,
                     onClick = { openDeveloperApps(context) },
                     accentColor = colors.secondaryNeon,
                     filled = false,
@@ -254,9 +266,22 @@ fun InfoScreen(
             }
         }
 
-        // Résumé Confidentialité, Entropie Matérielle & Version
+        // Résumé Confidentialité, Entropie Matérielle & Version (Easter Egg 7 taps -> Holocron Aurebesh)
         CyberPanel(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    val next = versionTapCount + 1
+                    if (next >= 7) {
+                        versionTapCount = 0
+                        showHoloEasterEgg = true
+                    } else {
+                        versionTapCount = next
+                    }
+                },
             borderColor = colors.textMuted.copy(alpha = 0.35f)
         ) {
             Column(
@@ -275,7 +300,11 @@ fun InfoScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "NEON 5K v1.0.0 (BUILD 1) • MINSDK 29 / TARGETSDK 37 • PIXEL & SHA-256 ENGINE",
+                    text = if (versionTapCount >= 3) {
+                        "NEON 5K v1.0.0 (BUILD 1) • [HOLO-NET : $versionTapCount / 7]"
+                    } else {
+                        "NEON 5K v1.0.0 (BUILD 1) • MINSDK 29 / TARGETSDK 37 • PIXEL & SHA-256 ENGINE"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.primaryNeon,
                     textAlign = TextAlign.Center,

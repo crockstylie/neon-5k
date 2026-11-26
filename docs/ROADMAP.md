@@ -91,6 +91,13 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
     - Générateur/exporteur des 20 icônes au format `512 × 512 px` PNG prêtes à téléverser dans la Google Play Console (`docs/PLAY_GAMES_ACHIEVEMENTS.md`)
 - [x] Implémentation de `PlayGamesService` et `GooglePlayGamesService` (authentification silencieuse + `AchievementsClient.unlock()` / `setSteps()`)
 - [x] Tests unitaires JVM de `AchievementEvaluator` (vérifiant le déblocage ET l'incrémentation continue au-delà du seuil)
+- [x] Recettage UI/UX & Easter Eggs post-Lot 4 :
+    - Harmonisation des en-têtes sur 1 seule ligne avec espacement garanti (`NeonSubScreenTopBar`) et ajout d'icônes Pixel Art `8×8` (`PixelIconCanvas`) sur les boutons
+    - Réorganisation ergonomique de `CustomizationScreen` (sélecteur de style de dés placé juste entre l'aperçu des dés et les palettes)
+    - Différenciation franche des 3 styles de dés (`PIXEL_SOLID` plein 3D biseauté, `NEON_WIREFRAME` filaire CAO creux, `DOT_MATRIX` diodes LED circulaires)
+    - Ajout des générateurs de thèmes aléatoires (*Random Harmonieux* & *Random Chaos*), des presets *Niveaux de Gris* (3 contrastes), *Sépia* (3 contrastes) et *Accessibilité Daltonisme* (Protanopie/Deutéranopie Okabe-Ito, Tritanopie, Achromatopsie)
+    - Évolution de `ColorPickerDialog` avec bascule **Mode HSV / Mode RGB (`0..255`)** et bouton **Random**
+    - Système d'Easter Eggs multi-taps (`EasterEggOverlay.kt`) : **42 taps** sur les dés d'accueil (générique Star Wars `42` en dés jaunes + *"Answer to the Ultimate Question of Life, the Universe, and Everything"* en anglais), **13 taps** sur l'entropie d'accueil (*Overclock 1337 Matrix*) et **7 taps** sur la version dans `InfoScreen` (*Holocron Aurebesh / Sabacc*)
 
 ---
 

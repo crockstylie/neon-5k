@@ -89,24 +89,13 @@ fun RulesScreen(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Barre supérieure
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PixelButton(
-                text = "← ${stringResource(R.string.back).uppercase()}",
-                onClick = onBack,
-                filled = false,
-                accentColor = colors.textPrimary
-            )
-            Text(
-                text = stringResource(R.string.rules_screen_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.primaryNeon
-            )
-        }
+        // Barre supérieure harmonisée
+        fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar(
+            title = stringResource(R.string.rules_screen_title),
+            icon = fr.antoinehory.neon5k.ui.components.PixelIconId.BOOK,
+            backLabel = stringResource(R.string.back).uppercase(),
+            onBack = onBack
+        )
 
         // Section 1 : Simulateur Interactif de Barème
         CyberPanel(

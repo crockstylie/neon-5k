@@ -24,23 +24,28 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fr.antoinehory.neon5k.data.preferences.UserPreferences
 import fr.antoinehory.neon5k.domain.model.DieState
 import fr.antoinehory.neon5k.domain.theme.CyberPalette
 import fr.antoinehory.neon5k.domain.theme.CyberThemePreset
 import fr.antoinehory.neon5k.domain.theme.DiceVisualStyle
+import fr.antoinehory.neon5k.domain.theme.ThemePresetCategory
 import fr.antoinehory.neon5k.ui.components.ColorPickerDialog
 import fr.antoinehory.neon5k.ui.components.CyberCutShape
 import fr.antoinehory.neon5k.ui.components.CyberPanel
+import fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar
 import fr.antoinehory.neon5k.ui.components.PixelButton
 import fr.antoinehory.neon5k.ui.components.PixelDiceCanvas
+import fr.antoinehory.neon5k.ui.components.PixelIconId
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 import java.util.Locale
 
@@ -54,10 +59,12 @@ private enum class EditableColorSlot(val labelFr: String) {
 }
 
 /**
- * Studio de personnalisation de la fenêtre de jeu (Lot 2) :
- * - 5 thèmes cyberpunk/pixel prédéfinis + mode `CUSTOM` avec roue HSV / `#RRGGBB` et ratio de contraste WCAG 2.1,
- * - 3 styles de dés (*Pixel Solid*, *Neon Wireframe*, *Dot Matrix*) avec aperçu en direct,
- * - Scanlines CRT, mode gaucher/droitier, vibrations haptiques, secousse pour lancer et maintien de l'écran allumé.
+ * Studio de personnalisation de la fenêtre de jeu (Lots 2 & 4+) :
+ * - En-tête harmonisé sur 1 ligne via [NeonSubScreenTopBar],
+ * - Aperçu des 4 états de dés en haut suivi immédiatement du sélecteur de style de dés (*Pixel Solid*, *Neon Wireframe*, *Dot Matrix*),
+ * - Générateurs de thèmes aléatoires (*Random Harmonieux* & *Random Chaos*),
+ * - Palettes classées par familles (*Cyberpunk & Rétro*, *Niveaux de Gris 3 contrastes*, *Sépia 3 contrastes*, *Accessibilité Daltonisme*),
+ * - Éditeur de couleurs sur-mesure (HSV / RGB + Random + `#RRGGBB` + ratio WCAG 2.1).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -77,6 +84,7 @@ fun CustomizationScreen(
     val colors = LocalNeon5KColors.current
     val activePalette = preferences.activePalette
     var editingSlot by remember { mutableStateOf<EditableColorSlot?>(null) }
+    var previewRollTick by remember { mutableIntStateOf(0) }
 
     editingSlot?.let { slot ->
         val initialArgb = when (slot) {
@@ -124,26 +132,17 @@ fun CustomizationScreen(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PixelButton(
-                text = "← ACCUEIL",
-                onClick = onBack,
-                filled = false,
-                accentColor = colors.textPrimary
-            )
-            Text(
-                text = "STUDIO // THÈME & DÉS",
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.primaryNeon
-            )
-        }
+        NeonSubScreenTopBar(
+            title = "THÈMES & DÉS",
+            icon = PixelIconId.PALETTE,
+            onBack = onBack
+        )
 
-        // Aperçu temps réel des 4 états de dés
-        CyberPanel(modifier = Modifier.fillMaxWidth()) {
+        // 1. Aperçu temps réel des 4 états de dés (toujours tout en haut)
+        CyberPanel(
+            modifier = Modifier.fillMaxWidth(),
+            borderColor = colors.primaryNeon
+        ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -152,7 +151,8 @@ fun CustomizationScreen(
                 Text(
                     text = "APERÇU EN DIRECT (SCORANT / SÉLECTIONNÉ / VERROUILLÉ / INACTIF)",
                     style = MaterialTheme.typography.labelSmall,
-                    color = colors.secondaryNeon
+                    color = colors.secondaryNeon,
+                    textAlign = TextAlign.Center
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -161,10 +161,11 @@ fun CustomizationScreen(
                     previewDice.forEach { die ->
                         PixelDiceCanvas(
                             die = die,
-                            rollTrigger = 0,
-                            onClick = {},
-                            dieSize = 56.dp,
-                            styleOverride = preferences.diceStyle
+                            rollTrigger = previewRollTick,
+                            onClick = { previewRollTick++ },
+                            dieSize = 58.dp,
+                            styleOverride = preferences.diceStyle,
+                            alwaysClickable = true
                         )
                     }
                 }
@@ -183,41 +184,70 @@ fun CustomizationScreen(
             }
         }
 
-        // Section 1 : Presets Cyberpunk / Pixel Art
-        CyberPanel(modifier = Modifier.fillMaxWidth()) {
+        // 2. Style visuel des dés (placé juste entre l'aperçu des dés et les palettes !)
+        CyberPanel(
+            modifier = Modifier.fillMaxWidth(),
+            borderColor = colors.secondaryNeon.copy(alpha = 0.65f)
+        ) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "PALETTES CYBERPUNK PRÉDÉFINIES",
+                    text = "STYLE DE RENDU DES DÉS (GRILLE 16×16)",
                     style = MaterialTheme.typography.labelLarge,
-                    color = colors.primaryNeon
+                    color = colors.secondaryNeon
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CyberThemePreset.entries.forEach { preset ->
-                        val isSelected = preferences.themePreset == preset
+                Text(
+                    text = "Changez de style en regardant l'aperçu juste au-dessus (touchez un dé pour tester sa rotation) :",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textMuted
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DiceVisualStyle.entries.forEach { style ->
+                        val isSelected = preferences.diceStyle == style
                         PixelButton(
-                            text = preset.labelFr,
+                            text = style.labelFr,
+                            icon = PixelIconId.DICE,
                             filled = isSelected,
-                            accentColor = if (isSelected) colors.primaryNeon else colors.textMuted,
-                            onClick = { onSelectThemePreset(preset) }
+                            accentColor = if (isSelected) colors.secondaryNeon else colors.textMuted,
+                            onClick = { onSelectDiceStyle(style) },
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
         }
 
-        // Section 2 : Couleurs sur-mesure (Mode CUSTOM)
+        // 3. Générateur de Thème Aléatoire (Harmonieux vs Chaos Total) + Couleurs sur-mesure
         CyberPanel(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "COULEURS SUR-MESURE (HSV + #RRGGBB)",
+                    text = "GÉNÉRATEUR ALÉATOIRE & STUDIO CUSTOM",
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.primaryNeon
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PixelButton(
+                        text = "HARMONIEUX",
+                        icon = PixelIconId.SPARKLE,
+                        filled = true,
+                        accentColor = colors.primaryNeon,
+                        onClick = { onUpdateCustomPalette(CyberPalette.randomHarmonious()) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    PixelButton(
+                        text = "RANDOM CHAOS",
+                        icon = PixelIconId.CHAOS,
+                        filled = false,
+                        accentColor = colors.alertNeon,
+                        onClick = { onUpdateCustomPalette(CyberPalette.randomChaos()) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
                 Text(
-                    text = "Touchez une pastille pour éditer la couleur et activer votre palette Custom :",
+                    text = "Ou touchez une pastille pour éditer la couleur (Mode HSV / RGB / #RRGGBB / Random) :",
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.textMuted
                 )
@@ -259,32 +289,43 @@ fun CustomizationScreen(
             }
         }
 
-        // Section 3 : Style visuel des dés
-        CyberPanel(modifier = Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = "STYLE DE RENDU DES DÉS (GRILLE 16×16)",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.primaryNeon
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    DiceVisualStyle.entries.forEach { style ->
-                        val isSelected = preferences.diceStyle == style
-                        PixelButton(
-                            text = style.labelFr,
-                            filled = isSelected,
-                            accentColor = if (isSelected) colors.secondaryNeon else colors.textMuted,
-                            onClick = { onSelectDiceStyle(style) }
-                        )
+        // 4. Palettes Prédéfinies par catégorie (Cyberpunk, Niveaux de gris, Sépia, Daltonisme)
+        val categoriesToDisplay = listOf(
+            ThemePresetCategory.CYBER_RETRO,
+            ThemePresetCategory.GRAYSCALE,
+            ThemePresetCategory.SEPIA,
+            ThemePresetCategory.DALTONISM
+        )
+
+        categoriesToDisplay.forEach { category ->
+            val presetsInCategory = CyberThemePreset.entries.filter { it.category == category }
+            CyberPanel(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = category.titleFr,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = colors.primaryNeon
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        presetsInCategory.forEach { preset ->
+                            val isSelected = preferences.themePreset == preset
+                            PixelButton(
+                                text = preset.labelFr,
+                                icon = PixelIconId.PALETTE,
+                                filled = isSelected,
+                                accentColor = if (isSelected) colors.primaryNeon else colors.textMuted,
+                                onClick = { onSelectThemePreset(preset) }
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Section 4 : Ergonomie, Scanlines, Haptique & Capteurs
+        // 5. Ergonomie, Scanlines, Haptique & Capteurs
         CyberPanel(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(

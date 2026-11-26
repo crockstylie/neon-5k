@@ -99,24 +99,12 @@ fun StatsScreen(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Barre supérieure
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PixelButton(
-                text = "← ACCUEIL",
-                onClick = onBack,
-                filled = false,
-                accentColor = colors.textPrimary
-            )
-            Text(
-                text = "TÉLÉMÉTRIE // SUCCÈS",
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.primaryNeon
-            )
-        }
+        // Barre supérieure harmonisée
+        fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar(
+            title = "STATS & SUCCÈS",
+            icon = fr.antoinehory.neon5k.ui.components.PixelIconId.TROPHY,
+            onBack = onBack
+        )
 
         // Barre d'onglets (Fun Stats | 20 Succès | Dataset IA)
         Row(

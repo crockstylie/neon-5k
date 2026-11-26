@@ -73,23 +73,11 @@ fun SetupScreen(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PixelButton(
-                text = "← ACCUEIL",
-                onClick = onBack,
-                filled = false,
-                accentColor = colors.textPrimary
-            )
-            Text(
-                text = "CONFIG // 5000",
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.primaryNeon
-            )
-        }
+        fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar(
+            title = "CONFIG // 5000",
+            icon = fr.antoinehory.neon5k.ui.components.PixelIconId.GAMEPAD,
+            onBack = onBack
+        )
 
         // Section 1 : Joueurs Humains & Bots Locaux (Safe Runner, Cyber Balanced, Overclock Kamikaze)
         CyberPanel(modifier = Modifier.fillMaxWidth()) {
