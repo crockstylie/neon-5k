@@ -1,5 +1,6 @@
 package fr.antoinehory.neon5k.ui.game
 
+import android.app.Activity
 import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.Immutable
@@ -10,10 +11,15 @@ import fr.antoinehory.neon5k.data.export.DatasetExportFormat
 import fr.antoinehory.neon5k.data.export.DatasetExportResult
 import fr.antoinehory.neon5k.data.local.AppDatabase
 import fr.antoinehory.neon5k.data.local.entity.PlayerStatsEntity
+import fr.antoinehory.neon5k.data.playgames.GooglePlayGamesService
+import fr.antoinehory.neon5k.data.playgames.PlayGamesStatus
 import fr.antoinehory.neon5k.data.preferences.UserPreferences
 import fr.antoinehory.neon5k.data.preferences.UserPreferencesRepository
 import fr.antoinehory.neon5k.data.repository.GameRepository
 import fr.antoinehory.neon5k.data.sensors.SensorEntropyCollector
+import fr.antoinehory.neon5k.domain.achievement.AchievementEvaluator
+import fr.antoinehory.neon5k.domain.achievement.AchievementProgress
+import fr.antoinehory.neon5k.domain.achievement.AchievementUnlockNotification
 import fr.antoinehory.neon5k.domain.ai.BotProfile
 import fr.antoinehory.neon5k.domain.ai.BotTurnAction
 import fr.antoinehory.neon5k.domain.ai.HeuristicBotPolicy
@@ -23,8 +29,10 @@ import fr.antoinehory.neon5k.domain.model.MoveValidationError
 import fr.antoinehory.neon5k.domain.model.PlayerState
 import fr.antoinehory.neon5k.domain.model.PlayerType
 import fr.antoinehory.neon5k.domain.model.TurnPhase
+import fr.antoinehory.neon5k.domain.rules.BumpOpponentMode
 import fr.antoinehory.neon5k.domain.rules.FiveThousandEngine
 import fr.antoinehory.neon5k.domain.rules.GameRulesConfig
+import fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode
 import fr.antoinehory.neon5k.domain.theme.CyberPalette
 import fr.antoinehory.neon5k.domain.theme.CyberThemePreset
 import fr.antoinehory.neon5k.domain.theme.DiceVisualStyle
@@ -50,6 +58,7 @@ data class GameUiState(
     val showRulesDialog: Boolean = false,
     val hasActiveMatch: Boolean = false,
     val isBotThinking: Boolean = false,
+    val latestAchievementToast: AchievementUnlockNotification? = null,
     val errorBannerFr: String? = null,
     val exportStatusMessageFr: String? = null
 )
@@ -77,16 +86,18 @@ sealed interface GameUiEvent {
     data object AcknowledgeBust : GameUiEvent
     data object ToggleEntropyDialog : GameUiEvent
     data object ToggleRulesDialog : GameUiEvent
+    data object DismissAchievementToast : GameUiEvent
     data object RestartSameMatch : GameUiEvent
 }
 
 /**
- * ViewModel principal de Neon 5K (Lots 1 & 2).
+ * ViewModel principal de Neon 5K (Lots 1, 2, 3 & 4).
  * Orchestre :
  * - le moteur pur [FiveThousandEngine],
  * - l'IA locale [HeuristicBotPolicy] avec délais visuels lisibles,
  * - le collecteur d'entropie hybride [SensorEntropyCollector],
- * - la persistance Room [GameRepository] (reprise automatique + stats + logs IA) et DataStore [UserPreferencesRepository].
+ * - la persistance Room [GameRepository] (reprise automatique + télémétrie fun + 20 succès infinis + logs IA),
+ * - l'intégration Google Play Jeux v2 [GooglePlayGamesService] et DataStore [UserPreferencesRepository].
  */
 class GameViewModel(
     application: Application
@@ -97,8 +108,10 @@ class GameViewModel(
     private val gameRepository = GameRepository(database)
     private val preferencesRepository = UserPreferencesRepository(application)
     private val datasetExporter = AiDatasetExporter(application)
+    private val playGamesService = GooglePlayGamesService(application)
 
     private var botTurnJob: Job? = null
+    private var toastDismissJob: Job? = null
 
     private val defaultPlayers = listOf(
         PlayerState(id = 0, name = "JOUEUR 1", type = PlayerType.HUMAN),
@@ -118,6 +131,15 @@ class GameViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = PlayerStatsEntity()
         )
+
+    val achievementsState: StateFlow<List<AchievementProgress>> = gameRepository.achievementsFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AchievementEvaluator.initialProgressMap().values.toList()
+        )
+
+    val playGamesStatusState: StateFlow<PlayGamesStatus> = playGamesService.status
 
     val decisionLogsCountState: StateFlow<Int> = gameRepository.totalDecisionLogsCountFlow
         .stateIn(
@@ -173,6 +195,20 @@ class GameViewModel(
         }
     }
 
+    fun attachActivity(activity: Activity) {
+        playGamesService.attachActivity(activity)
+    }
+
+    fun detachActivity(activity: Activity) {
+        playGamesService.detachActivity(activity)
+    }
+
+    fun openPlayGamesAchievements() {
+        playGamesService.showNativePlayGamesAchievementsOrSignIn { message ->
+            _uiState.update { it.copy(exportStatusMessageFr = message) }
+        }
+    }
+
     /**
      * Démarre une nouvelle partie, sauvegarde la configuration favorite dans DataStore et persiste l'état initial dans Room.
      */
@@ -191,6 +227,7 @@ class GameViewModel(
                 match = freshMatch,
                 lastConfiguredRules = rules,
                 showEntropyDialog = false,
+                showRulesDialog = false,
                 hasActiveMatch = true,
                 isBotThinking = false,
                 errorBannerFr = null
@@ -220,11 +257,12 @@ class GameViewModel(
     }
 
     fun onEvent(event: GameUiEvent) {
-        // Ignorer les clics de jeu manuels pendant que le bot joue son tour (hors boîtes de dialogue / revanche)
+        // Ignorer les clics de jeu manuels pendant que le bot joue son tour (hors boîtes de dialogue / toast / revanche)
         val currentMatch = _uiState.value.match
         val isBotTurn = BotProfile.fromPlayerType(currentMatch.activePlayer.type) != null && !currentMatch.isFinished
         val isDialogOrRestart = event is GameUiEvent.ToggleEntropyDialog ||
             event is GameUiEvent.ToggleRulesDialog ||
+            event is GameUiEvent.DismissAchievementToast ||
             event is GameUiEvent.RestartSameMatch
         if (isBotTurn && !isDialogOrRestart) {
             return
@@ -248,6 +286,10 @@ class GameViewModel(
             }
             GameUiEvent.ToggleRulesDialog -> {
                 _uiState.update { it.copy(showRulesDialog = !it.showRulesDialog) }
+            }
+            GameUiEvent.DismissAchievementToast -> {
+                toastDismissJob?.cancel()
+                _uiState.update { it.copy(latestAchievementToast = null) }
             }
             GameUiEvent.RestartSameMatch -> {
                 val resetPlayers = currentMatch.players.map { p ->
@@ -325,10 +367,12 @@ class GameViewModel(
         }
     }
 
-    // --- Exécution Métier & Journalisation IA ---
+    // --- Exécution Métier, Télémétrie Fun, Succès & Journalisation IA ---
 
     private fun executeRollDice(event: GameUiEvent.RollDice) {
         val beforeMatch = _uiState.value.match
+        val actorBefore = beforeMatch.activePlayer
+
         // Si on relance depuis SELECTING_DICE, enregistrer la décision ROLL_AGAIN dans decision_logs
         if (beforeMatch.turn.phase == TurnPhase.SELECTING_DICE && beforeMatch.turn.isSelectionValid) {
             val keptFaces = beforeMatch.turn.dice.filter { !it.isLocked && it.isSelected }.map { it.face }
@@ -339,6 +383,16 @@ class GameViewModel(
                     decision = "ROLL_AGAIN"
                 )
             }
+        }
+
+        val freeDiceCount = when (beforeMatch.turn.phase) {
+            TurnPhase.AWAITING_INITIAL_ROLL, TurnPhase.HOT_DICE_MANDATORY_REROLL -> beforeMatch.rules.diceCount
+            TurnPhase.SELECTING_DICE -> if (beforeMatch.turn.selectionTriggersHotDice) {
+                beforeMatch.rules.diceCount
+            } else {
+                beforeMatch.turn.remainingDiceAfterSelection
+            }
+            else -> 0
         }
 
         val nextRollNumber = beforeMatch.totalRollsInMatch + 1
@@ -357,13 +411,30 @@ class GameViewModel(
         )
         applyEngineResult(result, persistSnapshot = true)
 
-        if (result is EngineResult.Success && result.state.isFinished) {
-            recordInstantWinCompletion(beforeMatch, result.state)
+        if (result is EngineResult.Success) {
+            val activeRollFaces = outcome.faces.take(freeDiceCount)
+            viewModelScope.launch {
+                if (actorBefore.type == PlayerType.HUMAN && activeRollFaces.isNotEmpty()) {
+                    val rollNotifications = gameRepository.recordHumanRollTelemetry(
+                        activeRollFaces = activeRollFaces,
+                        rules = beforeMatch.rules,
+                        triggeredByShake = event.triggeredByShake,
+                        pressDurationMs = event.pressDurationMs
+                    )
+                    handleAchievementNotifications(rollNotifications)
+                }
+                if (result.state.isFinished) {
+                    recordInstantWinCompletion(beforeMatch, result.state)
+                }
+            }
         }
     }
 
     private fun executePiggybackRoll(event: GameUiEvent.AcceptPiggybackAndRoll) {
         val beforeMatch = _uiState.value.match
+        val actorBefore = beforeMatch.activePlayer
+        val remainingDiceCount = beforeMatch.turn.piggybackOffer?.remainingDiceCount ?: 0
+
         val nextRollNumber = beforeMatch.totalRollsInMatch + 1
         val outcome = entropyCollector.captureAndRoll(
             diceCount = beforeMatch.rules.diceCount,
@@ -379,15 +450,39 @@ class GameViewModel(
             entropySnapshot = outcome.snapshot
         )
         applyEngineResult(result, persistSnapshot = true)
+
+        if (result is EngineResult.Success && actorBefore.type == PlayerType.HUMAN && remainingDiceCount > 0) {
+            val activeRollFaces = outcome.faces.take(remainingDiceCount)
+            viewModelScope.launch {
+                val rollNotifications = gameRepository.recordHumanRollTelemetry(
+                    activeRollFaces = activeRollFaces,
+                    rules = beforeMatch.rules,
+                    triggeredByShake = false,
+                    pressDurationMs = event.pressDurationMs
+                )
+                handleAchievementNotifications(rollNotifications)
+            }
+        }
     }
 
     private fun executeBankTurn() {
         val beforeMatch = _uiState.value.match
         val turnBefore = beforeMatch.turn
         val actorBefore = beforeMatch.activePlayer
+        val wasOpeningTurn = !actorBefore.isOpened
         val keptFaces = turnBefore.dice.filter { !it.isLocked && it.isSelected }.map { it.face }
         val finalTurnPoints = turnBefore.totalTurnPointsWithSelection
         val hotDiceInTurn = turnBefore.hotDiceCountInTurn + if (turnBefore.selectionTriggersHotDice) 1 else 0
+        val projectedScore = actorBefore.score + finalTurnPoints
+
+        val bumpedOpponentByActor = beforeMatch.rules.bumpOpponentMode != BumpOpponentMode.DISABLED &&
+            projectedScore > 0 &&
+            beforeMatch.players.any { it.id != actorBefore.id && it.score == projectedScore }
+
+        val humanWasBumpedByOpponent = actorBefore.type != PlayerType.HUMAN &&
+            beforeMatch.rules.bumpOpponentMode != BumpOpponentMode.DISABLED &&
+            projectedScore > 0 &&
+            beforeMatch.players.any { it.id != actorBefore.id && it.type == PlayerType.HUMAN && it.score == projectedScore }
 
         val result = FiveThousandEngine.bankTurn(beforeMatch)
         applyEngineResult(result, persistSnapshot = true)
@@ -400,18 +495,23 @@ class GameViewModel(
                     keptFaces = keptFaces,
                     decision = "BANK"
                 )
-                gameRepository.recordTurnFinished(
+                val turnNotifications = gameRepository.recordTurnFinished(
                     matchUuid = beforeMatch.matchId,
                     turnNumber = turnBefore.turnNumber,
                     actorType = actorBefore.type,
                     finalTurnPoints = finalTurnPoints,
                     hotDiceInTurn = hotDiceInTurn,
                     usedPiggyback = turnBefore.usedPiggyback,
-                    rollsInTurn = turnBefore.rollIndexInTurn
+                    wasOpeningTurn = wasOpeningTurn,
+                    bumpedOpponentByActor = bumpedOpponentByActor,
+                    humanWasBumpedByOpponent = humanWasBumpedByOpponent
                 )
-                if (afterState.isFinished) {
+                val matchNotifications = if (afterState.isFinished) {
                     gameRepository.recordMatchFinished(afterState)
+                } else {
+                    emptyList()
                 }
+                handleAchievementNotifications(turnNotifications + matchNotifications)
             }
         }
     }
@@ -420,40 +520,65 @@ class GameViewModel(
         val beforeMatch = _uiState.value.match
         val turnBefore = beforeMatch.turn
         val actorBefore = beforeMatch.activePlayer
+        val lostPot = turnBefore.bankedInTurn
+        val triggersThreeStrikes = beforeMatch.rules.threeStrikesMode != ThreeStrikesMode.DISABLED &&
+            (actorBefore.consecutiveBusts + 1) >= 3
 
         val result = FiveThousandEngine.acknowledgeBustAndEndTurn(beforeMatch)
         applyEngineResult(result, persistSnapshot = true)
 
         if (result is EngineResult.Success) {
             viewModelScope.launch {
-                gameRepository.recordTurnFinished(
+                val bustNotifications = gameRepository.recordTurnFinished(
                     matchUuid = beforeMatch.matchId,
                     turnNumber = turnBefore.turnNumber,
                     actorType = actorBefore.type,
                     finalTurnPoints = 0,
                     hotDiceInTurn = turnBefore.hotDiceCountInTurn,
                     usedPiggyback = turnBefore.usedPiggyback,
-                    rollsInTurn = turnBefore.rollIndexInTurn
+                    lostPotOnBust = lostPot,
+                    triggeredThreeStrikesPenalty = triggersThreeStrikes
                 )
+                handleAchievementNotifications(bustNotifications)
             }
         }
     }
 
-    private fun recordInstantWinCompletion(beforeMatch: MatchState, afterState: MatchState) {
+    private suspend fun recordInstantWinCompletion(beforeMatch: MatchState, afterState: MatchState) {
         val turnBefore = beforeMatch.turn
         val actorBefore = beforeMatch.activePlayer
-        viewModelScope.launch {
-            gameRepository.recordTurnFinished(
-                matchUuid = afterState.matchId,
-                turnNumber = turnBefore.turnNumber,
-                actorType = actorBefore.type,
-                finalTurnPoints = afterState.turn.totalTurnPointsWithSelection,
-                hotDiceInTurn = afterState.turn.hotDiceCountInTurn + 1,
-                usedPiggyback = afterState.turn.usedPiggyback,
-                rollsInTurn = afterState.turn.rollIndexInTurn
-            )
-            gameRepository.recordMatchFinished(afterState)
+        val turnNotifications = gameRepository.recordTurnFinished(
+            matchUuid = afterState.matchId,
+            turnNumber = turnBefore.turnNumber,
+            actorType = actorBefore.type,
+            finalTurnPoints = afterState.turn.totalTurnPointsWithSelection,
+            hotDiceInTurn = afterState.turn.hotDiceCountInTurn + 1,
+            usedPiggyback = afterState.turn.usedPiggyback,
+            wasOpeningTurn = !actorBefore.isOpened
+        )
+        val matchNotifications = gameRepository.recordMatchFinished(afterState)
+        handleAchievementNotifications(turnNotifications + matchNotifications)
+    }
+
+    private suspend fun handleAchievementNotifications(
+        notifications: List<AchievementUnlockNotification>
+    ) {
+        if (notifications.isEmpty()) return
+        val highlighted = notifications.firstOrNull { it.isFirstUnlock } ?: notifications.first()
+        toastDismissJob?.cancel()
+        _uiState.update { it.copy(latestAchievementToast = highlighted) }
+        toastDismissJob = viewModelScope.launch {
+            delay(4500L)
+            _uiState.update { current ->
+                if (current.latestAchievementToast == highlighted) {
+                    current.copy(latestAchievementToast = null)
+                } else {
+                    current
+                }
+            }
         }
+        val allProgress = gameRepository.getAllAchievementsProgress()
+        playGamesService.syncAchievementsToPlayGames(allProgress)
     }
 
     private fun applyEngineResult(
@@ -565,6 +690,7 @@ class GameViewModel(
 
     override fun onCleared() {
         botTurnJob?.cancel()
+        toastDismissJob?.cancel()
         entropyCollector.stopListening()
     }
 }

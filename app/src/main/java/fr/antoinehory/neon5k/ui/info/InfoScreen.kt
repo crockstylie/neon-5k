@@ -384,7 +384,7 @@ private fun openPlayStoreListing(context: Context) {
 private fun openDeveloperApps(context: Context) {
     val marketIntent = Intent(
         Intent.ACTION_VIEW,
-        Uri.parse("market://search?q=pub:Antoine%20Crock%20HORY")
+        Uri.parse("market://search?q=pub:Crock")
     ).apply {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
@@ -393,7 +393,7 @@ private fun openDeveloperApps(context: Context) {
     } catch (_: ActivityNotFoundException) {
         val webIntent = Intent(
             Intent.ACTION_VIEW,
-            Uri.parse("https://antoinehory.fr")
+            Uri.parse("https://play.google.com/store/search?q=pub:Crock&c=apps")
         ).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }

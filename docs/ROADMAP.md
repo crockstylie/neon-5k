@@ -58,13 +58,13 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
 ---
 
 ## Lot 4 : Intégration Google Play Jeux (PGS v2), 20 Succès (Compteurs Infinis & Assets Pixel Art) & Télémétrie Fun
-- [ ] Ajout de `com.google.android.gms:play-services-games-v2` dans `libs.versions.toml`
-- [ ] Enrichissement de `PlayerStatsEntity` et `StatsScreen` (onglets **Télémétrie & Fun Stats** / **Succès & Badges** / **Dataset IA**) :
+- [x] Ajout de `com.google.android.gms:play-services-games-v2` dans `libs.versions.toml`
+- [x] Enrichissement de `PlayerStatsEntity` et `StatsScreen` (onglets **Télémétrie & Fun Stats** / **Succès & Badges** / **Dataset IA**) :
     - **Entropie & Capteurs** : lancers totaux, dés individuels jetés, lancers par secousse physique, durée cumulée d'appui tactile, histogramme de distribution des faces `1..6` (vérification d'équité SHA-256)
     - **Brelans & Combinaisons** : total des brelans et détail par face (Brelans d'As, de 2, de 3, de 4, de 5, de 6), carrés, quintes, suites, 3 paires, fulls, As et 5 isolés
     - **Prise de risque & Psychologie** : points cumulés banqués vs points perdus en Glitch, pire crash en un tour, mains pleines, repiquages réussis, chapeaux infligés vs subis, pénalités 3 coups nuls
     - **Bilan vs IA** : victoires/défaites détaillées contre *Safe Runner*, *Cyber Balanced* et *Overclock Kamikaze*
-- [ ] Système de **20 Succès avec comptage continu post-déverrouillage** (`AchievementEntity` + `AchievementEvaluator`) :
+- [x] Système de **20 Succès avec comptage continu post-déverrouillage** (`AchievementEntity` + `AchievementEvaluator`) :
     - Chaque succès conserve `currentCount` qui **continue de s'incrémenter indéfiniment** même après `isUnlocked = true` (affichage du palier + compteur total à vie `Total : ×N` et rangs de maîtrise locaux *Bronze / Argent / Or / Cyber-Platine*)
     1. *First Boot* — Réussir son ouverture (palier : `1`, compteur : total d'ouvertures)
     2. *High Voltage Opening* — Ouvrir avec `>= 1 500 pts` en un seul tour (palier : `1`, compteur : total)
@@ -86,11 +86,11 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
     18. *Headshot* — Écraser le score d'un adversaire avec la variante Chapeau (palier : `1`, compteur : total de chapeaux infligés)
     19. *Beat the Machine* — Battre l'IA *Overclock Kamikaze* (palier : `1`, compteur : total de victoires vs Kamikaze)
     20. *Entropy Master* — Jouer 50 parties complètes (palier : `50`, compteur : total de parties terminées) + *Shake It Off* (25 lancers à la secousse)
-- [ ] Création des **assets visuels Pixel Art Cyberpunk** pour les 20 icônes de succès :
+- [x] Création des **assets visuels Pixel Art Cyberpunk** pour les 20 icônes de succès :
     - `VectorDrawable` XML ou grilles `16×16` dans l'application (affichés en couleur néon si débloqué, wireframe grisé si verrouillé)
     - Générateur/exporteur des 20 icônes au format `512 × 512 px` PNG prêtes à téléverser dans la Google Play Console (`docs/PLAY_GAMES_ACHIEVEMENTS.md`)
-- [ ] Implémentation de `PlayGamesService` et `GooglePlayGamesService` (authentification silencieuse + `AchievementsClient.unlock()` / `setSteps()`)
-- [ ] Tests unitaires JVM de `AchievementEvaluator` (vérifiant le déblocage ET l'incrémentation continue au-delà du seuil)
+- [x] Implémentation de `PlayGamesService` et `GooglePlayGamesService` (authentification silencieuse + `AchievementsClient.unlock()` / `setSteps()`)
+- [x] Tests unitaires JVM de `AchievementEvaluator` (vérifiant le déblocage ET l'incrémentation continue au-delà du seuil)
 
 ---
 

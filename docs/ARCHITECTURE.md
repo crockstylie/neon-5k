@@ -179,9 +179,18 @@ fr.antoinehory.neon5k/
 | `app/src/main/res/drawable/ic_*_logo.xml` | 6 icônes vectorielles XML de réseaux sociaux (`linkedin`, `behance`, `instagram`, `facebook`, `spotify`, `steam`) | Actif |
 | `app/src/main/res/xml/locales_config.xml` | Déclaration des 4 langues supportées (`fr`, `en`, `es`, `pt`) pour Android 13+ | Actif |
 | `app/src/main/res/values-*/strings.xml` | Ressources traduites en 4 langues (`values`, `values-fr`, `values-en`, `values-es`, `values-pt`) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/domain/achievement/AchievementDefinition.kt` | Catalogue immuable des 20 succès (1 000 XP, paliers, matrices Pixel Art `16×16`, rangs de maîtrise) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/domain/achievement/AchievementEvaluator.kt` | Évaluateur pur des 20 succès à comptage infini post-déverrouillage (`lifetimeCount`) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/AchievementEntity.kt` | Entité Room d'un succès (`progressSteps`, `lifetimeCount` infini, `masteryRankOrdinal`, `syncedWithPlayGames`) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/dao/AchievementDao.kt` | DAO Room des 20 succès | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/playgames/PlayGamesService.kt` | Intégration Google Play Jeux v2 (`PlayGamesSdk`, auth silencieuse, `unlock`/`setSteps`, UI native) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/components/PixelAchievementIconCanvas.kt` | Badge Pixel Art `16×16` des succès + bannière toast néon `AchievementToastBanner` en partie | Actif |
+| `app/src/main/res/values/games-ids.xml` | Identifiants Google Play Console (`game_services_project_id` + 20 IDs `achievement_*`) | Actif |
+| `docs/PLAY_GAMES_ACHIEVEMENTS.md` | Guide pas-à-pas de déclaration des 20 succès dans Google Play Console + barème 1 000 XP | Actif |
+| `docs/play_console_achievements_icons/*.png` | 20 icônes PNG `512 × 512 px` générées automatiquement pour la Google Play Console | Actif |
 | `app/src/test/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicyTest.kt` | Tests unitaires JVM de `RollProbabilityTable` et `HeuristicBotPolicy` | Actif |
+| `app/src/test/java/fr/antoinehory/neon5k/domain/achievement/AchievementEvaluatorTest.kt` | Tests unitaires JVM de `AchievementEvaluator` et générateur des 20 icônes PNG `512 × 512 px` | Actif |
 | `app/src/androidTest/java/fr/antoinehory/neon5k/data/local/NeonDatabaseInstrumentedTest.kt` | Tests instrumentés Room (`MatchDao` & `DecisionLogDao`) | Actif |
-| `data/playgames/*` | Intégration Google Play Jeux v2 & succès (Lot 4) | À créer |
 | `data/multiplayer/NearbyTransport.kt` | Multijoueur local sans Internet via Nearby Connections (Lot 5) | À créer |
 | `data/multiplayer/FirebaseRtdbTransport.kt` | Multijoueur en ligne & sync dataset IA opt-in via Firebase RTDB (Lot 6) | À créer |
 

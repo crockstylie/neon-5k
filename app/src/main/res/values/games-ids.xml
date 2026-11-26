@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Identifiants Google Play Games Services v2 (PGS v2).
+  Remplacer `game_services_project_id` et les `CgkI...` par les identifiants générés
+  dans la Google Play Console (Services de jeux Play > Configurer > Succès > Obtenir les ressources).
+-->
+<resources>
+    <string name="game_services_project_id" translatable="false">000000000000</string>
+
+    <string name="achievement_first_boot" translatable="false">CgkI_placeholder_01_first_boot</string>
+    <string name="achievement_high_voltage_opening" translatable="false">CgkI_placeholder_02_high_voltage_opening</string>
+    <string name="achievement_triple_ace_protocol" translatable="false">CgkI_placeholder_03_triple_ace_protocol</string>
+    <string name="achievement_brelan_collector" translatable="false">CgkI_placeholder_04_brelan_collector</string>
+    <string name="achievement_quad_core" translatable="false">CgkI_placeholder_05_quad_core</string>
+    <string name="achievement_five_of_a_kind" translatable="false">CgkI_placeholder_06_five_of_a_kind</string>
+    <string name="achievement_straight_runner" translatable="false">CgkI_placeholder_07_straight_runner</string>
+    <string name="achievement_twin_matrix" translatable="false">CgkI_placeholder_08_twin_matrix</string>
+    <string name="achievement_full_house_cyber" translatable="false">CgkI_placeholder_09_full_house_cyber</string>
+    <string name="achievement_hot_dice" translatable="false">CgkI_placeholder_10_hot_dice</string>
+    <string name="achievement_full_overclock" translatable="false">CgkI_placeholder_11_full_overclock</string>
+    <string name="achievement_one_die_miracle" translatable="false">CgkI_placeholder_12_one_die_miracle</string>
+    <string name="achievement_system_crash" translatable="false">CgkI_placeholder_13_system_crash</string>
+    <string name="achievement_three_strikes_out" translatable="false">CgkI_placeholder_14_three_strikes_out</string>
+    <string name="achievement_pixel_perfect_5000" translatable="false">CgkI_placeholder_15_pixel_perfect_5000</string>
+    <string name="achievement_overkill_turn" translatable="false">CgkI_placeholder_16_overkill_turn</string>
+    <string name="achievement_hijacker" translatable="false">CgkI_placeholder_17_hijacker</string>
+    <string name="achievement_headshot" translatable="false">CgkI_placeholder_18_headshot</string>
+    <string name="achievement_beat_the_machine" translatable="false">CgkI_placeholder_19_beat_the_machine</string>
+    <string name="achievement_entropy_master" translatable="false">CgkI_placeholder_20_entropy_master</string>
+</resources>

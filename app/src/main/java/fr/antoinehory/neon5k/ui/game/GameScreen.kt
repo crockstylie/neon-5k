@@ -116,8 +116,15 @@ fun GameScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 1. Zone Haute (Lecture seule) : Barre supérieure + Tableau des scores + Statut & Pot du tour
+        // 1. Zone Haute (Lecture seule) : Barre supérieure + Toast Succès + Tableau des scores + Statut & Pot du tour
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (uiState.latestAchievementToast != null) {
+                fr.antoinehory.neon5k.ui.components.AchievementToastBanner(
+                    notification = uiState.latestAchievementToast,
+                    onDismiss = { onEvent(GameUiEvent.DismissAchievementToast) }
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

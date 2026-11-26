@@ -51,6 +51,8 @@ fun NeonNavHost(
     val uiState by gameViewModel.uiState.collectAsStateWithLifecycle()
     val preferences by gameViewModel.preferencesState.collectAsStateWithLifecycle()
     val playerStats by gameViewModel.playerStatsState.collectAsStateWithLifecycle()
+    val achievements by gameViewModel.achievementsState.collectAsStateWithLifecycle()
+    val playGamesStatus by gameViewModel.playGamesStatusState.collectAsStateWithLifecycle()
     val decisionLogsCount by gameViewModel.decisionLogsCountState.collectAsStateWithLifecycle()
 
     var destination by rememberSaveable { mutableStateOf(NeonDestination.HOME) }
@@ -135,8 +137,11 @@ fun NeonNavHost(
                 NeonDestination.STATS -> {
                     StatsScreen(
                         stats = playerStats,
+                        achievements = achievements,
+                        playGamesStatus = playGamesStatus,
                         decisionLogsCount = decisionLogsCount,
                         exportStatusMessageFr = uiState.exportStatusMessageFr,
+                        onOpenPlayGamesAchievements = gameViewModel::openPlayGamesAchievements,
                         onExportDataset = gameViewModel::exportAiDataset,
                         onClearDataset = gameViewModel::clearAiDataset,
                         onBack = { destination = NeonDestination.HOME }
