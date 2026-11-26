@@ -124,7 +124,8 @@ fun PixelDiceCanvas(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     dieSize: Dp = 64.dp,
-    styleOverride: DiceVisualStyle? = null
+    styleOverride: DiceVisualStyle? = null,
+    alwaysClickable: Boolean = false
 ) {
     val colors = LocalNeon5KColors.current
     val style = styleOverride ?: colors.diceStyle
@@ -220,7 +221,7 @@ fun PixelDiceCanvas(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                enabled = !die.isLocked && die.canScoreOnCurrentRoll,
+                enabled = alwaysClickable || (!die.isLocked && die.canScoreOnCurrentRoll),
                 role = Role.Button,
                 onClick = onClick
             ),

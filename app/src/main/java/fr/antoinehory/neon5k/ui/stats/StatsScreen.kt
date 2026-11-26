@@ -241,15 +241,25 @@ private fun FunTelemetryTabContent(stats: PlayerStatsEntity) {
         borderColor = colors.secondaryNeon.copy(alpha = 0.65f)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = "BRELANS & COMBINAISONS",
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.secondaryNeon
+            )
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.background.copy(alpha = 0.55f), CyberCutShape)
+                    .border(1.dp, colors.primaryNeon.copy(alpha = 0.25f), CyberCutShape)
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "BRELANS & COMBINAISONS",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.secondaryNeon
+                    text = "Brelan Collector : ${stats.distinctTripleFacesCount}/6 faces",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textMuted
                 )
                 Text(
                     text = "TOTAL BRELANS : ×${stats.totalTriplesCount}",
@@ -258,12 +268,6 @@ private fun FunTelemetryTabContent(stats: PlayerStatsEntity) {
                     color = colors.primaryNeon
                 )
             }
-
-            Text(
-                text = "Collection Brelan Collector : ${stats.distinctTripleFacesCount}/6 faces débloquées",
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.textMuted
-            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -289,7 +293,7 @@ private fun FunTelemetryTabContent(stats: PlayerStatsEntity) {
             TelemetryKeyValueRow("Suites (1-5 ou 2-6)", "×${stats.straightCount}", colors.secondaryNeon)
             TelemetryKeyValueRow("3 Paires (variante 6 dés)", "×${stats.threePairsCount}", colors.primaryNeon)
             TelemetryKeyValueRow("Fulls avec bonus (Brelan + Paire)", "×${stats.fullHouseCount}", colors.secondaryNeon)
-            TelemetryKeyValueRow("As isolés / Cinq isolés tirés", "${stats.singleOnesCount} As  •  ${stats.singleFivesCount} Cinq", colors.textPrimary)
+            TelemetryKeyValueRow("As isolés / Cinq isolés tirés", "${stats.singleOnesCount} As • ${stats.singleFivesCount} Cinq", colors.textPrimary)
         }
     }
 
@@ -318,7 +322,7 @@ private fun FunTelemetryTabContent(stats: PlayerStatsEntity) {
                 valueColor = colors.primaryNeon
             )
             TelemetryKeyValueRow(
-                label = "Points totaux partis en fumée (Glitch)",
+                label = "Points partis en fumée (Glitch)",
                 value = "${stats.totalPointsLostToBusts} pts (${stats.totalBustsCount} crashs)",
                 valueColor = colors.alertNeon
             )
@@ -339,11 +343,11 @@ private fun FunTelemetryTabContent(stats: PlayerStatsEntity) {
             )
             TelemetryKeyValueRow(
                 label = "Chapeaux infligés vs subis",
-                value = "${stats.bumpsInflictedCount} infligés  •  ${stats.bumpsSufferedCount} subis",
+                value = "${stats.bumpsInflictedCount} infligés • ${stats.bumpsSufferedCount} subis",
                 valueColor = colors.secondaryNeon
             )
             TelemetryKeyValueRow(
-                label = "Pénalités / Reculs de palier (3 Encoches ✕✕✕)",
+                label = "Pénalités / Reculs (3 Encoches ✕✕✕)",
                 value = "×${stats.threeStrikesPenaltiesCount}",
                 valueColor = colors.alertNeon
             )
@@ -361,12 +365,12 @@ private fun FunTelemetryTabContent(stats: PlayerStatsEntity) {
 
             val pressSeconds = stats.totalTouchPressDurationMs / 1000.0
             TelemetryKeyValueRow(
-                label = "Lancers effectués (Dés individuels jetés)",
+                label = "Lancers effectués (Dés jetés)",
                 value = "${stats.totalRollsCount} lancers (${stats.totalIndividualDiceThrown} dés)",
                 valueColor = colors.textPrimary
             )
             TelemetryKeyValueRow(
-                label = "Lancers déclenchés à la secousse physique",
+                label = "Lancers à la secousse physique",
                 value = "×${stats.shakeRollsCount}",
                 valueColor = colors.secondaryNeon
             )
@@ -465,24 +469,16 @@ private fun AchievementsTabContent(
         borderColor = colors.alertNeon
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "PROGRESSION : $unlockedCount / ${achievements.size} SUCCÈS",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = colors.primaryNeon
-                    )
-                    Text(
-                        text = "$earnedXp / 1 000 XP PLAY JEUX • TOTAL OCCURRENCES : ×$totalLifetimeTriggers",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.alertNeon
-                    )
-                }
-            }
+            Text(
+                text = "PROGRESSION : $unlockedCount / ${achievements.size} SUCCÈS",
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.primaryNeon
+            )
+            Text(
+                text = "$earnedXp / 1 000 XP PLAY JEUX • TOTAL OCCURRENCES : ×$totalLifetimeTriggers",
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.alertNeon
+            )
 
             Text(
                 text = "Les compteurs de Neon 5K ne s'arrêtent jamais après le déverrouillage : continuez à cumuler chaque exploit pour faire évoluer vos badges du rang BRONZE jusqu'au rang CYBER-PLATINE !",
@@ -505,7 +501,7 @@ private fun AchievementsTabContent(
             }
 
             PixelButton(
-                text = "GOOGLE PLAY JEUX // VOIR LES SUCCÈS CLOUD",
+                text = "PLAY JEUX // VOIR LES SUCCÈS CLOUD",
                 onClick = onOpenPlayGamesAchievements,
                 filled = false,
                 accentColor = colors.primaryNeon,
@@ -537,7 +533,7 @@ private fun AchievementCard(progress: AchievementProgress) {
         MasteryRank.LOCKED -> "Déblocage : ${progress.progressSteps}/${def.targetSteps}"
         MasteryRank.BRONZE -> "Prochain rang ARGENT à ×${def.silverThreshold}"
         MasteryRank.SILVER -> "Prochain rang OR à ×${def.goldThreshold}"
-        MasteryRank.GOLD -> "Prochain rang CYBER-PLATINE à ×${def.platinumThreshold}"
+        MasteryRank.GOLD -> "Prochain rang PLATINE à ×${def.platinumThreshold}"
         MasteryRank.CYBER_PLATINUM -> "RANG MAXIMAL ATTEINT ★"
     }
 
@@ -559,7 +555,7 @@ private fun AchievementCard(progress: AchievementProgress) {
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -569,13 +565,14 @@ private fun AchievementCard(progress: AchievementProgress) {
                     Text(
                         text = def.titleFr,
                         style = MaterialTheme.typography.titleMedium,
-                        color = if (progress.isUnlocked) colors.textPrimary else colors.textMuted
+                        color = if (progress.isUnlocked) colors.textPrimary else colors.textMuted,
+                        modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = "+${def.playGamesXp} XP",
+                        text = "+${def.playGamesXp} XP • ×${progress.lifetimeCount}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (progress.isUnlocked) colors.alertNeon else colors.textMuted
+                        color = if (progress.isUnlocked) colors.alertNeon else colors.secondaryNeon
                     )
                 }
 
@@ -585,24 +582,12 @@ private fun AchievementCard(progress: AchievementProgress) {
                     color = colors.textMuted
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "[${rank.labelFr}] • $nextRankHint",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = rankColor
-                    )
-                    Text(
-                        text = "TOTAL À VIE : ×${progress.lifetimeCount}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (progress.lifetimeCount > 0) colors.secondaryNeon else colors.textMuted
-                    )
-                }
+                Text(
+                    text = "[${rank.labelFr}] • $nextRankHint",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = rankColor
+                )
             }
         }
     }
@@ -622,20 +607,26 @@ private fun AiDatasetTabContent(
         borderColor = colors.secondaryNeon.copy(alpha = 0.65f)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = "DATASET D'ENTRAÎNEMENT IA",
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.secondaryNeon
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.background.copy(alpha = 0.6f), CyberCutShape)
+                    .border(1.dp, colors.primaryNeon.copy(alpha = 0.35f), CyberCutShape)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "DATASET D'ENTRAÎNEMENT IA",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.secondaryNeon
-                )
-                Text(
-                    text = "$decisionLogsCount DÉCISIONS",
+                    text = "$decisionLogsCount DÉCISIONS ENREGISTRÉES",
                     style = MaterialTheme.typography.titleMedium,
-                    color = colors.primaryNeon
+                    fontWeight = FontWeight.Bold,
+                    color = colors.primaryNeon,
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -658,7 +649,7 @@ private fun AiDatasetTabContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 PixelButton(
-                    text = "EXPORTER .JSONL",
+                    text = "EXPORT .JSONL",
                     enabled = decisionLogsCount > 0,
                     onClick = onLaunchJsonl,
                     accentColor = colors.primaryNeon,
@@ -666,7 +657,7 @@ private fun AiDatasetTabContent(
                 )
 
                 PixelButton(
-                    text = "EXPORTER .CSV",
+                    text = "EXPORT .CSV",
                     enabled = decisionLogsCount > 0,
                     onClick = onLaunchCsv,
                     accentColor = colors.secondaryNeon,
@@ -761,22 +752,26 @@ private fun TelemetryKeyValueRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .background(colors.background.copy(alpha = 0.55f), CyberCutShape)
+            .border(1.dp, valueColor.copy(alpha = 0.20f), CyberCutShape)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = colors.textMuted,
-            modifier = Modifier.weight(1f)
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1.15f)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = valueColor,
-            textAlign = TextAlign.End
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(0.85f)
         )
     }
 }
+

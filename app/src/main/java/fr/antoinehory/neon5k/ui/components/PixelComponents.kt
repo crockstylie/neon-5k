@@ -26,6 +26,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import fr.antoinehory.neon5k.domain.model.EntropySnapshot
@@ -64,13 +66,17 @@ fun PixelButton(
                 disabledContainerColor = colors.surface.copy(alpha = 0.4f),
                 disabledContentColor = colors.textMuted.copy(alpha = 0.4f)
             ),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
             modifier = modifier
         ) {
             Text(
                 text = text.uppercase(),
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
         }
     } else {
@@ -86,12 +92,16 @@ fun PixelButton(
                 contentColor = accentColor,
                 disabledContentColor = colors.textMuted.copy(alpha = 0.4f)
             ),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             modifier = modifier
         ) {
             Text(
                 text = text.uppercase(),
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
         }
     }

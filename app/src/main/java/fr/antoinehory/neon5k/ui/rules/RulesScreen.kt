@@ -2,6 +2,7 @@ package fr.antoinehory.neon5k.ui.rules
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -51,8 +52,8 @@ import kotlin.random.Random
 
 /**
  * Écran Codex des règles du 5000 avec Simulateur Interactif de Barème Pixel Art (Lot 3).
- * Permet de manipuler 5 ou 6 dés en temps réel pour visualiser les combinaisons détectées par [DiceScorer]
- * selon les variantes actives, et détaille toutes les règles officielles et variantes (dont les Paliers & 3 Encoches `✕`).
+ * Permet de manipuler 5 ou 6 dés en temps réel (en touchant n'importe quel dé pour faire défiler sa face de 1 à 6)
+ * afin de visualiser instantanément les combinaisons détectées par [DiceScorer] selon les variantes actives.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -70,6 +71,9 @@ fun RulesScreen(
     }
 
     val currentFaces = simulatorFaces.take(simulatedRules.diceCount)
+    val bestSubsetIndices = remember(currentFaces, simulatedRules) {
+        DiceScorer.findBestValidSubsetIndices(currentFaces, simulatedRules)
+    }
     val scoringIndices = remember(currentFaces, simulatedRules) {
         DiceScorer.findScoringDieIndices(currentFaces, simulatedRules)
     }
@@ -120,20 +124,20 @@ fun RulesScreen(
                     color = colors.primaryNeon
                 )
                 Text(
-                    text = stringResource(R.string.rules_simulator_hint),
+                    text = "Touchez n'importe quel dé (même grisé) pour changer sa face (1 → 6) et voir le score calculé en direct :",
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.textMuted,
                     textAlign = TextAlign.Center
                 )
 
                 // Sélecteur rapide de preset pour le simulateur
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf(
-                        RulesPreset.CLASSIC_5_DICE to "5 Dés Classique",
-                        RulesPreset.VARIANT_6_DICE to "6 Dés (3 Paires/Full)"
+                        RulesPreset.CLASSIC_5_DICE to "5 DÉS CLASSIQUE",
+                        RulesPreset.VARIANT_6_DICE to "6 DÉS (3 PAIRES/FULL)"
                     ).forEach { (preset, label) ->
                         val selected = simulatedRules.preset == preset &&
                             simulatedRules.diceCount == GameRulesConfig.fromPreset(preset).diceCount
@@ -141,44 +145,81 @@ fun RulesScreen(
                             text = label,
                             filled = selected,
                             accentColor = if (selected) colors.secondaryNeon else colors.textMuted,
-                            onClick = { simulatedRules = GameRulesConfig.fromPreset(preset) }
-                        )
-                    }
-                    if (activeRules.preset == RulesPreset.CUSTOM) {
-                        val isCustom = simulatedRules == activeRules
-                        PixelButton(
-                            text = "Mes Règles (${activeRules.diceCount}D)",
-                            filled = isCustom,
-                            accentColor = if (isCustom) colors.primaryNeon else colors.textMuted,
-                            onClick = { simulatedRules = activeRules }
+                            onClick = { simulatedRules = GameRulesConfig.fromPreset(preset) },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
+                if (activeRules.preset == RulesPreset.CUSTOM) {
+                    val isCustom = simulatedRules == activeRules
+                    PixelButton(
+                        text = "MES RÈGLES PERSONNALISÉES (${activeRules.diceCount} DÉS)",
+                        filled = isCustom,
+                        accentColor = if (isCustom) colors.primaryNeon else colors.textMuted,
+                        onClick = { simulatedRules = activeRules },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
-                // Ligne de dés Pixel Art cliquables (1..6)
-                FlowRow(
+                // Grille de dés Pixel Art toujours cliquables (1 ligne de 5 dés, ou 2 lignes de 3 dés en mode 6 dés)
+                val isSixDice = currentFaces.size == 6
+                val indexedFaces = currentFaces.mapIndexed { idx, face -> idx to face }
+                val rowsOfIndexedDice = if (isSixDice) {
+                    indexedFaces.chunked(3)
+                } else {
+                    listOf(indexedFaces)
+                }
+
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    currentFaces.forEachIndexed { idx, face ->
-                        val isScoring = idx in scoringIndices
-                        PixelDiceCanvas(
-                            die = DieState(
-                                index = idx,
-                                face = face,
-                                isLocked = false,
-                                isSelected = isScoring,
-                                canScoreOnCurrentRoll = isScoring
-                            ),
-                            rollTrigger = rollAnimationTick,
-                            onClick = {
-                                simulatorFaces[idx] = (face % 6) + 1
-                            },
-                            dieSize = 54.dp
-                        )
+                    rowsOfIndexedDice.forEach { rowItems ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(if (isSixDice) 16.dp else 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            rowItems.forEach { (idx, face) ->
+                                val isInBestCombo = idx in bestSubsetIndices
+                                val canScore = idx in scoringIndices
+                                val cycleDieFace = {
+                                    simulatorFaces[idx] = (face % 6) + 1
+                                }
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                                    modifier = Modifier.clickable { cycleDieFace() }
+                                ) {
+                                    PixelDiceCanvas(
+                                        die = DieState(
+                                            index = idx,
+                                            face = face,
+                                            isLocked = false,
+                                            isSelected = isInBestCombo,
+                                            canScoreOnCurrentRoll = canScore
+                                        ),
+                                        rollTrigger = rollAnimationTick,
+                                        onClick = cycleDieFace,
+                                        dieSize = if (isSixDice) 58.dp else 52.dp,
+                                        alwaysClickable = true
+                                    )
+                                    Text(
+                                        text = if (isInBestCombo) "[$face] ★" else "[$face] ↻",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (isInBestCombo) FontWeight.Bold else FontWeight.Normal,
+                                        color = when {
+                                            isInBestCombo -> colors.secondaryNeon
+                                            canScore -> colors.primaryNeon
+                                            else -> colors.textMuted
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -188,7 +229,7 @@ fun RulesScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     PixelButton(
-                        text = "ALÉATOIRE",
+                        text = "TIRAGE ALÉATOIRE",
                         filled = false,
                         accentColor = colors.primaryNeon,
                         onClick = {
@@ -230,7 +271,7 @@ fun RulesScreen(
                 }
 
                 // Résultat d'évaluation en direct
-                val isHotDice = scoringIndices.size == simulatedRules.diceCount && evaluation.totalPoints > 0
+                val isHotDice = bestSubsetIndices.size == simulatedRules.diceCount && evaluation.totalPoints > 0
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -260,7 +301,7 @@ fun RulesScreen(
                     val combosLabel = if (evaluation.combinations.isEmpty()) {
                         "Aucun As, aucun 5, ni combinaison valide sur ce tirage."
                     } else {
-                        evaluation.combinations.joinToString(" + ") { "${it.labelFr} (${it.points})" }
+                        evaluation.combinations.joinToString(" + ") { "${it.labelFr} (${it.points} pts)" }
                     }
                     Text(
                         text = combosLabel,
@@ -364,25 +405,25 @@ fun PaytableSectionPanel(
             )
             PaytableRow("As isolé (1)", "100 pts")
             PaytableRow("Cinq isolé (5)", "50 pts")
-            PaytableRow("Brelan d'As (3 × 1 en un lancer)", "1 000 pts")
-            PaytableRow("Brelan de 2 à 6 (3 × N en un lancer)", "N × 100 pts (200 à 600)")
+            PaytableRow("Brelan d'As (3 × 1)", "1 000 pts")
+            PaytableRow("Brelan de 2 à 6 (3 × N)", "200 à 600 pts (N×100)")
             PaytableRow(
-                label = "Carré (4 identiques en un lancer)",
+                label = "Carré (4 identiques)",
                 value = when (rules.fourOfAKindMode) {
-                    FourOfAKindMode.DOUBLE_TRIPLE -> "Brelan × 2 (ex: 4×As = 2 000)"
-                    FourOfAKindMode.DISABLED -> "Désactivé (compté en Brelan)"
+                    FourOfAKindMode.DOUBLE_TRIPLE -> "Brelan × 2 (ex: 2 000)"
+                    FourOfAKindMode.DISABLED -> "Désactivé (Brelan simple)"
                 }
             )
             PaytableRow(
-                label = "Quinte (5 identiques en un lancer)",
+                label = "Quinte (5 identiques)",
                 value = when (rules.fiveOfAKindMode) {
-                    FiveOfAKindMode.QUAD_TRIPLE -> "Brelan × 4 (ex: 5×As = 4 000)"
-                    FiveOfAKindMode.INSTANT_WIN_ON_ONES -> "5×As = VICTOIRE • Autres = Brelan × 4"
-                    FiveOfAKindMode.DISABLED -> "Désactivé"
+                    FiveOfAKindMode.QUAD_TRIPLE -> "Brelan × 4 (ex: 4 000)"
+                    FiveOfAKindMode.INSTANT_WIN_ON_ONES -> "5×As = VICTOIRE / ×4"
+                    FiveOfAKindMode.DISABLED -> "Désactivée"
                 }
             )
             PaytableRow(
-                label = "Suite (1-2-3-4-5 ou 2-3-4-5-6)",
+                label = "Suite (1..5 ou 2..6)",
                 value = if (rules.straightScore > 0) "${rules.straightScore} pts" else "Désactivée"
             )
             if (rules.diceCount == 6) {
@@ -392,7 +433,7 @@ fun PaytableSectionPanel(
                 )
             }
             PaytableRow(
-                label = "Bonus Full (Brelan + Paire distincte)",
+                label = "Bonus Full (Brelan + Paire)",
                 value = if (rules.fullHouseBonus > 0) "Brelan + ${rules.fullHouseBonus} pts" else "Désactivé"
             )
             PaytableRow(
@@ -401,16 +442,16 @@ fun PaytableSectionPanel(
                     ThreeStrikesMode.DISABLED -> "Aucune"
                     ThreeStrikesMode.MINUS_500 -> "-500 pts"
                     ThreeStrikesMode.MINUS_1000 -> "-1 000 pts"
-                    ThreeStrikesMode.REVERT_TO_PREVIOUS_CLEAR_STRIKES -> "Recul palier préc. (0 ✕)"
-                    ThreeStrikesMode.REVERT_TO_PREVIOUS_PERSIST_STRIKES -> "Recul palier préc. (mémoire ✕)"
+                    ThreeStrikesMode.REVERT_TO_PREVIOUS_CLEAR_STRIKES -> "Palier préc. (0 ✕)"
+                    ThreeStrikesMode.REVERT_TO_PREVIOUS_PERSIST_STRIKES -> "Palier préc. (mémoire ✕)"
                 }
             )
             PaytableRow(
                 label = "Chapeau / Écrasement",
                 value = when (rules.bumpOpponentMode) {
                     BumpOpponentMode.DISABLED -> "Désactivé"
-                    BumpOpponentMode.MINUS_500 -> "-500 pts à l'adversaire égalisé"
-                    BumpOpponentMode.RESET_TO_PREVIOUS -> "Adversaire renvoyé au palier préc."
+                    BumpOpponentMode.MINUS_500 -> "-500 pts à l'égalisé"
+                    BumpOpponentMode.RESET_TO_PREVIOUS -> "Retour palier préc."
                 }
             )
         }
@@ -423,22 +464,25 @@ private fun PaytableRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .background(colors.background.copy(alpha = 0.55f), CyberCutShape)
+            .border(1.dp, colors.primaryNeon.copy(alpha = 0.18f), CyberCutShape)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = colors.textMuted,
-            modifier = Modifier.weight(1f)
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1.1f)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = colors.secondaryNeon,
-            textAlign = TextAlign.End
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(0.9f)
         )
     }
 }

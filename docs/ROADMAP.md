@@ -96,13 +96,13 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
 
 ## Lot 5 : Multijoueur Local sans Internet (Google Nearby Connections)
 - [ ] Ajout de `com.google.android.gms:play-services-nearby` dans `libs.versions.toml`
-- [ ] Définition de l'interface commune `MultiplayerTransport` et des messages sérialisés (`kotlinx.serialization`)
+- [ ] Définition de l'interface commune `MultiplayerTransport` et des messages sérialisés
 - [ ] Implémentation de `NearbyTransport` en topologie étoile (`Strategy.P2P_STAR`) :
-    - Mode Hôte (advertise du salon + arbitrage via `FiveThousandEngine` + diffusion de `MatchSnapshot`)
-    - Mode Client (discovery + connexion par nom de salon + envoi des actions et de la trace d'entropie)
+    - Mode Hôte (advertise du salon + vérification PIN Néon `authenticationDigits` + arbitrage via `FiveThousandEngine` + diffusion de `MatchSnapshot`)
+    - Mode Client (discovery + connexion par nom de salon + lancer physique local avec `SensorEntropyCollector` et envoi de la preuve d'entropie `SHA-256` à la table)
 - [ ] Gestion pédagogique des permissions Android 10–16 (`BLUETOOTH_*`, `NEARBY_WIFI_DEVICES`, `ACCESS_FINE_LOCATION` API 29–30) uniquement à l'entrée du mode local
-- [ ] Écran `LobbyScreen` (création/recherche de salon local, liste des joueurs prêts, aperçu des variantes choisies par l'hôte)
-- [ ] Gestion de la reconnexion courte et passage en mode contrôle local/bot en cas de départ d'un joueur
+- [ ] Écran `LobbyScreen` (création/recherche de salon local, code PIN Néon à 4 chiffres, liste des joueurs prêts, synchronisation en direct du « Manifeste des Règles » choisi par l'hôte)
+- [ ] Tolérance aux micro-coupures : reconnexion transparente ou remplacement à chaud d'un joueur déconnecté par un Bot IA (*Cyber Balanced*) ou reprise de contrôle sur l'écran Hôte
 
 ---
 

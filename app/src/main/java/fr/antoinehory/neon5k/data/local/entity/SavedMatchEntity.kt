@@ -195,8 +195,9 @@ fun SavedMatchEntity.toDomain(): MatchState {
     }
 
     val turnObj = JSONObject(turnJson)
+    val phase = TurnPhase.valueOf(turnObj.optString("phase", TurnPhase.AWAITING_INITIAL_ROLL.name))
     val diceArr = turnObj.getJSONArray("dice")
-    val dice = List(diceArr.length()) { idx ->
+    val rawDice = List(diceArr.length()) { idx ->
         val d = diceArr.getJSONObject(idx)
         DieState(
             index = d.getInt("index"),
@@ -205,6 +206,29 @@ fun SavedMatchEntity.toDomain(): MatchState {
             isSelected = d.optBoolean("isSelected", false),
             canScoreOnCurrentRoll = d.optBoolean("canScoreOnCurrentRoll", false)
         )
+    }
+
+    // Recalcul dynamique de canScoreOnCurrentRoll pour auto-réparer toute partie sauvegardée en phase SELECTING_DICE
+    val dice = if (phase == TurnPhase.SELECTING_DICE) {
+        val freeIndices = rawDice.mapIndexedNotNull { idx, die ->
+            if (!die.isLocked && die.face in 1..6) idx else null
+        }
+        val freeFaces = freeIndices.map { rawDice[it].face }
+        val scoringFreePositions = DiceScorer.findScoringDieIndices(freeFaces, rules)
+        val scoringDieIndices = scoringFreePositions.map { pos -> freeIndices[pos] }.toSet()
+        rawDice.mapIndexed { idx, die ->
+            if (die.isLocked) {
+                die.copy(isSelected = false, canScoreOnCurrentRoll = false)
+            } else {
+                val canScore = idx in scoringDieIndices
+                die.copy(
+                    canScoreOnCurrentRoll = canScore,
+                    isSelected = die.isSelected && canScore
+                )
+            }
+        }
+    } else {
+        rawDice
     }
 
     val selectedFaces = dice.filter { !it.isLocked && it.isSelected && it.face in 1..6 }.map { it.face }
@@ -222,12 +246,12 @@ fun SavedMatchEntity.toDomain(): MatchState {
     val turn = TurnState(
         turnNumber = turnObj.optInt("turnNumber", 1),
         activePlayerIndex = turnObj.optInt("activePlayerIndex", 0),
-        phase = TurnPhase.valueOf(turnObj.optString("phase", TurnPhase.AWAITING_INITIAL_ROLL.name)),
+        phase = phase,
         dice = dice,
         bankedInTurn = turnObj.optInt("bankedInTurn", 0),
-        selectedPoints = eval?.totalPoints ?: turnObj.optInt("selectedPoints", 0),
+        selectedPoints = eval?.totalPoints ?: 0,
         selectedCombinations = eval?.combinations ?: emptyList(),
-        isSelectionValid = eval?.isValid ?: turnObj.optBoolean("isSelectionValid", false),
+        isSelectionValid = eval?.isValid ?: false,
         rollIndexInTurn = turnObj.optInt("rollIndexInTurn", 0),
         hotDiceCountInTurn = turnObj.optInt("hotDiceCountInTurn", 0),
         piggybackOffer = piggybackOffer,

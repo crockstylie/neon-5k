@@ -94,59 +94,59 @@ fun SetupScreen(
         // Section 1 : Joueurs Humains & Bots Locaux (Safe Runner, Cyber Balanced, Overclock Kamikaze)
         CyberPanel(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "JOUEURS & IA (${draftPlayers.size}/6)",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.primaryNeon
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "JOUEURS & IA (${draftPlayers.size}/6)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.primaryNeon
+                    PixelButton(
+                        text = "-1 JOUEUR",
+                        enabled = draftPlayers.size > 1,
+                        filled = false,
+                        accentColor = colors.secondaryNeon,
+                        onClick = {
+                            if (draftPlayers.size > 1) draftPlayers.removeAt(draftPlayers.lastIndex)
+                        },
+                        modifier = Modifier.weight(1f)
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        PixelButton(
-                            text = "-1",
-                            enabled = draftPlayers.size > 1,
-                            filled = false,
-                            accentColor = colors.secondaryNeon,
-                            onClick = {
-                                if (draftPlayers.size > 1) draftPlayers.removeAt(draftPlayers.lastIndex)
-                            }
-                        )
-                        PixelButton(
-                            text = "+HUMAIN",
-                            enabled = draftPlayers.size < 6,
-                            filled = false,
-                            accentColor = colors.primaryNeon,
-                            onClick = {
-                                if (draftPlayers.size < 6) {
-                                    draftPlayers.add(
-                                        DraftPlayer(
-                                            name = "JOUEUR ${draftPlayers.size + 1}",
-                                            type = PlayerType.HUMAN
-                                        )
+                    PixelButton(
+                        text = "+HUMAIN",
+                        enabled = draftPlayers.size < 6,
+                        filled = false,
+                        accentColor = colors.primaryNeon,
+                        onClick = {
+                            if (draftPlayers.size < 6) {
+                                draftPlayers.add(
+                                    DraftPlayer(
+                                        name = "JOUEUR ${draftPlayers.size + 1}",
+                                        type = PlayerType.HUMAN
                                     )
-                                }
+                                )
                             }
-                        )
-                        PixelButton(
-                            text = "+BOT",
-                            enabled = draftPlayers.size < 6,
-                            filled = false,
-                            accentColor = colors.alertNeon,
-                            onClick = {
-                                if (draftPlayers.size < 6) {
-                                    draftPlayers.add(
-                                        DraftPlayer(
-                                            name = "BOT-${draftPlayers.size + 1}",
-                                            type = PlayerType.BOT_BALANCED
-                                        )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    PixelButton(
+                        text = "+BOT IA",
+                        enabled = draftPlayers.size < 6,
+                        filled = false,
+                        accentColor = colors.alertNeon,
+                        onClick = {
+                            if (draftPlayers.size < 6) {
+                                draftPlayers.add(
+                                    DraftPlayer(
+                                        name = "BOT-${draftPlayers.size + 1}",
+                                        type = PlayerType.BOT_BALANCED
                                     )
-                                }
+                                )
                             }
-                        )
-                    }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 draftPlayers.forEachIndexed { idx, draft ->

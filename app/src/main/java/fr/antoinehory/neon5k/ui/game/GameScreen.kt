@@ -325,32 +325,47 @@ fun GameScreen(
                         LegendDot(color = colors.alertNeon, label = "Verrouillé")
                     }
 
-                    // Ligne compacte de dés à portée directe du pouce (58.dp permet d'aligner les 5 dés sur une seule ligne)
-                    val diceRowArrangement = if (preferences.leftHandedMode) {
-                        Arrangement.spacedBy(8.dp, Alignment.Start)
+                    // Affichage ergonomique des dés :
+                    // - Mode 6 dés : 2 lignes équilibrées de 3 dés (60.dp)
+                    // - Mode 5 dés : 1 ligne compacte de 5 dés (54.dp)
+                    val isSixDice = turn.dice.size == 6
+                    val rowsOfDice = if (isSixDice) {
+                        turn.dice.chunked(3)
                     } else {
-                        Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                        listOf(turn.dice)
+                    }
+                    val horizontalAlignment = if (preferences.leftHandedMode) {
+                        Alignment.Start
+                    } else {
+                        Alignment.CenterHorizontally
                     }
 
-                    FlowRow(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp),
-                        horizontalArrangement = diceRowArrangement,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalAlignment = horizontalAlignment,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        turn.dice.forEach { die ->
-                            PixelDiceCanvas(
-                                die = die,
-                                rollTrigger = match.totalRollsInMatch,
-                                onClick = {
-                                    if (!uiState.isBotThinking) {
-                                        triggerHaptic()
-                                        onEvent(GameUiEvent.ToggleDie(die.index))
-                                    }
-                                },
-                                dieSize = 58.dp
-                            )
+                        rowsOfDice.forEach { rowDice ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(if (isSixDice) 16.dp else 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                rowDice.forEach { die ->
+                                    PixelDiceCanvas(
+                                        die = die,
+                                        rollTrigger = match.totalRollsInMatch,
+                                        onClick = {
+                                            if (!uiState.isBotThinking) {
+                                                triggerHaptic()
+                                                onEvent(GameUiEvent.ToggleDie(die.index))
+                                            }
+                                        },
+                                        dieSize = if (isSixDice) 60.dp else 54.dp
+                                    )
+                                }
+                            }
                         }
                     }
                 }

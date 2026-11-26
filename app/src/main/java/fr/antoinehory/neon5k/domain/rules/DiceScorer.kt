@@ -98,7 +98,7 @@ object DiceScorer {
     }
 
     /**
-     * Retourne la meilleure évaluation possible en prenant le sous-ensemble optimal des dés fournis
+     * Retourne la meilleure évaluation possible en prenant le sous-ensemble valide optimal des dés fournis
      * (ignore les dés morts pour connaître le potentiel maximum d'un lancer).
      */
     fun evaluateMaxScoringSubset(
@@ -108,8 +108,8 @@ object DiceScorer {
         if (rolledFaces.isEmpty()) {
             return evaluateSelection(emptyList(), config)
         }
-        val indices = findScoringDieIndices(rolledFaces, config)
-        if (indices.isEmpty()) {
+        val bestSubsetIndices = findBestValidSubsetIndices(rolledFaces, config)
+        if (bestSubsetIndices.isEmpty()) {
             return SelectionEvaluation(
                 isValid = false,
                 totalPoints = 0,
@@ -119,7 +119,7 @@ object DiceScorer {
                 triggersInstantWin = false
             )
         }
-        val scoringFaces = indices.sorted().map { rolledFaces[it] }
+        val scoringFaces = bestSubsetIndices.sorted().map { rolledFaces[it] }
         val eval = evaluateSelection(scoringFaces, config)
         return eval.copy(deadDiceCount = rolledFaces.size - eval.scoringDiceCount)
     }
@@ -130,14 +130,72 @@ object DiceScorer {
     fun hasAnyScoringCombination(
         rolledFaces: List<Int>,
         config: GameRulesConfig
-    ): Boolean = findScoringDieIndices(rolledFaces, config).isNotEmpty()
+    ): Boolean = findBestValidSubsetIndices(rolledFaces, config).isNotEmpty()
 
     /**
-     * Identifie les indices (`0 until rolledFaces.size`) des dés du lancer qui peuvent participer à au moins une combinaison scorante.
-     * Sert à :
-     * - allumer l'aide visuelle néon sur les dés sélectionnables,
-     * - empêcher la sélection de dés morts,
-     * - proposer la sélection rapide de tous les dés scorants.
+     * Identifie le meilleur sous-ensemble d'indices (`0 until rolledFaces.size`) qui forme **ensemble** une sélection
+     * 100 % valide (zéro dé mort) maximisant la victoire instantanée, puis les points, puis le nombre de dés utilisés.
+     * Utilisé par [evaluateMaxScoringSubset] et par le bouton « Tout sélectionner ».
+     */
+    fun findBestValidSubsetIndices(
+        rolledFaces: List<Int>,
+        config: GameRulesConfig
+    ): Set<Int> {
+        if (rolledFaces.isEmpty()) return emptySet()
+
+        val fullEval = evaluateSelection(rolledFaces, config)
+        if (fullEval.isValid && fullEval.totalPoints > 0) {
+            return rolledFaces.indices.toSet()
+        }
+
+        val n = rolledFaces.size
+        val maxMask = (1 shl n) - 1
+        var bestMask = 0
+        var bestInstantWin = false
+        var bestPoints = 0
+        var bestDiceCount = 0
+
+        for (mask in 1..maxMask) {
+            val subsetFaces = mutableListOf<Int>()
+            for (bit in 0 until n) {
+                if ((mask and (1 shl bit)) != 0) {
+                    subsetFaces += rolledFaces[bit]
+                }
+            }
+            val eval = evaluateSelection(subsetFaces, config)
+            if (eval.isValid && eval.totalPoints > 0) {
+                val isBetter = when {
+                    eval.triggersInstantWin != bestInstantWin -> eval.triggersInstantWin
+                    eval.totalPoints != bestPoints -> eval.totalPoints > bestPoints
+                    subsetFaces.size != bestDiceCount -> subsetFaces.size > bestDiceCount
+                    else -> false
+                }
+                if (isBetter) {
+                    bestMask = mask
+                    bestInstantWin = eval.triggersInstantWin
+                    bestPoints = eval.totalPoints
+                    bestDiceCount = subsetFaces.size
+                }
+            }
+        }
+
+        if (bestMask == 0) return emptySet()
+        val result = mutableSetOf<Int>()
+        for (bit in 0 until n) {
+            if ((bestMask and (1 shl bit)) != 0) {
+                result += bit
+            }
+        }
+        return result
+    }
+
+    /**
+     * Identifie tous les indices (`0 until rolledFaces.size`) des dés du lancer qui peuvent participer à **au moins une**
+     * combinaison scorante valide.
+     *
+     * Garantit une cohérence mathématique totale entre l'UI (`canScoreOnCurrentRoll`) et l'IA (`HeuristicBotPolicy`) :
+     * par exemple, sur `[1, 2, 3, 4, 5, 2]` en mode 6 dés, les deux `2` (indices 1 et 5) appartiennent chacun à une
+     * Suite `1-5` valide et sont donc tous deux cliquables.
      */
     fun findScoringDieIndices(
         rolledFaces: List<Int>,
@@ -145,72 +203,39 @@ object DiceScorer {
     ): Set<Int> {
         if (rolledFaces.isEmpty()) return emptySet()
 
-        // Si la totalité du lancer forme une combinaison globale valide (ex: Suite, 3 Paires, Full, ou Main pleine),
-        // tous les indices sont scorants.
         val fullEval = evaluateSelection(rolledFaces, config)
-        if (fullEval.isValid) {
+        if (fullEval.isValid && fullEval.totalPoints > 0) {
             return rolledFaces.indices.toSet()
         }
 
-        val counts = IntArray(7)
-        for (face in rolledFaces) {
-            counts[face]++
-        }
+        val n = rolledFaces.size
+        val maxMask = (1 shl n) - 1
+        var unionMask = 0
 
-        // Vérifier le cas d'une suite de 5 dés parmi 6 dés lancés ou d'un Full de 5 dés parmi 6 dés lancés
-        if (rolledFaces.size == 6) {
-            var bestSubsetIndices: Set<Int>? = null
-            var bestSubsetPoints = 0
-            for (excludedIdx in rolledFaces.indices) {
-                val subsetFaces = rolledFaces.filterIndexed { idx, _ -> idx != excludedIdx }
-                val subEval = evaluateSelection(subsetFaces, config)
-                if (subEval.isValid && subEval.totalPoints > bestSubsetPoints) {
-                    bestSubsetPoints = subEval.totalPoints
-                    bestSubsetIndices = rolledFaces.indices.filter { it != excludedIdx }.toSet()
+        for (mask in 1..maxMask) {
+            // Optimisation : si tous les bits de ce masque sont déjà dans unionMask, inutile de réévaluer
+            if ((mask and unionMask.inv()) == 0) continue
+
+            val subsetFaces = mutableListOf<Int>()
+            for (bit in 0 until n) {
+                if ((mask and (1 shl bit)) != 0) {
+                    subsetFaces += rolledFaces[bit]
                 }
             }
-            // Comparer avec le score face par face standard
-            val faceByFaceResult = evaluateFaceByFace(counts, rolledFaces.size, config)
-            if (bestSubsetIndices != null && bestSubsetPoints > faceByFaceResult.totalPoints) {
-                return bestSubsetIndices
+            val eval = evaluateSelection(subsetFaces, config)
+            if (eval.isValid && eval.totalPoints > 0) {
+                unionMask = unionMask or mask
             }
         }
 
-        // Sinon, tout dé qui est un 1, un 5, ou dont la face apparaît au moins 3 fois est scorant
+        if (unionMask == 0) return emptySet()
         val scoringIndices = mutableSetOf<Int>()
-        for ((index, face) in rolledFaces.withIndex()) {
-            when {
-                face == 1 || face == 5 -> scoringIndices += index
-                counts[face] >= 3 -> {
-                    // Si un joueur a 4 ou 5 dés d'une face non-(1,5) mais que Carré/Quinte sont DISABLED,
-                    // seuls `maxUsableForFace` dés de cette face peuvent scorer.
-                    val usableCount = maxUsableCountForNonSingleFace(counts[face], config)
-                    val alreadyAddedForFace = scoringIndices.count { rolledFaces[it] == face }
-                    if (alreadyAddedForFace < usableCount) {
-                        scoringIndices += index
-                    }
-                }
+        for (bit in 0 until n) {
+            if ((unionMask and (1 shl bit)) != 0) {
+                scoringIndices += bit
             }
         }
         return scoringIndices
-    }
-
-    private fun maxUsableCountForNonSingleFace(count: Int, config: GameRulesConfig): Int {
-        if (count < 3) return 0
-        return when (count) {
-            3 -> 3
-            4 -> if (config.fourOfAKindMode != FourOfAKindMode.DISABLED) 4 else 3
-            5 -> when {
-                config.fiveOfAKindMode != FiveOfAKindMode.DISABLED -> 5
-                config.fourOfAKindMode != FourOfAKindMode.DISABLED -> 4
-                else -> 3
-            }
-            else -> when {
-                config.fiveOfAKindMode != FiveOfAKindMode.DISABLED -> 6
-                config.fourOfAKindMode != FourOfAKindMode.DISABLED -> 4
-                else -> 3
-            }
-        }
     }
 
     private data class PartitionResult(

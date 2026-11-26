@@ -254,6 +254,7 @@ class GameViewModel(
     fun onGameScreenPaused() {
         entropyCollector.stopListening()
         botTurnJob?.cancel()
+        _uiState.update { it.copy(isBotThinking = false) }
     }
 
     fun onEvent(event: GameUiEvent) {
@@ -658,23 +659,64 @@ class GameViewModel(
 
                 TurnPhase.SELECTING_DICE -> {
                     delay(650L)
-                    val plan = HeuristicBotPolicy.planMove(currentMatch, botProfile)
-                    // 1. Appliquer visuellement la sélection de dés du bot
+                    // 0. Réinitialiser toute sélection partielle résiduelle (ex: après reprise d'une partie sauvegardée)
                     var workingState = _uiState.value.match
-                    for (dieIdx in plan.indicesToSelect) {
-                        val die = workingState.turn.dice.getOrNull(dieIdx)
-                        if (die != null && !die.isLocked && !die.isSelected) {
-                            val toggled = FiveThousandEngine.toggleDieSelection(workingState, dieIdx)
-                            if (toggled is EngineResult.Success) {
-                                workingState = toggled.state
+                    for (die in workingState.turn.dice) {
+                        if (!die.isLocked && die.isSelected) {
+                            val untoggled = FiveThousandEngine.toggleDieSelection(workingState, die.index)
+                            if (untoggled is EngineResult.Success) {
+                                workingState = untoggled.state
                             }
                         }
                     }
+
+                    val plan = runCatching {
+                        HeuristicBotPolicy.planMove(workingState, botProfile)
+                    }.getOrNull()
+
+                    // 1. Appliquer visuellement la sélection de dés du bot
+                    if (plan != null) {
+                        for (dieIdx in plan.indicesToSelect) {
+                            val die = workingState.turn.dice.getOrNull(dieIdx)
+                            if (die != null && !die.isLocked && !die.isSelected) {
+                                val toggled = FiveThousandEngine.toggleDieSelection(workingState, dieIdx)
+                                if (toggled is EngineResult.Success) {
+                                    workingState = toggled.state
+                                }
+                            }
+                        }
+                    }
+
+                    // Filet de sécurité auto-réparant : si la sélection n'est pas valide, sélectionner le meilleur sous-ensemble complet
+                    if (!workingState.turn.isSelectionValid || workingState.turn.selectedPoints <= 0) {
+                        val fallbackAll = FiveThousandEngine.selectAllScoringDice(workingState)
+                        if (fallbackAll is EngineResult.Success) {
+                            workingState = fallbackAll.state
+                        }
+                    }
+
                     _uiState.update { it.copy(match = workingState) }
 
                     // 2. Laisser 650ms au joueur pour voir les dés sélectionnés par le bot avant qu'il ne relance ou banque
                     delay(650L)
-                    when (plan.nextAction) {
+
+                    val activeActor = workingState.activePlayer
+                    val turnAfterSelect = workingState.turn
+                    val projectedTurnPoints = turnAfterSelect.totalTurnPointsWithSelection
+                    val projectedTotal = activeActor.score + projectedTurnPoints
+                    val canLegallyBank = turnAfterSelect.isSelectionValid &&
+                        turnAfterSelect.selectedPoints > 0 &&
+                        (activeActor.isOpened || projectedTurnPoints >= workingState.rules.openingThreshold) &&
+                        (!workingState.rules.exactFinishRequired || projectedTotal <= workingState.rules.targetScore) &&
+                        (!turnAfterSelect.selectionTriggersHotDice || !workingState.rules.mandatoryRerollOnHotDice)
+
+                    val effectiveAction = if (plan?.nextAction == BotTurnAction.BANK && canLegallyBank) {
+                        BotTurnAction.BANK
+                    } else {
+                        BotTurnAction.ROLL_AGAIN
+                    }
+
+                    when (effectiveAction) {
                         BotTurnAction.ROLL_AGAIN -> executeRollDice(GameUiEvent.RollDice())
                         BotTurnAction.BANK -> executeBankTurn()
                     }

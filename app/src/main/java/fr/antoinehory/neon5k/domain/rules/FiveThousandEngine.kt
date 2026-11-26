@@ -221,7 +221,8 @@ object FiveThousandEngine {
     }
 
     /**
-     * Sélectionne automatiquement tous les dés scorants du lancer courant (raccourci ergonomique « Tout prendre »).
+     * Sélectionne automatiquement le meilleur sous-ensemble complet de dés scorants du lancer courant
+     * (raccourci ergonomique « Tout prendre » garanti 100 % valide et sans dé mort).
      */
     fun selectAllScoringDice(state: MatchState): EngineResult {
         if (state.isFinished) {
@@ -231,9 +232,14 @@ object FiveThousandEngine {
         if (turn.phase != TurnPhase.SELECTING_DICE) {
             return EngineResult.Rejected(state, MoveValidationError.InvalidPhaseForAction)
         }
+        val freeDice = turn.dice.filter { !it.isLocked }
+        val freeFaces = freeDice.map { it.face }
+        val bestFreePositions = DiceScorer.findBestValidSubsetIndices(freeFaces, state.rules)
+        val bestDieIndices = bestFreePositions.map { pos -> freeDice[pos].index }.toSet()
+
         val updatedDice = turn.dice.map { die ->
-            if (!die.isLocked && die.canScoreOnCurrentRoll) {
-                die.copy(isSelected = true)
+            if (!die.isLocked) {
+                die.copy(isSelected = die.index in bestDieIndices)
             } else {
                 die
             }
