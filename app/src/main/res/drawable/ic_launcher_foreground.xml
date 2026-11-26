@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+      Dé Pixel Art Cyberpunk (face 5) centré dans la safe-zone 66x66 (21..87)
+      Grille logique : 1 pixel = 4 unités viewport, dé 14x14 pixels (26..82)
+    -->
+
+    <!-- Ombre portée décalée magenta (effet glitch cyberpunk) -->
+    <path
+        android:fillColor="#FF2A85"
+        android:fillAlpha="0.55"
+        android:pathData="M34,30h44v4h4v44h-4v4h-44v-4h-4v-44h4z" />
+
+    <!-- Corps sombre du dé avec coins crénelés pixel art -->
+    <path
+        android:fillColor="#121521"
+        android:pathData="M30,26h48v4h4v48h-4v4h-48v-4h-4v-48h4z" />
+
+    <!-- Bordure extérieure néon cyan (pixelisée) -->
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M30,26h48v4h-48z M30,78h48v4h-48z M26,30h4v48h-4z M78,30h4v48h-4z" />
+
+    <!-- Reflet interne subtil en haut à gauche -->
+    <path
+        android:fillColor="#00F0FF"
+        android:fillAlpha="0.25"
+        android:pathData="M30,30h48v2h-48z M30,30h2v48h-2z" />
+
+    <!-- 4 points d'angle de la face 5 (Néon Cyan) -->
+    <!-- Haut-gauche -->
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M36,36h8v8h-8z" />
+    <!-- Haut-droite -->
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M64,36h8v8h-8z" />
+    <!-- Bas-gauche -->
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M36,64h8v8h-8z" />
+    <!-- Bas-droite -->
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M64,64h8v8h-8z" />
+
+    <!-- Point central de la face 5 (Accent Magenta + cœur lumineux) -->
+    <path
+        android:fillColor="#FF2A85"
+        android:pathData="M49,49h10v10h-10z" />
+    <path
+        android:fillColor="#FFE6F2"
+        android:pathData="M52,52h4v4h-4z" />
+</vector>

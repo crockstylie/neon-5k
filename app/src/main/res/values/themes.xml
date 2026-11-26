@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Neon5K" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/neon_night_bg</item>
+    </style>
+
+    <!-- Splash Screen officiel Android 12+ (androidx.core:core-splashscreen) -->
+    <style name="Theme.Neon5K.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Neon5K</item>
+    </style>
+</resources>
