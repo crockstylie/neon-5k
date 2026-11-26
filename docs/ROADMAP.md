@@ -44,33 +44,53 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
 
 ---
 
-## Lot 3 : Identité Visuelle Finale, Règles Interactives, i18n (4 Langues) & Préparation Play Store
-- [ ] Intégration finale de l'icône XML adaptative (`mipmap-anydpi/ic_launcher*.xml`) et du Splash Screen Android 12+ (`installSplashScreen()` dans `MainActivity`)
-- [ ] Intégration de la police pixel légère (titres/compteurs) couplée à la monospace (textes/menus)
-- [ ] Création de `RulesScreen` (guide clair et interactif des règles du 5000 + simulateur rapide du barème selon les variantes actives)
-- [ ] Création de `InfoScreen` (À propos, version, politique de confidentialité, crédits, lien Play Store, PayPal)
-- [ ] Traduction complète des ressources en 4 langues : `values/` (FR), `values-en/` (EN), `values-es/` (ES), `values-pt/` (PT)
-- [ ] Audit Edge-to-Edge, UI adaptative (portrait/paysage/tablette), performance Compose (`Canvas` recompositions) et vérification build Release R8 signé
+## Lot 3 : Identité Visuelle Finale, Règles Interactives, InfoScreen (OCRAurebesh), i18n (4 Langues) & Préparation Play Store
+- [x] Intégration finale de l'icône XML adaptative (`mipmap-anydpi/ic_launcher*.xml`) et du Splash Screen Android 12+ (`installSplashScreen()` dans `MainActivity`)
+- [x] Intégration de la typographie pixel/monospace cyberpunk dans `Neon5KTheme`
+- [x] Création de `RulesScreen` (guide clair et interactif des règles du 5000 + simulateur rapide du barème Pixel Art 5/6 dés + modale `[?]` en pleine partie + explication des Paliers & 3 Encoches `✕`)
+- [x] Création de `InfoScreen` basé sur le modèle d'`OCRAurebesh` :
+    - Import des 6 icônes vectorielles XML de réseaux sociaux (`ic_linkedin_logo.xml`, `ic_behance_logo.xml`, `ic_instagram_logo.xml`, `ic_facebook_logo.xml`, `ic_spotify_logo.xml`, `ic_steam_logo.xml`)
+    - Coordonnées développeur (`Antoine Crock HORY`, `antoinehory.fr`, `contact@antoinehory.fr`, `paypal.me/kuroku`)
+    - Bouton de don PayPal (`https://paypal.me/kuroku`), bouton de notation 5 ⭐ sur le Play Store (`market://details?id=fr.antoinehory.neon5k`), bouton « Découvrir mes autres applis », numéro de version et résumé confidentialité
+- [x] Traduction complète des ressources en 4 langues : `values/`, `values-fr/`, `values-en/`, `values-es/`, `values-pt/` + `locales_config.xml` + sélecteur de langue in-app (`FR | EN | ES | PT`)
+- [x] Audit Edge-to-Edge, UI adaptative (portrait/paysage/tablette), performance Compose (`Canvas` recompositions) et vérification build Release R8 (`:app:assembleRelease`)
 
 ---
 
-## Lot 4 : Intégration Google Play Jeux (PGS v2) & Succès
+## Lot 4 : Intégration Google Play Jeux (PGS v2), 20 Succès (Compteurs Infinis & Assets Pixel Art) & Télémétrie Fun
 - [ ] Ajout de `com.google.android.gms:play-services-games-v2` dans `libs.versions.toml`
-- [ ] Implémentation de `PlayGamesService` et `GooglePlayGamesService` :
-    - Authentification silencieuse au lancement (`PlayGamesSdk.initialize`)
-    - Bouton connexion/profil optionnel sur `HomeScreen` et `StatsScreen` (aucun blocage hors-ligne)
-- [ ] Déclenchement et miroir local des 10 succès initiaux :
-    1. *First Boot* — Réussir sa première ouverture
-    2. *Triple Ace Protocol* — Faire un brelan d'As en un lancer
-    3. *Full Overclock* — Enchaîner 2 mains pleines dans le même tour
-    4. *System Crash* — Perdre un tour contenant au moins 1 000 points
-    5. *Pixel Perfect 5000* — Gagner une partie avec le score exact de 5 000
-    6. *Straight Runner* — Réussir une suite en un lancer
-    7. *Hijacker* — Gagner un tour grâce au repiquage
-    8. *Headshot* — Écraser le score d'un adversaire (variante Chapeau)
-    9. *Beat the Machine* — Battre l'IA *Overclock Kamikaze* en 1v1
-    10. *Entropy Master* — Jouer 50 parties complètes
-- [ ] Tests unitaires de l'évaluateur de succès (`AchievementEvaluator`) sur JVM
+- [ ] Enrichissement de `PlayerStatsEntity` et `StatsScreen` (onglets **Télémétrie & Fun Stats** / **Succès & Badges** / **Dataset IA**) :
+    - **Entropie & Capteurs** : lancers totaux, dés individuels jetés, lancers par secousse physique, durée cumulée d'appui tactile, histogramme de distribution des faces `1..6` (vérification d'équité SHA-256)
+    - **Brelans & Combinaisons** : total des brelans et détail par face (Brelans d'As, de 2, de 3, de 4, de 5, de 6), carrés, quintes, suites, 3 paires, fulls, As et 5 isolés
+    - **Prise de risque & Psychologie** : points cumulés banqués vs points perdus en Glitch, pire crash en un tour, mains pleines, repiquages réussis, chapeaux infligés vs subis, pénalités 3 coups nuls
+    - **Bilan vs IA** : victoires/défaites détaillées contre *Safe Runner*, *Cyber Balanced* et *Overclock Kamikaze*
+- [ ] Système de **20 Succès avec comptage continu post-déverrouillage** (`AchievementEntity` + `AchievementEvaluator`) :
+    - Chaque succès conserve `currentCount` qui **continue de s'incrémenter indéfiniment** même après `isUnlocked = true` (affichage du palier + compteur total à vie `Total : ×N` et rangs de maîtrise locaux *Bronze / Argent / Or / Cyber-Platine*)
+    1. *First Boot* — Réussir son ouverture (palier : `1`, compteur : total d'ouvertures)
+    2. *High Voltage Opening* — Ouvrir avec `>= 1 500 pts` en un seul tour (palier : `1`, compteur : total)
+    3. *Triple Ace Protocol* — Faire un brelan d'As en un lancer (palier : `1`, compteur : total de brelans d'As)
+    4. *Brelan Collector* — Réaliser au moins un brelan de chaque face (`1` à `6`) (palier : `6/6`, compteur : total tous brelans)
+    5. *Quad Core* — Obtenir un Carré (4 dés identiques) en un lancer (palier : `1`, compteur : total de carrés)
+    6. *Five of a Kind / God Roll* — Obtenir une Quinte (5 dés identiques) en un lancer (palier : `1`, compteur : total de quintes)
+    7. *Straight Runner* — Réussir une Suite en un lancer (palier : `1`, compteur : total de suites)
+    8. *Twin Matrix* — Réussir 3 Paires en mode 6 dés (palier : `1`, compteur : total de 3 paires)
+    9. *Full House Cyber* — Réussir un Full avec bonus actif (palier : `1`, compteur : total de fulls)
+    10. *Hot Dice!* — Réaliser une Main pleine (palier : `1`, compteur : total de mains pleines)
+    11. *Full Overclock* — Enchaîner 2 mains pleines dans le même tour (palier : `1`, compteur : total de doubles mains pleines)
+    12. *One Die Miraculé* — Scorer en ne relançant qu'un seul dé restant (palier : `1`, compteur : total de sauvetages à 1 dé)
+    13. *System Crash* — Perdre un pot de tour d'au moins `1 000 pts` sur un Glitch (palier : `1`, compteur : total de gros crashs)
+    14. *Three Strikes Out* — Subir la pénalité de 3 coups nuls consécutifs (palier : `1`, compteur : total)
+    15. *Pixel Perfect 5000* — Gagner une partie avec le score exact de la cible (palier : `1`, compteur : total de victoires exactes)
+    16. *Overkill Turn* — Banquer `>= 2 000 pts` en un seul tour (palier : `1`, compteur : total de tours >= 2 000 pts)
+    17. *Hijacker* — Gagner des points grâce au Repiquage du pot adverse (palier : `1`, compteur : total de repiquages)
+    18. *Headshot* — Écraser le score d'un adversaire avec la variante Chapeau (palier : `1`, compteur : total de chapeaux infligés)
+    19. *Beat the Machine* — Battre l'IA *Overclock Kamikaze* (palier : `1`, compteur : total de victoires vs Kamikaze)
+    20. *Entropy Master* — Jouer 50 parties complètes (palier : `50`, compteur : total de parties terminées) + *Shake It Off* (25 lancers à la secousse)
+- [ ] Création des **assets visuels Pixel Art Cyberpunk** pour les 20 icônes de succès :
+    - `VectorDrawable` XML ou grilles `16×16` dans l'application (affichés en couleur néon si débloqué, wireframe grisé si verrouillé)
+    - Générateur/exporteur des 20 icônes au format `512 × 512 px` PNG prêtes à téléverser dans la Google Play Console (`docs/PLAY_GAMES_ACHIEVEMENTS.md`)
+- [ ] Implémentation de `PlayGamesService` et `GooglePlayGamesService` (authentification silencieuse + `AchievementsClient.unlock()` / `setSteps()`)
+- [ ] Tests unitaires JVM de `AchievementEvaluator` (vérifiant le déblocage ET l'incrémentation continue au-delà du seuil)
 
 ---
 

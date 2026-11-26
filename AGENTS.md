@@ -25,7 +25,9 @@
 
 1. **Ciblage chirurgical** : Utilise la cartographie dans [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) pour identifier directement le fichier concerné sans scanner tout le projet.
 2. **Lectures partielles** : Utilise les outlines de fichiers (`view_file_outline`) ou des plages de lignes (`startLine`/`endLine`) sur les fichiers volumineux.
-3. **Avancement strict par Lot** : Ne démarre pas le Lot `N+1` tant que les tests unitaires et la checklist du Lot `N` dans [`docs/ROADMAP.md`](./docs/ROADMAP.md) ne sont pas validés.
+3. **Avancement strict par Lot & Suggestions pré-Lot** :
+    - Ne démarre pas le Lot `N+1` tant que les tests unitaires et la checklist du Lot `N` dans [`docs/ROADMAP.md`](./docs/ROADMAP.md) ne sont pas validés.
+    - **Avant de coder un nouveau Lot**, propose brièvement à l'utilisateur 3 à 5 suggestions d'améliorations pertinentes (ergonomie, fun, finition) pour ce lot afin qu'il valide le périmètre exact.
 4. **Mise à jour continue** :
     - Dès qu'un nouveau fichier Kotlin est créé ou déplacé, mets à jour la cartographie dans [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
     - Dès qu'une étape est validée, coche-la dans [`docs/ROADMAP.md`](./docs/ROADMAP.md).

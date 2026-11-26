@@ -19,20 +19,24 @@ import fr.antoinehory.neon5k.ui.customization.CustomizationScreen
 import fr.antoinehory.neon5k.ui.game.GameScreen
 import fr.antoinehory.neon5k.ui.game.GameViewModel
 import fr.antoinehory.neon5k.ui.home.HomeScreen
+import fr.antoinehory.neon5k.ui.info.InfoScreen
+import fr.antoinehory.neon5k.ui.rules.RulesScreen
 import fr.antoinehory.neon5k.ui.setup.SetupScreen
 import fr.antoinehory.neon5k.ui.stats.StatsScreen
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 import fr.antoinehory.neon5k.ui.theme.Neon5KTheme
 
 /**
- * Destinations de navigation de Neon 5K (Lots 1 & 2 : Home, Setup, Game, Customization, Stats).
+ * Destinations de navigation de Neon 5K (Lots 1, 2 & 3 : Home, Setup, Game, Customization, Stats, Rules, Info).
  */
 enum class NeonDestination {
     HOME,
     SETUP,
     GAME,
     CUSTOMIZATION,
-    STATS
+    STATS,
+    RULES,
+    INFO
 }
 
 /**
@@ -84,7 +88,9 @@ fun NeonNavHost(
                         },
                         onOpenSetup = { destination = NeonDestination.SETUP },
                         onOpenCustomization = { destination = NeonDestination.CUSTOMIZATION },
-                        onOpenStats = { destination = NeonDestination.STATS }
+                        onOpenStats = { destination = NeonDestination.STATS },
+                        onOpenRules = { destination = NeonDestination.RULES },
+                        onOpenInfo = { destination = NeonDestination.INFO }
                     )
                 }
 
@@ -133,6 +139,19 @@ fun NeonNavHost(
                         exportStatusMessageFr = uiState.exportStatusMessageFr,
                         onExportDataset = gameViewModel::exportAiDataset,
                         onClearDataset = gameViewModel::clearAiDataset,
+                        onBack = { destination = NeonDestination.HOME }
+                    )
+                }
+
+                NeonDestination.RULES -> {
+                    RulesScreen(
+                        activeRules = preferences.favoriteRules,
+                        onBack = { destination = NeonDestination.HOME }
+                    )
+                }
+
+                NeonDestination.INFO -> {
+                    InfoScreen(
                         onBack = { destination = NeonDestination.HOME }
                     )
                 }

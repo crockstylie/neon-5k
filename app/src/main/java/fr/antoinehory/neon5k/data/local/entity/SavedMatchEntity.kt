@@ -57,11 +57,20 @@ fun MatchState.toEntity(
         put("fullHouseBonus", rules.fullHouseBonus)
         put("piggybackEnabled", rules.piggybackEnabled)
         put("bumpOpponentMode", rules.bumpOpponentMode.name)
-        put("threeStrikesPenalty", rules.threeStrikesPenalty)
+        put("threeStrikesMode", rules.threeStrikesMode.name)
     }
 
     val playersArr = JSONArray()
     for (p in players) {
+        val checkpointsArr = JSONArray()
+        for (cp in p.normalizedCheckpoints()) {
+            checkpointsArr.put(
+                JSONObject().apply {
+                    put("score", cp.score)
+                    put("strikes", cp.strikes)
+                }
+            )
+        }
         playersArr.put(
             JSONObject().apply {
                 put("id", p.id)
@@ -71,6 +80,7 @@ fun MatchState.toEntity(
                 put("previousScore", p.previousScore)
                 put("isOpened", p.isOpened)
                 put("consecutiveBusts", p.consecutiveBusts)
+                put("checkpoints", checkpointsArr)
             }
         )
     }
@@ -131,6 +141,15 @@ fun MatchState.toEntity(
  */
 fun SavedMatchEntity.toDomain(): MatchState {
     val rulesObj = JSONObject(rulesJson)
+    val parsedThreeStrikesMode = rulesObj.optString("threeStrikesMode", "")
+        .takeIf { it.isNotEmpty() }
+        ?.let { runCatching { fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode.valueOf(it) }.getOrNull() }
+        ?: when (rulesObj.optInt("threeStrikesPenalty", 0)) {
+            500 -> fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode.MINUS_500
+            1000 -> fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode.MINUS_1000
+            else -> fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode.DISABLED
+        }
+
     val rules = GameRulesConfig(
         preset = RulesPreset.valueOf(rulesObj.optString("preset", RulesPreset.CLASSIC_5_DICE.name)),
         diceCount = rulesObj.optInt("diceCount", 5),
@@ -145,12 +164,24 @@ fun SavedMatchEntity.toDomain(): MatchState {
         fullHouseBonus = rulesObj.optInt("fullHouseBonus", 0),
         piggybackEnabled = rulesObj.optBoolean("piggybackEnabled", false),
         bumpOpponentMode = BumpOpponentMode.valueOf(rulesObj.optString("bumpOpponentMode", BumpOpponentMode.DISABLED.name)),
-        threeStrikesPenalty = rulesObj.optInt("threeStrikesPenalty", 0)
+        threeStrikesMode = parsedThreeStrikesMode
     )
 
     val playersArr = JSONArray(playersJson)
     val players = List(playersArr.length()) { idx ->
         val obj = playersArr.getJSONObject(idx)
+        val cpArr = obj.optJSONArray("checkpoints")
+        val checkpoints = if (cpArr != null) {
+            List(cpArr.length()) { cpIdx ->
+                val cpObj = cpArr.getJSONObject(cpIdx)
+                fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(
+                    score = cpObj.optInt("score", 0),
+                    strikes = cpObj.optInt("strikes", 0)
+                )
+            }
+        } else {
+            emptyList()
+        }
         PlayerState(
             id = obj.getInt("id"),
             name = obj.getString("name"),
@@ -158,7 +189,8 @@ fun SavedMatchEntity.toDomain(): MatchState {
             score = obj.optInt("score", 0),
             previousScore = obj.optInt("previousScore", 0),
             isOpened = obj.optBoolean("isOpened", false),
-            consecutiveBusts = obj.optInt("consecutiveBusts", 0)
+            consecutiveBusts = obj.optInt("consecutiveBusts", 0),
+            checkpoints = checkpoints
         )
     }
 

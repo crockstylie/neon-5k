@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Neon 5K</string>
+    <string name="back">Back</string>
+
+    <!-- Home -->
+    <string name="home_subtitle">CYBERPUNK PIXEL DICE ENGINE • SHA-256 ENTROPY</string>
+    <string name="home_resume_match">RESUME SAVED MATCH</string>
+    <string name="home_new_match">NEW MATCH (BOTS / PASS &amp; PLAY)</string>
+    <string name="home_quick_duel">QUICK DUEL VS CYBER BALANCED BOT</string>
+    <string name="home_customization">THEME &amp; DICE</string>
+    <string name="home_stats">STATS &amp; AI</string>
+    <string name="home_rules">RULES &amp; SIM</string>
+    <string name="home_info">INFO &amp; CREDITS</string>
+
+    <!-- Info Screen (OCRAurebesh model) -->
+    <string name="personal_info_title">INFO &amp; CREDITS</string>
+    <string name="developer_label">Developer</string>
+    <string name="website_label">Website</string>
+    <string name="email_label">Contact</string>
+    <string name="donate_label">Support the project</string>
+    <string name="donate_button">DONATE VIA PAYPAL</string>
+    <string name="rate_app_button">RATE 5 ★ ON GOOGLE PLAY</string>
+    <string name="other_apps_button">DISCOVER MY OTHER APPS (OCR AUREBESH…)</string>
+    <string name="find_me_on">FIND ME ON</string>
+    <string name="privacy_summary_title">PRIVACY &amp; HARDWARE ENTROPY</string>
+    <string name="privacy_summary_body">Neon 5K uses the gyroscope and accelerometer solely in volatile RAM to seed the SHA-256 dice rolls. Zero personal data or ad telemetry is ever collected.</string>
+    <string name="language_selector_title">INTERFACE LANGUAGE</string>
+
+    <!-- Rules & Simulator -->
+    <string name="rules_screen_title">CODEX // 5000 DICE RULES</string>
+    <string name="rules_simulator_title">INTERACTIVE PAYTABLE SIMULATOR</string>
+    <string name="rules_simulator_hint">Tap any Pixel Art die to cycle its face (1 to 6) and preview combinations under your active rules.</string>
+</resources>

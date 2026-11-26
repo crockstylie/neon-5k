@@ -28,7 +28,7 @@ import fr.antoinehory.neon5k.ui.components.PixelDiceCanvas
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 
 /**
- * Écran d'accueil minimaliste cyberpunk de Neon 5K (Lots 1 & 2).
+ * Écran d'accueil minimaliste cyberpunk de Neon 5K (Lots 1, 2 & 3).
  */
 @Composable
 fun HomeScreen(
@@ -38,6 +38,8 @@ fun HomeScreen(
     onOpenSetup: () -> Unit,
     onOpenCustomization: () -> Unit,
     onOpenStats: () -> Unit,
+    onOpenRules: () -> Unit,
+    onOpenInfo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalNeon5KColors.current
@@ -76,7 +78,7 @@ fun HomeScreen(
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "CYBERPUNK PIXEL DICE ENGINE • ENTROPIE SHA-256",
+                text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_subtitle),
                 style = MaterialTheme.typography.labelSmall,
                 color = colors.textMuted,
                 textAlign = TextAlign.Center
@@ -124,7 +126,7 @@ fun HomeScreen(
         ) {
             if (hasActiveMatch) {
                 PixelButton(
-                    text = "REPRENDRE LA PARTIE SAUVEGARDÉE",
+                    text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_resume_match),
                     onClick = onResumeMatch,
                     accentColor = colors.alertNeon,
                     modifier = Modifier.fillMaxWidth()
@@ -132,14 +134,14 @@ fun HomeScreen(
             }
 
             PixelButton(
-                text = "NOUVELLE PARTIE (BOTS / PASS & PLAY)",
+                text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_new_match),
                 onClick = onOpenSetup,
                 accentColor = colors.primaryNeon,
                 modifier = Modifier.fillMaxWidth()
             )
 
             PixelButton(
-                text = "DUEL RAPIDE VS BOT CYBER BALANCED",
+                text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_quick_duel),
                 onClick = onStartQuickMatch,
                 accentColor = colors.secondaryNeon,
                 filled = false,
@@ -151,16 +153,36 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 PixelButton(
-                    text = "THÈME & DÉS",
+                    text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_customization),
                     onClick = onOpenCustomization,
                     accentColor = colors.primaryNeon,
                     filled = false,
                     modifier = Modifier.weight(1f)
                 )
                 PixelButton(
-                    text = "STATS & IA",
+                    text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_stats),
                     onClick = onOpenStats,
                     accentColor = colors.secondaryNeon,
+                    filled = false,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                PixelButton(
+                    text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_rules),
+                    onClick = onOpenRules,
+                    accentColor = colors.secondaryNeon,
+                    filled = false,
+                    modifier = Modifier.weight(1f)
+                )
+                PixelButton(
+                    text = androidx.compose.ui.res.stringResource(fr.antoinehory.neon5k.R.string.home_info),
+                    onClick = onOpenInfo,
+                    accentColor = colors.alertNeon,
                     filled = false,
                     modifier = Modifier.weight(1f)
                 )

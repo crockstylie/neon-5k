@@ -14,6 +14,7 @@ import fr.antoinehory.neon5k.domain.rules.FiveOfAKindMode
 import fr.antoinehory.neon5k.domain.rules.FourOfAKindMode
 import fr.antoinehory.neon5k.domain.rules.GameRulesConfig
 import fr.antoinehory.neon5k.domain.rules.RulesPreset
+import fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode
 import fr.antoinehory.neon5k.domain.theme.CyberPalette
 import fr.antoinehory.neon5k.domain.theme.CyberThemePreset
 import fr.antoinehory.neon5k.domain.theme.DiceVisualStyle
@@ -99,7 +100,9 @@ class UserPreferencesRepository(
             bumpOpponentMode = prefs[KEY_RULES_BUMP_MODE]
                 ?.let { runCatching { BumpOpponentMode.valueOf(it) }.getOrNull() }
                 ?: BumpOpponentMode.DISABLED,
-            threeStrikesPenalty = prefs[KEY_RULES_THREE_STRIKES] ?: 0
+            threeStrikesMode = prefs[KEY_RULES_THREE_STRIKES_MODE]
+                ?.let { runCatching { ThreeStrikesMode.valueOf(it) }.getOrNull() }
+                ?: ThreeStrikesMode.DISABLED
         )
 
         UserPreferences(
@@ -175,7 +178,7 @@ class UserPreferencesRepository(
             prefs[KEY_RULES_FULL_HOUSE] = rules.fullHouseBonus
             prefs[KEY_RULES_PIGGYBACK] = rules.piggybackEnabled
             prefs[KEY_RULES_BUMP_MODE] = rules.bumpOpponentMode.name
-            prefs[KEY_RULES_THREE_STRIKES] = rules.threeStrikesPenalty
+            prefs[KEY_RULES_THREE_STRIKES_MODE] = rules.threeStrikesMode.name
         }
     }
 
@@ -208,6 +211,6 @@ class UserPreferencesRepository(
         private val KEY_RULES_FULL_HOUSE = intPreferencesKey("rules_full_house")
         private val KEY_RULES_PIGGYBACK = booleanPreferencesKey("rules_piggyback")
         private val KEY_RULES_BUMP_MODE = stringPreferencesKey("rules_bump_mode")
-        private val KEY_RULES_THREE_STRIKES = intPreferencesKey("rules_three_strikes")
+        private val KEY_RULES_THREE_STRIKES_MODE = stringPreferencesKey("rules_three_strikes_mode")
     }
 }

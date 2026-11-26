@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Neon 5K</string>
+    <string name="back">Voltar</string>
+
+    <!-- Início -->
+    <string name="home_subtitle">MOTOR DE DADOS PIXEL CYBERPUNK • ENTROPIA SHA-256</string>
+    <string name="home_resume_match">RETOMAR PARTIDA SALVA</string>
+    <string name="home_new_match">NOVA PARTIDA (BOTS / PASS &amp; PLAY)</string>
+    <string name="home_quick_duel">DUELO RÁPIDO VS BOT CYBER BALANCED</string>
+    <string name="home_customization">TEMA E DADOS</string>
+    <string name="home_stats">ESTATÍSTICAS E IA</string>
+    <string name="home_rules">REGRAS E SIMU</string>
+    <string name="home_info">INFO E CRÉDITOS</string>
+
+    <!-- Ficha Info (Modelo OCRAurebesh) -->
+    <string name="personal_info_title">INFORMAÇÕES E CRÉDITOS</string>
+    <string name="developer_label">Desenvolvedor</string>
+    <string name="website_label">Site</string>
+    <string name="email_label">Contato</string>
+    <string name="donate_label">Apoiar o projeto</string>
+    <string name="donate_button">FAZER UMA DOAÇÃO (PAYPAL)</string>
+    <string name="rate_app_button">AVALIAR 5 ★ NO GOOGLE PLAY</string>
+    <string name="other_apps_button">DESCOBRIR MEUS OUTROS APPS (OCR AUREBESH…)</string>
+    <string name="find_me_on">ENCONTRE-ME EM</string>
+    <string name="privacy_summary_title">PRIVACIDADE E ENTROPIA DE HARDWARE</string>
+    <string name="privacy_summary_body">Neon 5K usa o giroscópio e o acelerômetro apenas na memória RAM para gerar a semente SHA-256 das suas jogadas. Nenhum dado pessoal ou telemetria de anúncios é coletado.</string>
+    <string name="language_selector_title">IDIOMA DA INTERFACE</string>
+
+    <!-- Regras e Simulador -->
+    <string name="rules_screen_title">CODEX // REGRAS DO 5000</string>
+    <string name="rules_simulator_title">SIMULADOR INTERATIVO DE PONTOS</string>
+    <string name="rules_simulator_hint">Toque em qualquer dado Pixel Art para mudar sua face (1 a 6) e testar combinações com suas regras ativas.</string>
+</resources>

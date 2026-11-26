@@ -314,25 +314,57 @@ object FiveThousandEngine {
         val updatedPlayers = state.players.mapIndexed { idx, p ->
             when {
                 idx == turn.activePlayerIndex -> {
+                    val currentStack = p.normalizedCheckpoints()
+                    val newStack = currentStack + fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(
+                        score = finalScore,
+                        strikes = 0
+                    )
+                    val newPreviousScore = currentStack.lastOrNull()?.score ?: 0
                     p.copy(
-                        previousScore = p.score,
+                        previousScore = newPreviousScore,
                         score = finalScore,
                         isOpened = true,
-                        consecutiveBusts = 0
+                        consecutiveBusts = 0,
+                        checkpoints = newStack
                     )
                 }
 
                 rules.bumpOpponentMode != BumpOpponentMode.DISABLED && finalScore > 0 && p.score == finalScore -> {
                     bumpedPlayerName = p.name
-                    val newOpponentScore = when (rules.bumpOpponentMode) {
-                        BumpOpponentMode.DISABLED -> p.score
-                        BumpOpponentMode.MINUS_500 -> (p.score - 500).coerceAtLeast(0)
-                        BumpOpponentMode.RESET_TO_PREVIOUS -> p.previousScore.coerceAtLeast(0)
+                    val currentStack = p.normalizedCheckpoints()
+                    when (rules.bumpOpponentMode) {
+                        BumpOpponentMode.DISABLED -> p
+                        BumpOpponentMode.MINUS_500 -> {
+                            val newOpponentScore = (p.score - 500).coerceAtLeast(0)
+                            val updatedStack = if (currentStack.isEmpty()) {
+                                listOf(fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(newOpponentScore, 0))
+                            } else {
+                                currentStack.dropLast(1) + fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(newOpponentScore, 0)
+                            }
+                            val prevScore = updatedStack.dropLast(1).lastOrNull()?.score ?: 0
+                            p.copy(
+                                score = newOpponentScore,
+                                previousScore = prevScore,
+                                consecutiveBusts = 0,
+                                isOpened = if (newOpponentScore == 0 && rules.openingThreshold > 0) false else p.isOpened,
+                                checkpoints = updatedStack
+                            )
+                        }
+                        BumpOpponentMode.RESET_TO_PREVIOUS -> {
+                            val poppedStack = currentStack.dropLast(1)
+                            val restored = poppedStack.lastOrNull()
+                            val newOpponentScore = restored?.score ?: 0
+                            val prevScore = poppedStack.dropLast(1).lastOrNull()?.score ?: 0
+                            val restoredStrikes = restored?.strikes ?: 0
+                            p.copy(
+                                score = newOpponentScore,
+                                previousScore = prevScore,
+                                consecutiveBusts = restoredStrikes,
+                                isOpened = if (newOpponentScore == 0 && rules.openingThreshold > 0) false else p.isOpened,
+                                checkpoints = poppedStack
+                            )
+                        }
                     }
-                    p.copy(
-                        score = newOpponentScore,
-                        isOpened = if (newOpponentScore == 0 && rules.openingThreshold > 0) false else p.isOpened
-                    )
                 }
 
                 else -> p
@@ -383,8 +415,8 @@ object FiveThousandEngine {
     }
 
     /**
-     * Accuse réception d'un Coup nul (`BUSTED` ou `OVERFLOW_BUSTED`), applique l'éventuelle pénalité de 3 coups nuls
-     * consécutifs (`threeStrikesPenalty`), et passe la main au joueur suivant.
+     * Accuse réception d'un Coup nul (`BUSTED` ou `OVERFLOW_BUSTED`), ajoute une encoche (`✕`) sur le palier courant,
+     * applique l'éventuelle pénalité de 3 encoches (`threeStrikesMode`), et passe la main au joueur suivant.
      */
     fun acknowledgeBustAndEndTurn(state: MatchState): EngineResult {
         if (state.isFinished) {
@@ -397,28 +429,103 @@ object FiveThousandEngine {
 
         val rules = state.rules
         val player = state.activePlayer
+        val currentStack = player.normalizedCheckpoints()
         val newBustCount = player.consecutiveBusts + 1
-        val triggersThreeStrikes = rules.threeStrikesPenalty > 0 && newBustCount >= 3
+        val triggersThreeStrikes = rules.threeStrikesMode != ThreeStrikesMode.DISABLED && newBustCount >= 3
 
-        val updatedPlayer = if (triggersThreeStrikes) {
-            val penalizedScore = (player.score - rules.threeStrikesPenalty).coerceAtLeast(0)
-            player.copy(
-                score = penalizedScore,
-                consecutiveBusts = 0,
-                isOpened = if (penalizedScore == 0 && rules.openingThreshold > 0) false else player.isOpened
+        val updatedPlayer: PlayerState
+        val note: String
+
+        if (!triggersThreeStrikes) {
+            val updatedStack = if (currentStack.isEmpty()) {
+                listOf(fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(score = player.score, strikes = newBustCount))
+            } else {
+                currentStack.dropLast(1) + currentStack.last().copy(strikes = newBustCount)
+            }
+            updatedPlayer = player.copy(
+                consecutiveBusts = newBustCount,
+                checkpoints = updatedStack
             )
+            val strikesBadge = if (rules.threeStrikesMode != ThreeStrikesMode.DISABLED) " (Encoche $newBustCount/3)" else ""
+            note = "${player.name} termine son tour à 0 pt$strikesBadge."
         } else {
-            player.copy(consecutiveBusts = newBustCount)
+            when (rules.threeStrikesMode) {
+                ThreeStrikesMode.DISABLED -> {
+                    updatedPlayer = player.copy(consecutiveBusts = newBustCount)
+                    note = "${player.name} termine son tour à 0 pt."
+                }
+                ThreeStrikesMode.MINUS_500, ThreeStrikesMode.MINUS_1000 -> {
+                    val penalty = if (rules.threeStrikesMode == ThreeStrikesMode.MINUS_1000) 1000 else 500
+                    val penalizedScore = (player.score - penalty).coerceAtLeast(0)
+                    val updatedStack = if (currentStack.isEmpty()) {
+                        listOf(fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(score = penalizedScore, strikes = 0))
+                    } else {
+                        currentStack.dropLast(1) + fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(score = penalizedScore, strikes = 0)
+                    }
+                    val prevScore = updatedStack.dropLast(1).lastOrNull()?.score ?: 0
+                    updatedPlayer = player.copy(
+                        score = penalizedScore,
+                        previousScore = prevScore,
+                        consecutiveBusts = 0,
+                        isOpened = if (penalizedScore == 0 && rules.openingThreshold > 0) false else player.isOpened,
+                        checkpoints = updatedStack
+                    )
+                    note = "${player.name} cumule 3 encoches (-$penalty pts → $penalizedScore pts) !"
+                }
+                ThreeStrikesMode.REVERT_TO_PREVIOUS_CLEAR_STRIKES -> {
+                    val poppedStack = currentStack.dropLast(1)
+                    if (poppedStack.isEmpty()) {
+                        updatedPlayer = player.copy(
+                            score = 0,
+                            previousScore = 0,
+                            consecutiveBusts = 0,
+                            isOpened = rules.openingThreshold == 0,
+                            checkpoints = emptyList()
+                        )
+                        note = "${player.name} cumule 3 encoches (retour à 0 pt) !"
+                    } else {
+                        val restoredTop = poppedStack.last().copy(strikes = 0)
+                        val updatedStack = poppedStack.dropLast(1) + restoredTop
+                        val prevScore = updatedStack.dropLast(1).lastOrNull()?.score ?: 0
+                        updatedPlayer = player.copy(
+                            score = restoredTop.score,
+                            previousScore = prevScore,
+                            consecutiveBusts = 0,
+                            isOpened = if (restoredTop.score == 0 && rules.openingThreshold > 0) false else player.isOpened,
+                            checkpoints = updatedStack
+                        )
+                        note = "${player.name} cumule 3 encoches (recul au palier ${restoredTop.score} pts, 0 encoche) !"
+                    }
+                }
+                ThreeStrikesMode.REVERT_TO_PREVIOUS_PERSIST_STRIKES -> {
+                    val poppedStack = currentStack.dropLast(1)
+                    if (poppedStack.isEmpty()) {
+                        updatedPlayer = player.copy(
+                            score = 0,
+                            previousScore = 0,
+                            consecutiveBusts = 0,
+                            isOpened = rules.openingThreshold == 0,
+                            checkpoints = emptyList()
+                        )
+                        note = "${player.name} cumule 3 encoches (retour à 0 pt) !"
+                    } else {
+                        val restoredTop = poppedStack.last()
+                        val prevScore = poppedStack.dropLast(1).lastOrNull()?.score ?: 0
+                        updatedPlayer = player.copy(
+                            score = restoredTop.score,
+                            previousScore = prevScore,
+                            consecutiveBusts = restoredTop.strikes,
+                            isOpened = if (restoredTop.score == 0 && rules.openingThreshold > 0) false else player.isOpened,
+                            checkpoints = poppedStack
+                        )
+                        note = "${player.name} cumule 3 encoches (recul au palier ${restoredTop.score} pts avec ${restoredTop.strikes} encoche(s)) !"
+                    }
+                }
+            }
         }
 
         val updatedPlayers = state.players.mapIndexed { idx, p ->
             if (idx == turn.activePlayerIndex) updatedPlayer else p
-        }
-
-        val note = if (triggersThreeStrikes) {
-            "${player.name} subit 3 coups nuls (-${rules.threeStrikesPenalty} pts) !"
-        } else {
-            "${player.name} termine son tour à 0 pt."
         }
 
         return EngineResult.Success(

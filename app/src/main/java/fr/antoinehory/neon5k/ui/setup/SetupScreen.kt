@@ -35,6 +35,7 @@ import fr.antoinehory.neon5k.domain.rules.FiveOfAKindMode
 import fr.antoinehory.neon5k.domain.rules.FourOfAKindMode
 import fr.antoinehory.neon5k.domain.rules.GameRulesConfig
 import fr.antoinehory.neon5k.domain.rules.RulesPreset
+import fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode
 import fr.antoinehory.neon5k.ui.components.CyberPanel
 import fr.antoinehory.neon5k.ui.components.PixelButton
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
@@ -349,11 +350,17 @@ fun SetupScreen(
                 )
 
                 OptionSelectorRow(
-                    title = "Pénalité 3 coups nuls",
-                    options = listOf(0 to "Off", 500 to "-500 pts", 1000 to "-1 000 pts"),
-                    selectedValue = rules.threeStrikesPenalty,
-                    onSelect = { penalty ->
-                        rules = rules.copy(preset = RulesPreset.CUSTOM, threeStrikesPenalty = penalty)
+                    title = "3 Encoches (3 coups nuls sur un palier)",
+                    options = listOf(
+                        ThreeStrikesMode.DISABLED to "Off",
+                        ThreeStrikesMode.MINUS_500 to "-500 pts",
+                        ThreeStrikesMode.MINUS_1000 to "-1 000 pts",
+                        ThreeStrikesMode.REVERT_TO_PREVIOUS_CLEAR_STRIKES to "Palier préc. (0 ✕)",
+                        ThreeStrikesMode.REVERT_TO_PREVIOUS_PERSIST_STRIKES to "Palier préc. (mémoire ✕)"
+                    ),
+                    selectedValue = rules.threeStrikesMode,
+                    onSelect = { mode ->
+                        rules = rules.copy(preset = RulesPreset.CUSTOM, threeStrikesMode = mode)
                     }
                 )
 

@@ -96,6 +96,13 @@ fun GameScreen(
         )
     }
 
+    if (uiState.showRulesDialog) {
+        fr.antoinehory.neon5k.ui.rules.QuickRulesPaytableDialog(
+            rules = match.rules,
+            onDismiss = { onEvent(GameUiEvent.ToggleRulesDialog) }
+        )
+    }
+
     val screenModifier = if (preferences.keepScreenOn) {
         modifier.fillMaxSize().keepScreenOn()
     } else {
@@ -140,25 +147,52 @@ fun GameScreen(
                 }
 
                 val snapshot = turn.lastEntropySnapshot
-                Box(
-                    modifier = Modifier
-                        .background(colors.surface, CyberCutShape)
-                        .border(
-                            width = 1.dp,
-                            color = if (snapshot != null) colors.secondaryNeon else colors.textMuted.copy(alpha = 0.3f),
-                            shape = CyberCutShape
-                        )
-                        .clickable(enabled = snapshot != null) {
-                            triggerHaptic()
-                            onEvent(GameUiEvent.ToggleEntropyDialog)
-                        }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = snapshot?.shortHashHex ?: "#SEED--",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (snapshot != null) colors.secondaryNeon else colors.textMuted
-                    )
+                    Box(
+                        modifier = Modifier
+                            .background(colors.surface, CyberCutShape)
+                            .border(
+                                width = 1.dp,
+                                color = colors.primaryNeon.copy(alpha = 0.6f),
+                                shape = CyberCutShape
+                            )
+                            .clickable {
+                                triggerHaptic()
+                                onEvent(GameUiEvent.ToggleRulesDialog)
+                            }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "?",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryNeon
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .background(colors.surface, CyberCutShape)
+                            .border(
+                                width = 1.dp,
+                                color = if (snapshot != null) colors.secondaryNeon else colors.textMuted.copy(alpha = 0.3f),
+                                shape = CyberCutShape
+                            )
+                            .clickable(enabled = snapshot != null) {
+                                triggerHaptic()
+                                onEvent(GameUiEvent.ToggleEntropyDialog)
+                            }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = snapshot?.shortHashHex ?: "#SEED--",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (snapshot != null) colors.secondaryNeon else colors.textMuted
+                        )
+                    }
                 }
             }
 
@@ -376,11 +410,18 @@ private fun ScoreboardRow(
                         player.isOpened || openingThreshold == 0 -> "OUVERT"
                         else -> "FERMÉ (<$openingThreshold)"
                     }
-                    val bustTag = if (player.consecutiveBusts > 0) " • NULS:${player.consecutiveBusts}" else ""
+                    val prevTag = if (player.previousScore > 0) " • PRÉC:${player.previousScore}" else ""
+                    val strikesVisual = if (player.consecutiveBusts > 0) {
+                        val crosses = "✕".repeat(player.consecutiveBusts.coerceIn(0, 3))
+                        val dots = "·".repeat((3 - player.consecutiveBusts).coerceAtLeast(0))
+                        " • [$crosses$dots]"
+                    } else {
+                        ""
+                    }
                     Text(
-                        text = "$tag$bustTag",
+                        text = "$tag$prevTag$strikesVisual",
                         style = MaterialTheme.typography.labelSmall,
-                        color = colors.textMuted
+                        color = if (player.consecutiveBusts >= 2) colors.alertNeon else colors.textMuted
                     )
                 }
             }

@@ -47,6 +47,7 @@ data class GameUiState(
     val match: MatchState,
     val lastConfiguredRules: GameRulesConfig = GameRulesConfig.CLASSIC_5_DICE,
     val showEntropyDialog: Boolean = false,
+    val showRulesDialog: Boolean = false,
     val hasActiveMatch: Boolean = false,
     val isBotThinking: Boolean = false,
     val errorBannerFr: String? = null,
@@ -75,6 +76,7 @@ sealed interface GameUiEvent {
     data object BankTurn : GameUiEvent
     data object AcknowledgeBust : GameUiEvent
     data object ToggleEntropyDialog : GameUiEvent
+    data object ToggleRulesDialog : GameUiEvent
     data object RestartSameMatch : GameUiEvent
 }
 
@@ -218,10 +220,13 @@ class GameViewModel(
     }
 
     fun onEvent(event: GameUiEvent) {
-        // Ignorer les clics de jeu manuels pendant que le bot joue son tour (hors boîte de dialogue d'entropie / revanche)
+        // Ignorer les clics de jeu manuels pendant que le bot joue son tour (hors boîtes de dialogue / revanche)
         val currentMatch = _uiState.value.match
         val isBotTurn = BotProfile.fromPlayerType(currentMatch.activePlayer.type) != null && !currentMatch.isFinished
-        if (isBotTurn && event !is GameUiEvent.ToggleEntropyDialog && event !is GameUiEvent.RestartSameMatch) {
+        val isDialogOrRestart = event is GameUiEvent.ToggleEntropyDialog ||
+            event is GameUiEvent.ToggleRulesDialog ||
+            event is GameUiEvent.RestartSameMatch
+        if (isBotTurn && !isDialogOrRestart) {
             return
         }
 
@@ -241,9 +246,18 @@ class GameViewModel(
             GameUiEvent.ToggleEntropyDialog -> {
                 _uiState.update { it.copy(showEntropyDialog = !it.showEntropyDialog) }
             }
+            GameUiEvent.ToggleRulesDialog -> {
+                _uiState.update { it.copy(showRulesDialog = !it.showRulesDialog) }
+            }
             GameUiEvent.RestartSameMatch -> {
                 val resetPlayers = currentMatch.players.map { p ->
-                    p.copy(score = 0, previousScore = 0, isOpened = false, consecutiveBusts = 0)
+                    p.copy(
+                        score = 0,
+                        previousScore = 0,
+                        isOpened = false,
+                        consecutiveBusts = 0,
+                        checkpoints = emptyList()
+                    )
                 }
                 startMatch(rules = currentMatch.rules, players = resetPlayers)
             }

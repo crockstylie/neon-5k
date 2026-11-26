@@ -40,8 +40,29 @@ enum class BumpOpponentMode {
     DISABLED,
     /** L'adversaire rejoint recule de 500 points (sans descendre sous 0). */
     MINUS_500,
-    /** L'adversaire rejoint retombe à son score d'avant son dernier tour banqué (ou 0). */
+    /** L'adversaire rejoint retombe à son palier de score précédent dans sa pile d'historique (ou 0). */
     RESET_TO_PREVIOUS
+}
+
+/**
+ * Mode de pénalité après 3 coups nuls (3 Strikes / 3 Encoches sur le palier courant).
+ */
+enum class ThreeStrikesMode {
+    /** Aucune pénalité après 3 coups nuls. */
+    DISABLED,
+    /** Retire 500 points au score courant (sans descendre sous 0) et remet les encoches à 0. */
+    MINUS_500,
+    /** Retire 1 000 points au score courant (sans descendre sous 0) et remet les encoches à 0. */
+    MINUS_1000,
+    /**
+     * Recul au palier de score précédent (Roll-back) en effaçant les encoches du palier retrouvé (`strikes = 0`).
+     */
+    REVERT_TO_PREVIOUS_CLEAR_STRIKES,
+    /**
+     * Recul au palier de score précédent avec **mémoire des encoches** (variante feuille de score papier) :
+     * ex. `1000 (0✕) -> 1200 (2✕) -> 1700 (3✕ => tombe à 1200 avec ses 2✕) -> 1 nouveau nul => 3✕ sur 1200 => tombe à 1000`.
+     */
+    REVERT_TO_PREVIOUS_PERSIST_STRIKES
 }
 
 /**
@@ -62,7 +83,7 @@ data class GameRulesConfig(
     val fullHouseBonus: Int = 0,
     val piggybackEnabled: Boolean = false,
     val bumpOpponentMode: BumpOpponentMode = BumpOpponentMode.DISABLED,
-    val threeStrikesPenalty: Int = 0
+    val threeStrikesMode: ThreeStrikesMode = ThreeStrikesMode.DISABLED
 ) {
     init {
         require(diceCount in 5..6) { "diceCount must be 5 or 6 (was $diceCount)" }
@@ -71,7 +92,6 @@ data class GameRulesConfig(
         require(straightScore >= 0) { "straightScore must be >= 0" }
         require(threePairsScore >= 0) { "threePairsScore must be >= 0" }
         require(fullHouseBonus >= 0) { "fullHouseBonus must be >= 0" }
-        require(threeStrikesPenalty >= 0) { "threeStrikesPenalty must be >= 0" }
     }
 
     /**
@@ -90,7 +110,7 @@ data class GameRulesConfig(
         append("_FH").append(fullHouseBonus)
         append("_PB").append(if (piggybackEnabled) 1 else 0)
         append("_BP").append(bumpOpponentMode.ordinal)
-        append("_3S").append(threeStrikesPenalty)
+        append("_3S").append(threeStrikesMode.ordinal)
     }
 
     companion object {
@@ -109,7 +129,7 @@ data class GameRulesConfig(
             fullHouseBonus = 0,
             piggybackEnabled = false,
             bumpOpponentMode = BumpOpponentMode.DISABLED,
-            threeStrikesPenalty = 0
+            threeStrikesMode = ThreeStrikesMode.DISABLED
         )
 
         /** Preset Variante 6 dés (cible 5 000, ouverture 750, 3 paires = 1 000 pts, full +200 pts). */
@@ -127,7 +147,7 @@ data class GameRulesConfig(
             fullHouseBonus = 200,
             piggybackEnabled = false,
             bumpOpponentMode = BumpOpponentMode.DISABLED,
-            threeStrikesPenalty = 0
+            threeStrikesMode = ThreeStrikesMode.DISABLED
         )
 
         /** Preset Rapide 2 500 (5 dés, cible 2 500, ouverture 500, sans score exact obligatoire). */
@@ -145,7 +165,7 @@ data class GameRulesConfig(
             fullHouseBonus = 0,
             piggybackEnabled = false,
             bumpOpponentMode = BumpOpponentMode.DISABLED,
-            threeStrikesPenalty = 0
+            threeStrikesMode = ThreeStrikesMode.DISABLED
         )
 
         fun fromPreset(preset: RulesPreset): GameRulesConfig = when (preset) {

@@ -90,7 +90,7 @@ class FiveThousandEngineTest {
 
     @Test
     fun `three strikes penalty deducts points after 3 consecutive busts`() {
-        val rules = GameRulesConfig.CLASSIC_5_DICE.copy(threeStrikesPenalty = 500)
+        val rules = GameRulesConfig.CLASSIC_5_DICE.copy(threeStrikesMode = ThreeStrikesMode.MINUS_500)
         val p1 = PlayerState(id = 0, name = "Cyber-1", score = 1200, isOpened = true, consecutiveBusts = 2)
         val p2 = PlayerState(id = 1, name = "Neon-2", score = 800, isOpened = true)
         var state = FiveThousandEngine.startNewMatch("m3", rules, listOf(p1, p2))
@@ -101,6 +101,104 @@ class FiveThousandEngineTest {
 
         state = FiveThousandEngine.acknowledgeBustAndEndTurn(state).requireSuccess()
         assertEquals(700, state.players[0].score)
+        assertEquals(0, state.players[0].consecutiveBusts)
+    }
+
+    @Test
+    fun `three strikes REVERT_TO_PREVIOUS_PERSIST_STRIKES rolls back to previous checkpoint and preserves saved strikes`() {
+        val rules = GameRulesConfig.CLASSIC_5_DICE.copy(
+            threeStrikesMode = ThreeStrikesMode.REVERT_TO_PREVIOUS_PERSIST_STRIKES
+        )
+        // 1 joueur pour enchaîner les tours directement selon le scénario exact :
+        // 1000 -> +200 => 1200 -> 2 busts (2 encoches sur 1200) -> +500 => 1700 -> 3 busts => redescend à 1200 avec 2 encoches -> 1 bust => 3e encoche sur 1200 => redescend à 1000 !
+        var state = FiveThousandEngine.startNewMatch(
+            "m3_persist",
+            rules,
+            listOf(PlayerState(id = 0, name = "Solo"))
+        )
+
+        // 1) Banquer 1000 pts (Brelan d'As = 1000) -> Palier #1 : 1000 (0✕)
+        state = FiveThousandEngine.rollDice(state, listOf(1, 1, 1, 2, 3)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+        assertEquals(1000, state.players[0].score)
+        assertEquals(0, state.players[0].consecutiveBusts)
+
+        // 2) Banquer +200 pts (Brelan de 2 = 200) -> Palier #2 : 1200 (0✕)
+        state = FiveThousandEngine.rollDice(state, listOf(2, 2, 2, 3, 4)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+        assertEquals(1200, state.players[0].score)
+        assertEquals(1000, state.players[0].previousScore)
+
+        // 3) Louper 2 fois sur le palier 1200 -> 1200 (2✕)
+        repeat(2) {
+            state = FiveThousandEngine.rollDice(state, listOf(2, 3, 4, 6, 6)).requireSuccess()
+            state = FiveThousandEngine.acknowledgeBustAndEndTurn(state).requireSuccess()
+        }
+        assertEquals(1200, state.players[0].score)
+        assertEquals(2, state.players[0].consecutiveBusts)
+
+        // 4) Banquer +500 pts (Brelan de 5 = 500) -> Palier #3 : 1700 (0✕), tandis que 1200 garde ses 2✕ en mémoire
+        state = FiveThousandEngine.rollDice(state, listOf(5, 5, 5, 2, 3)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+        assertEquals(1700, state.players[0].score)
+        assertEquals(1200, state.players[0].previousScore)
+        assertEquals(0, state.players[0].consecutiveBusts)
+
+        // 5) Louper 3 fois sur le palier 1700 -> retombe à 1200 avec ses 2 encoches historiques !
+        repeat(3) {
+            state = FiveThousandEngine.rollDice(state, listOf(2, 3, 4, 6, 6)).requireSuccess()
+            state = FiveThousandEngine.acknowledgeBustAndEndTurn(state).requireSuccess()
+        }
+        assertEquals(1200, state.players[0].score)
+        assertEquals(1000, state.players[0].previousScore)
+        assertEquals(2, state.players[0].consecutiveBusts)
+
+        // 6) Louper 1 seule fois de plus sur 1200 -> 2 + 1 = 3 encoches -> retombe à 1000 (0✕) !
+        state = FiveThousandEngine.rollDice(state, listOf(2, 3, 4, 6, 6)).requireSuccess()
+        state = FiveThousandEngine.acknowledgeBustAndEndTurn(state).requireSuccess()
+        assertEquals(1000, state.players[0].score)
+        assertEquals(0, state.players[0].previousScore)
+        assertEquals(0, state.players[0].consecutiveBusts)
+    }
+
+    @Test
+    fun `three strikes REVERT_TO_PREVIOUS_CLEAR_STRIKES rolls back to previous checkpoint and clears its strikes`() {
+        val rules = GameRulesConfig.CLASSIC_5_DICE.copy(
+            threeStrikesMode = ThreeStrikesMode.REVERT_TO_PREVIOUS_CLEAR_STRIKES
+        )
+        var state = FiveThousandEngine.startNewMatch(
+            "m3_clear",
+            rules,
+            listOf(PlayerState(id = 0, name = "Solo"))
+        )
+
+        // 1000 -> 1200 -> 2 encoches sur 1200 -> 1700 -> 3 encoches sur 1700 => retombe à 1200 mais avec 0 encoche
+        state = FiveThousandEngine.rollDice(state, listOf(1, 1, 1, 2, 3)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+
+        state = FiveThousandEngine.rollDice(state, listOf(2, 2, 2, 3, 4)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+
+        repeat(2) {
+            state = FiveThousandEngine.rollDice(state, listOf(2, 3, 4, 6, 6)).requireSuccess()
+            state = FiveThousandEngine.acknowledgeBustAndEndTurn(state).requireSuccess()
+        }
+        assertEquals(2, state.players[0].consecutiveBusts)
+
+        state = FiveThousandEngine.rollDice(state, listOf(5, 5, 5, 2, 3)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+
+        repeat(3) {
+            state = FiveThousandEngine.rollDice(state, listOf(2, 3, 4, 6, 6)).requireSuccess()
+            state = FiveThousandEngine.acknowledgeBustAndEndTurn(state).requireSuccess()
+        }
+        assertEquals(1200, state.players[0].score)
         assertEquals(0, state.players[0].consecutiveBusts)
     }
 

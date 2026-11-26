@@ -70,3 +70,30 @@
 - **Contexte** : Retour d'expérience critique d'un crash Release sur ART (`IllegalAccessError` sur `kotlin.sequences.*`) provoqué par un `packageScope` R8 partiel sur AGP 9.
 - **Décision** : Utiliser `optimization { enable = true }` global en build Release sans restriction `packageScope`, et tester systématiquement un APK/AAB Release signé avant chaque publication.
 - **Conséquences** : Build Release stable sur ART et taille d'APK optimisée.
+
+## ADR-011 : Succès à comptage infini post-déverrouillage & Télémétrie Fun
+- **Date** : 2026-11-26
+- **Contexte** : Sur Google Play Jeux, un succès une fois déverrouillé n'évolue plus. Or dans un jeu de dés comme le 5000, les joueurs adorent savoir combien de fois ils ont réalisé un exploit au total (ex: nombre total de Brelans d'As, de Mains pleines, de Chapeaux ou de crashs à +1 000 pts) ainsi que consulter des statistiques décalées sur leurs lancers.
+- **Décision** :
+    1. Étendre la liste à **20 succès** couvrant toutes les combinaisons, prises de risque et variantes.
+    2. Dans Room (`AchievementEntity`), dissocier l'état de déblocage (`isUnlocked: Boolean`, `unlockedAtEpochMs: Long?`, synchronisé avec Play Jeux) du compteur à vie (`lifetimeCount: Int`) qui **continue de s'incrémenter à chaque occurrence même après déverrouillage**, avec des paliers de maîtrise locaux (*Bronze → Argent → Or → Cyber-Platine*).
+    3. Enrichir `PlayerStatsEntity` avec la télémétrie complète : compteur de chaque face `1..6` tirée (vérification de l'équité du SHA-256), détail des brelans par face (`1` à `6`), carrés, quintes, suites, 3 paires, fulls, lancers par secousse, points totaux banqués vs perdus en glitch, et bilan par profil de Bot.
+- **Conséquences** : Forte rejouabilité locale même après avoir débloqué un succès Play Jeux, et compatibilité 100 % avec l'API `AchievementsClient` (`unlock` / `setSteps`) de Google Play Games Services v2.
+
+## ADR-012 : Alignement de `InfoScreen` sur le standard `OCRAurebesh` & Protocole de suggestion pré-Lot
+- **Date** : 2026-11-26
+- **Contexte** : Harmoniser la fiche Développeur / À propos avec l'application sœur `OCRAurebesh` et valider les idées d'amélioration avant de coder chaque nouveau lot.
+- **Décision** :
+    1. Intégrer dans `Neon 5K` la même fiche `InfoScreen` que `OCRAurebesh` (Antoine Crock HORY, `antoinehory.fr`, `contact@antoinehory.fr`, `paypal.me/kuroku`, boutons PayPal et notation 5 ⭐ Play Store, et les 6 icônes vectorielles XML LinkedIn, Behance, Instagram, Facebook, Spotify, Steam) stylisée aux couleurs néon du thème actif.
+    2. Avant d'entamer le code de chaque nouveau Lot (`Lot N`), l'agent présente systématiquement 3 à 5 suggestions d'améliorations ciblées pour ce lot afin que l'utilisateur puisse retenir celles qu'il souhaite inclure.
+- **Conséquences** : Identité développeur uniforme sur le Play Store et pilotage collaboratif lot par lot.
+
+## ADR-013 : Pile de Paliers de Score (`ScoreCheckpoint`) & Variante des 3 Encoches (`✕` / Strikes) avec Mémoire
+- **Date** : 2026-11-26
+- **Contexte** : Sur feuille de score papier, une variante populaire entre amis consiste à ne pas retirer un forfait de points fixe après 3 coups nuls consécutifs, mais à **reculer au palier de score précédent**, tout en **conservant en mémoire les encoches (`✕`) déjà notées sur cette ligne** (ex. `1000` → `1200` avec 2 encoches `[✕✕·]` → `1700` avec 3 encoches ⇒ retombe à `1200 [✕✕·]` → 1 seul nouveau coup nul suffit à atteindre 3 encoches sur `1200` et fait retomber à `1000`).
+- **Décision** :
+    1. Adopter la terminologie officielle **« Palier »** (`ScoreCheckpoint`) et **« Encoches (`✕` / Strikes) »** (affichées visuellement `[✕✕·]` sur les cartes joueurs de `GameScreen`).
+    2. Stocker dans `PlayerState` une pile immuable `checkpoints: List<ScoreCheckpoint>` où chaque `ScoreCheckpoint(val score: Int, val strikes: Int = 0)` mémorise le score du palier et ses encoches (`0..2`).
+    3. Remplacer `threeStrikesPenalty: Int` par `ThreeStrikesMode` offrant 5 modes dans `SetupScreen` : `DISABLED`, `MINUS_500`, `MINUS_1000`, `REVERT_TO_PREVIOUS_CLEAR_STRIKES` (recul au palier précédent avec remise à `0 ✕`) et `REVERT_TO_PREVIOUS_PERSIST_STRIKES` (recul au palier précédent avec conservation des encoches historiques `✕`).
+- **Conséquences** : Reproduction 100 % fidèle du comportement d'une feuille de match papier, également exploitée par la variante Chapeau (`BumpOpponentMode.RESET_TO_PREVIOUS`) et persistée en JSON dans `SavedMatchEntity`.
+

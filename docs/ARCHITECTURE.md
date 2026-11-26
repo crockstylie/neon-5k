@@ -174,6 +174,11 @@ fr.antoinehory.neon5k/
 | `app/src/main/java/fr/antoinehory/neon5k/ui/components/ColorPickerDialog.kt` | Sélecteur de couleur HSV + `#RRGGBB` avec contrôle contraste WCAG 2.1 | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/customization/CustomizationScreen.kt` | Studio de personnalisation du thème, des dés et de l'ergonomie | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/stats/StatsScreen.kt` | Écran des statistiques locales et de l'export SAF du dataset IA | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/rules/RulesScreen.kt` | Codex des règles du 5000, simulateur interactif de barème Pixel Art et modale `[?]` en partie | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/info/InfoScreen.kt` | Fiche Informations & Crédits (modèle `OCRAurebesh` + 6 réseaux sociaux + PayPal + Play Store + sélecteur 4 langues) | Actif |
+| `app/src/main/res/drawable/ic_*_logo.xml` | 6 icônes vectorielles XML de réseaux sociaux (`linkedin`, `behance`, `instagram`, `facebook`, `spotify`, `steam`) | Actif |
+| `app/src/main/res/xml/locales_config.xml` | Déclaration des 4 langues supportées (`fr`, `en`, `es`, `pt`) pour Android 13+ | Actif |
+| `app/src/main/res/values-*/strings.xml` | Ressources traduites en 4 langues (`values`, `values-fr`, `values-en`, `values-es`, `values-pt`) | Actif |
 | `app/src/test/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicyTest.kt` | Tests unitaires JVM de `RollProbabilityTable` et `HeuristicBotPolicy` | Actif |
 | `app/src/androidTest/java/fr/antoinehory/neon5k/data/local/NeonDatabaseInstrumentedTest.kt` | Tests instrumentés Room (`MatchDao` & `DecisionLogDao`) | Actif |
 | `data/playgames/*` | Intégration Google Play Jeux v2 & succès (Lot 4) | À créer |
@@ -200,8 +205,8 @@ Basé sur les règles de référence Wikipédia (`5 000`), avec préréglages et
 | `threePairsScore` (6 dés) | `1 000` | `0` (désactivé), `750`, `1 000`, `1 500` |
 | `fullHouseBonus` | `0` (désactivé) | `0` (désactivé), `+200` au brelan |
 | `piggybackEnabled` (Repiquage) | `false` | `false` / `true` (reprise des dés restants & du pot du joueur précédent) |
-| `bumpOpponentMode` (Chapeau) | `DISABLED` | `DISABLED`, `MINUS_500`, `RESET_TO_PREVIOUS` |
-| `threeStrikesPenalty` | `0` (désactivé) | `0`, `-500`, `-1 000` après 3 coups nuls consécutifs |
+| `bumpOpponentMode` (Chapeau) | `DISABLED` | `DISABLED`, `MINUS_500`, `RESET_TO_PREVIOUS` (recul au palier précédent dans la pile `checkpoints`) |
+| `threeStrikesMode` (3 Encoches `✕`) | `DISABLED` | `DISABLED`, `MINUS_500`, `MINUS_1000`, `REVERT_TO_PREVIOUS_CLEAR_STRIKES`, `REVERT_TO_PREVIOUS_PERSIST_STRIKES` (recul au palier précédent en conservant ses encoches historiques `✕`) |
 
 **Règles immuables du validateur (`DiceScorer`) :**
 - Le joueur ne peut verrouiller que des dés qui participent activement au score du lancer courant (aucun dé « mort » autorisé dans la sélection).
@@ -246,7 +251,19 @@ Chaque décision humaine ou bot insère une ligne compacte :
   - **OLED Minimal** : Fond `#000000`, Surface `#0D0D10`, Primaire `#00E5FF`, Secondaire `#FFFFFF`, Alerte `#FF3B5C`, Texte `#F5F5F5`.
 - **Mode `CUSTOM`** : L'utilisateur choisit librement Fond, Surface, Accent principal, Accent secondaire et Texte (roue HSV + `#RRGGBB`), avec indicateur de ratio de contraste WCAG (`>= 4.5:1`) et mise à jour automatique des icônes de barres système (`isAppearanceLightStatusBars`).
 
-### 5.5. Contrats Multijoueur (Lot 5 Nearby & Lot 6 Firebase)
+### 5.5. Système de 20 Succès à Comptage Infini & Télémétrie Fun (Lot 4)
+- **Comptage continu post-déverrouillage** : Chaque succès (`AchievementId`) est stocké dans Room (`AchievementEntity`) avec :
+  - `isUnlocked: Boolean` + `unlockedAtEpochMs: Long?` (déclenché dès que `lifetimeCount >= targetSteps`, et synchronisé vers Google Play Jeux via `AchievementsClient.unlock(pgsId)` ou `setSteps(pgsId, count)`),
+  - `lifetimeCount: Int` qui **ne s'arrête jamais au palier** (`1/1 → Total à vie : ×14`) et attribue un rang de maîtrise local (*Bronze*, *Argent*, *Or*, *Cyber-Platine*).
+- **Télémétrie Fun (`PlayerStatsEntity` enrichi)** :
+  - **Vérificateur d'équité SHA-256** : Histogramme exact du nombre d'apparitions de chaque face (`face1Count` à `face6Count`) sur l'ensemble des dés lancés.
+  - **Détail des Brelans & Combinaisons** : Compteur total des brelans + répartition exacte par face (`triple1Count` à `triple6Count`), nombre de Carrés, Quintes, Suites, 3 Paires et Fulls.
+  - **Psychologie & Risque** : Total des points banqués vs total des points perdus en Glitch (ratio d'avidité), pire pot perdu sur un seul coup nul (`worstBustPotLost`), nombre de lancers déclenchés par secousse physique (`shakeRollsCount`), sauvetages à 1 seul dé (`oneDieClutchCount`), chapeaux infligés vs subis.
+- **Assets Visuels des Succès & Déclaration Google Play Console** :
+  - Dans l'app : Badges Pixel Art `16×16` dédiés pour chacun des 20 succès (rendus via `Canvas` / `VectorDrawable` avec les couleurs néon du thème actif quand débloqué, et en wireframe atténué quand verrouillé).
+  - Pour la Google Play Console (*Services de jeux Play > Configurer > Succès*) : Chaque succès sur le Play Store requiert un **Nom** (max 100 car.), une **Description** (max 500 car.), un type (**Standard** ou **Incrémentiel** à $N$ étapes), une valeur en **XP** (total max 1 000 XP répartis sur les 20 succès, soit 25 à 100 XP par succès) et une **icône `512 × 512 px` PNG/JPG** (Google génère automatiquement la version grisée verrouillée). Un utilitaire/script permettra de générer les 20 PNG `512 × 512 px` à partir des matrices Pixel Art de l'application, accompagnés de la fiche récapitulative `res/values/games-ids.xml`.
+
+### 5.6. Contrats Multijoueur (Lot 5 Nearby & Lot 6 Firebase)
 - **Interface commune `MultiplayerTransport`** : Le `GameViewModel` ne connaît pas l'implémentation sous-jacente ; il consomme un `Flow<NetworkGameEvent>` et envoie des `NetworkGameCommand` (sérialisés en JSON compact `kotlinx.serialization`).
 - **Lot 5 (Nearby Connections)** : Topologie `Strategy.P2P_STAR`. L'hôte fait tourner `FiveThousandEngine` comme source de vérité et diffuse l'état minimal (`MatchSnapshot`) après chaque action.
 - **Lot 6 (Firebase RTDB Spark 0 €)** :
