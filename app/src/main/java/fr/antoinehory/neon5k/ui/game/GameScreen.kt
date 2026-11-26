@@ -50,6 +50,8 @@ import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
  * Plateau de jeu principal de Neon 5K (Lot 1).
  * - Gère le cycle de vie des capteurs via `LifecycleEventEffect(ON_RESUME / ON_PAUSE)`.
  * - Maintient l'écran allumé (`Modifier.keepScreenOn()`) pendant la partie.
+ * - Ergonomie à une main : les informations de score et de statut sont placées en haut, tandis que la ligne de dés
+ *   et les boutons d'action sont ancrés dans la moitié inférieure de l'écran (zone naturelle du pouce).
  * - Capture les coordonnées `(x, y)` et la durée d'appui tactile sur le bouton LANCER pour enrichir la graine `SHA-256`.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -91,7 +93,7 @@ fun GameScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 1. Barre supérieure : Retour accueil, Preset/Cible et Badge d'Entropie SHA-256
+        // 1. Zone Haute (Lecture seule) : Barre supérieure + Tableau des scores + Statut & Pot du tour
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -140,130 +142,146 @@ fun GameScreen(
                 }
             }
 
-            // 2. Bandeau des scores joueurs (Pass & Play / Solo)
+            // Bandeau des scores joueurs (Pass & Play / Solo)
             ScoreboardRow(
                 players = match.players,
                 activePlayerIndex = turn.activePlayerIndex,
                 winnerPlayerId = match.winnerPlayerId,
                 openingThreshold = match.rules.openingThreshold
             )
-        }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // 3. Zone centrale : Pot du tour + Tapis de dés Pixel Art 16x16
-        CyberPanel(
-            modifier = Modifier.fillMaxWidth(),
-            borderColor = when (turn.phase) {
-                TurnPhase.BUSTED, TurnPhase.OVERFLOW_BUSTED -> colors.alertNeon
-                TurnPhase.HOT_DICE_MANDATORY_REROLL -> colors.secondaryNeon
-                else -> colors.primaryNeon.copy(alpha = 0.55f)
-            }
-        ) {
-            Column(
+            // Carte de statut du tour actif et Pot du tour (placée en haut pour libérer le bas de l'écran pour le pouce)
+            CyberPanel(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                borderColor = when (turn.phase) {
+                    TurnPhase.BUSTED, TurnPhase.OVERFLOW_BUSTED -> colors.alertNeon
+                    TurnPhase.HOT_DICE_MANDATORY_REROLL -> colors.secondaryNeon
+                    else -> colors.primaryNeon.copy(alpha = 0.45f)
+                }
             ) {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "TOUR #${turn.turnNumber} // ${activePlayer.name}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = colors.primaryNeon
-                        )
-                        Text(
-                            text = if (activePlayer.isOpened) {
-                                "STATUT : OUVERT (${activePlayer.score} / ${match.rules.targetScore})"
-                            } else {
-                                "STATUT : FERMÉ (Seuil ${match.rules.openingThreshold} requis)"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.textMuted
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "TOUR #${turn.turnNumber} // ${activePlayer.name}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = colors.primaryNeon
+                            )
+                            Text(
+                                text = if (activePlayer.isOpened) {
+                                    "STATUT : OUVERT (${activePlayer.score} / ${match.rules.targetScore})"
+                                } else {
+                                    "STATUT : FERMÉ (Seuil ${match.rules.openingThreshold} requis)"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.textMuted
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "POT DU TOUR",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.secondaryNeon
+                            )
+                            Text(
+                                text = "+${turn.totalTurnPointsWithSelection} PTS",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = if (turn.isSelectionValid || turn.bankedInTurn > 0) {
+                                    colors.primaryNeon
+                                } else {
+                                    colors.textMuted
+                                }
+                            )
+                        }
                     }
 
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "POT DU TOUR",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.secondaryNeon
-                        )
-                        Text(
-                            text = "+${turn.totalTurnPointsWithSelection} PTS",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = if (turn.isSelectionValid || turn.bankedInTurn > 0) {
-                                colors.primaryNeon
-                            } else {
-                                colors.textMuted
-                            }
-                        )
-                    }
-                }
-
-                // Tapis des dés (5 ou 6 dés)
-                FlowRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    turn.dice.forEach { die ->
-                        PixelDiceCanvas(
-                            die = die,
-                            rollTrigger = match.totalRollsInMatch,
-                            onClick = { onEvent(GameUiEvent.ToggleDie(die.index)) },
-                            dieSize = 66.dp
-                        )
-                    }
-                }
-
-                // Légende rapide des états de dés
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    LegendDot(color = colors.primaryNeon, label = "Scorant")
-                    LegendDot(color = colors.secondaryNeon, label = "Sélectionné")
-                    LegendDot(color = colors.alertNeon, label = "Verrouillé")
-                }
-
-                // Message d'état du tour ou de combinaison sélectionnée
-                Text(
-                    text = turn.statusMessageFr,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = when (turn.phase) {
-                        TurnPhase.BUSTED, TurnPhase.OVERFLOW_BUSTED -> colors.alertNeon
-                        else -> colors.textPrimary
-                    },
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (uiState.errorBannerFr != null) {
                     Text(
-                        text = "⚠ ${uiState.errorBannerFr}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.alertNeon,
-                        textAlign = TextAlign.Center
+                        text = turn.statusMessageFr,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = when (turn.phase) {
+                            TurnPhase.BUSTED, TurnPhase.OVERFLOW_BUSTED -> colors.alertNeon
+                            else -> colors.textPrimary
+                        },
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
+
+                    if (uiState.errorBannerFr != null) {
+                        Text(
+                            text = "⚠ ${uiState.errorBannerFr}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.alertNeon,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Zone de commandes (Lancer avec capture tactile d'entropie / Tout prendre / Relancer / Banquer / Repiquer)
-        ActionControlsSection(
-            match = match,
-            onEvent = onEvent,
-            onNavigateSetup = onNavigateSetup
-        )
+        // 2. Zone Basse (Zone du pouce à une main) : Ligne de dés Pixel Art + Boutons d'action juste en dessous
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CyberPanel(
+                modifier = Modifier.fillMaxWidth(),
+                borderColor = when (turn.phase) {
+                    TurnPhase.BUSTED, TurnPhase.OVERFLOW_BUSTED -> colors.alertNeon
+                    TurnPhase.HOT_DICE_MANDATORY_REROLL -> colors.secondaryNeon
+                    else -> colors.primaryNeon.copy(alpha = 0.65f)
+                }
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        LegendDot(color = colors.primaryNeon, label = "Scorant")
+                        LegendDot(color = colors.secondaryNeon, label = "Sélectionné")
+                        LegendDot(color = colors.alertNeon, label = "Verrouillé")
+                    }
+
+                    // Ligne compacte de dés à portée directe du pouce (58.dp permet d'aligner les 5 dés sur une seule ligne)
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        turn.dice.forEach { die ->
+                            PixelDiceCanvas(
+                                die = die,
+                                rollTrigger = match.totalRollsInMatch,
+                                onClick = { onEvent(GameUiEvent.ToggleDie(die.index)) },
+                                dieSize = 58.dp
+                            )
+                        }
+                    }
+                }
+            }
+
+            ActionControlsSection(
+                match = match,
+                onEvent = onEvent,
+                onNavigateSetup = onNavigateSetup
+            )
+        }
     }
 }
 

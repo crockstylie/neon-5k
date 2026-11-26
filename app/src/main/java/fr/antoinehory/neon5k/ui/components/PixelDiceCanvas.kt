@@ -1,5 +1,6 @@
 package fr.antoinehory.neon5k.ui.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -8,8 +9,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -108,7 +112,7 @@ object PixelDiceSprites {
  * Rendu Pixel Art natif Compose `Canvas` d'un dé sur une grille `16×16` alignée à l'entier inférieur.
  *
  * États visuels gérés :
- * - **Verrouillé** (`die.isLocked`) : contour atténué + point ambre/alerte de verrouillage.
+ * - **Verrouillé** (`die.isLocked`) : contour atténué + point ambre/alerte de verrouillage (ne tourne jamais lors d'une relance).
  * - **Sélectionné** (`die.isSelected`) : halo néon magenta/secondaire + légère élévation d'échelle.
  * - **Scorant disponible** (`die.canScoreOnCurrentRoll`) : contour néon cyan/primaire lumineux.
  * - **Inactif / Dé mort** : contraste réduit pour signaler immédiatement qu'il ne score pas.
@@ -136,13 +140,25 @@ fun PixelDiceCanvas(
         label = "dieScale"
     )
 
-    // Animation courte de rotation sur nouveau lancer (uniquement pour les dés non verrouillés)
-    val targetRotation = if (!die.isLocked && die.face > 0) (rollTrigger % 2) * 360f else 0f
-    val rotation by animateFloatAsState(
-        targetValue = targetRotation,
-        animationSpec = tween(durationMillis = 280),
-        label = "dieRollRotation"
-    )
+    // Animation de rotation uniquement si ce dé n'est PAS verrouillé au moment du nouveau lancer (rollTrigger)
+    val rotationAnim = remember(die.index) { Animatable(0f) }
+    var lastObservedRollTrigger by remember(die.index) { mutableIntStateOf(rollTrigger) }
+
+    LaunchedEffect(rollTrigger) {
+        if (rollTrigger != lastObservedRollTrigger) {
+            lastObservedRollTrigger = rollTrigger
+            if (!die.isLocked && die.face > 0) {
+                rotationAnim.snapTo(0f)
+                rotationAnim.animateTo(
+                    targetValue = 360f,
+                    animationSpec = tween(durationMillis = 280)
+                )
+                rotationAnim.snapTo(0f)
+            } else {
+                rotationAnim.snapTo(0f)
+            }
+        }
+    }
 
     val borderColor: Color
     val bodyColor: Color
@@ -218,7 +234,7 @@ fun PixelDiceCanvas(
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
-                    rotationZ = rotation
+                    rotationZ = rotationAnim.value
                 }
         ) {
             val grid = PixelDiceSprites.GRID_SIZE

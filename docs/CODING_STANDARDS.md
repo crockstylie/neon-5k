@@ -43,8 +43,10 @@
     - Arrondir la taille d'un « pixel logique » à l'entier inférieur (`val px = floor(size.minDimension / 16f)`) et centrer la grille afin d'éviter les artefacts sub-pixels.
     - Limiter les effets néon (halo) à 1 ou 2 rectangles semi-transparents concentriques sur `Canvas` plutôt que des filtres de flou GPU coûteux (`BlurMaskFilter`) qui dégradent le framerate sur les appareils milieu de gamme.
 - **Animations fluides et sobres** :
-    - Animer les dés lors d'un lancer avec des `Animatable` / `animateFloatAsState` (durée courte `250ms–400ms`, respectant une option « Réduire les animations » si activée).
+    - Animer les dés lors d'un lancer avec des `Animatable` / `animateFloatAsState` (durée courte `250ms–400ms`, respectant une option « Réduire les animations » si activée). **Seuls les dés non verrouillés (`!die.isLocked`) tournent lors d'une relance** ; un dé qui vient d'être verrouillé ou était déjà verrouillé reste strictement immobile (`0°`).
     - Ne jamais bloquer les boutons trop longtemps : la boucle *Lancer → Sélectionner → Relancer/Banquer* doit rester nerveuse et agréable sur des parties de 10–15 minutes.
+- **Ergonomie à une main (Zone du pouce)** :
+    - Sur `GameScreen`, regrouper les panneaux de lecture seule (scores, statut du tour, pot) dans la moitié supérieure de l'écran, et ancrer la ligne de dés interactive ainsi que les boutons d'action (`LANCER`, `RELANCER`, `BANQUER`) dans la moitié inférieure pour une utilisation confortable au pouce à une main.
 - **Edge-to-Edge, Contraste & `Keep Screen On`** :
     - Calculer `backgroundColor.luminance() > 0.5f` pour mettre à jour `WindowInsetsControllerCompat.isAppearanceLightStatusBars` et `isAppearanceLightNavigationBars` sur tous les thèmes (prédéfinis et custom).
     - Appliquer `Modifier.keepScreenOn()` sur `GameScreen` si la préférence utilisateur est active (pratique en Pass & Play posé sur la table).
