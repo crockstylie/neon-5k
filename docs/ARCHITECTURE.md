@@ -171,11 +171,12 @@ fr.antoinehory.neon5k/
 | `app/src/main/java/fr/antoinehory/neon5k/data/repository/GameRepository.kt` | Orchestration Room sur `Dispatchers.IO` (reprise, stats, logs IA non-bloquants) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/preferences/UserPreferencesRepository.kt` | Préférences DataStore (thème, palette custom, style dés, règles favorites, ergonomie) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/export/AiDatasetExporter.kt` | Export SAF `.jsonl` / `.csv` des logs IA sans permission de stockage | Actif |
-| `app/src/main/java/fr/antoinehory/neon5k/ui/components/ColorPickerDialog.kt` | Sélecteur de couleur HSV + `#RRGGBB` avec contrôle contraste WCAG 2.1 | Actif |
-| `app/src/main/java/fr/antoinehory/neon5k/ui/customization/CustomizationScreen.kt` | Studio de personnalisation du thème, des dés et de l'ergonomie | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/components/ColorPickerDialog.kt` | Sélecteur de couleur hybride HSV / RGB (`0..255`) + bouton Random + `#RRGGBB` avec contrôle contraste WCAG 2.1 | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/components/EasterEggOverlay.kt` | Système d'Easter Eggs multi-taps (Générique Star Wars `42` en dés Pixel Art, Matrix Overclock `1337`, Holocron Aurebesh `7`) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/customization/CustomizationScreen.kt` | Studio de personnalisation du thème (Cyberpunk, Gris, Sépia, Daltonisme, Random), des dés et de l'ergonomie | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/stats/StatsScreen.kt` | Écran des statistiques locales et de l'export SAF du dataset IA | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/rules/RulesScreen.kt` | Codex des règles du 5000, simulateur interactif de barème Pixel Art et modale `[?]` en partie | Actif |
-| `app/src/main/java/fr/antoinehory/neon5k/ui/info/InfoScreen.kt` | Fiche Informations & Crédits (modèle `OCRAurebesh` + 6 réseaux sociaux + PayPal + Play Store + sélecteur 4 langues) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/info/InfoScreen.kt` | Fiche Informations & Crédits (modèle `OCRAurebesh` + 6 réseaux sociaux + PayPal + Play Store `pub:Crock` + sélecteur 4 langues) | Actif |
 | `app/src/main/res/drawable/ic_*_logo.xml` | 6 icônes vectorielles XML de réseaux sociaux (`linkedin`, `behance`, `instagram`, `facebook`, `spotify`, `steam`) | Actif |
 | `app/src/main/res/xml/locales_config.xml` | Déclaration des 4 langues supportées (`fr`, `en`, `es`, `pt`) pour Android 13+ | Actif |
 | `app/src/main/res/values-*/strings.xml` | Ressources traduites en 4 langues (`values`, `values-fr`, `values-en`, `values-es`, `values-pt`) | Actif |
@@ -250,15 +251,27 @@ Chaque décision humaine ou bot insère une ligne compacte :
 - `matchWon: Boolean?` (complété à la fin de la partie)
 - `uploadedToCloud: Boolean` (utilisé au Lot 6 pour éviter tout doublon)
 
-### 5.4. Direction Artistique Cyberpunk / Pixel Art & Personnalisation
-- **Grille pixel entière** : Les faces des dés sont définies par des matrices `16×16` dessinées via `Canvas.drawRect` en multiples entiers (`pixelSize = floor(size / 16)`), garantissant un rendu net sans flou sur toutes les densités (`mdpi` à `xxxhdpi`).
-- **Palettes prédéfinies (`CyberThemePreset`)** :
-  - **Neon Night** (Défaut) : Fond `#090A10`, Surface `#121521`, Primaire `#00F0FF` (Cyan), Secondaire `#FF2A85` (Magenta), Alerte `#FFE600`, Texte `#EAEFF5`.
-  - **Terminal Phosphor** : Fond `#050D07`, Surface `#0B1A0F`, Primaire `#39FF14`, Secondaire `#00D18C`, Alerte `#FFB000`, Texte `#D6FFE0`.
-  - **CRT Amber** : Fond `#0E0904`, Surface `#1A1208`, Primaire `#FFAA00`, Secondaire `#FF5E00`, Alerte `#FFE066`, Texte `#FFE8C2`.
-  - **Pocket Mono** : Fond `#C4CFA1`, Surface `#B2BE8F`, Primaire `#1F2418`, Secondaire `#414B33`, Alerte `#1F2418`, Texte `#1F2418`.
-  - **OLED Minimal** : Fond `#000000`, Surface `#0D0D10`, Primaire `#00E5FF`, Secondaire `#FFFFFF`, Alerte `#FF3B5C`, Texte `#F5F5F5`.
-- **Mode `CUSTOM`** : L'utilisateur choisit librement Fond, Surface, Accent principal, Accent secondaire et Texte (roue HSV + `#RRGGBB`), avec indicateur de ratio de contraste WCAG (`>= 4.5:1`) et mise à jour automatique des icônes de barres système (`isAppearanceLightStatusBars`).
+### 5.4. Direction Artistique Cyberpunk / Pixel Art, Accessibilité & Easter Eggs
+- **Grille pixel entière & 3 Styles de Dés distincts (`PixelDiceCanvas`)** :
+  - `PIXEL_SOLID` (*Plein 3D*) : Bloc rétro plein avec remplissage coloré saturé, biseau 3D arcade clair (haut/gauche) et sombre (bas/droite), et points contrastés.
+  - `NEON_WIREFRAME` (*Filaire Néon*) : Hologramme transparent creux à double cadre CAO interne, encoches de mire centrales et points vectoriels détourés.
+  - `DOT_MATRIX` (*Matrice LED*) : Afficheur à diodes LED circulaires (`drawCircle`) avec matrice de diodes éteintes en fond et diodes lumineuses pour le contour et les points.
+- **Icônes Pixel Art `8×8` & En-têtes Harmonisés (`PixelComponents.kt`)** :
+  - `PixelIconCanvas` : 15 icônes Pixel Art `8×8` (`PLAY`, `GAMEPAD`, `BOLT`, `PALETTE`, `TROPHY`, `BOOK`, `INFO`, `DICE`, `SPARKLE`, `CHAOS`, `BACK`, `HEART`, `STAR`, `GRID`, `EXPORT`) intégrées aux `PixelButton`.
+  - `NeonSubScreenTopBar` : Barre supérieure unifiée sur 1 seule ligne (`titleMedium`, `maxLines = 1`, `spacedBy(12.dp)`) sur toutes les sous-activités.
+- **Palettes prédéfinies (`CyberThemePreset`) classées en 4 familles** :
+  - **Cyberpunk & Rétro** : `NEON_NIGHT` (défaut), `TERMINAL_PHOSPHOR`, `CRT_AMBER`, `POCKET_MONO`, `OLED_MINIMAL`.
+  - **Niveaux de Gris (3 contrastes)** : `GRAYSCALE_SOFT` (bas contraste), `GRAYSCALE_BALANCED` (moyen), `GRAYSCALE_HIGH` (noir & blanc pur 21:1).
+  - **Sépia (3 contrastes)** : `SEPIA_SOFT` (parchemin), `SEPIA_CLASSIC` (rétro), `SEPIA_HIGH` (intense).
+  - **Accessibilité Daltonisme** : `DALTONISM_PROTA_DEUTERA` (palette Okabe-Ito Bleu `#56B4E9` / Orange `#E69F00` / Jaune `#F0E442` sans ambiguïté rouge-vert), `DALTONISM_TRITANOPIA` (Cyan `#00E5CC` / Corail `#FF3B6B`), `DALTONISM_ACHROMATOPSIA` (monochromatie haute luminance).
+- **Générateurs Aléatoires & Mode `CUSTOM`** :
+  - **Random Harmonieux** (`CyberPalette.randomHarmonious()`) : génère une palette cohérente par accords triadiques/complémentaires avec contraste WCAG AA/AAA garanti.
+  - **Random Chaos** (`CyberPalette.randomChaos()`) : génère une palette 100 % aléatoire débridée.
+  - **Color Picker Hybride (`ColorPickerDialog`)** : bascule entre **Mode HSV** et **Mode RGB (`0..255`)**, saisie directe `#RRGGBB`, bouton **Random** intégré et calcul en direct du ratio WCAG 2.1.
+- **Système d'Easter Eggs Multi-Taps (`EasterEggOverlay.kt`)** :
+  - **Secret #1 (`42` taps sur la bannière des dés de `HomeScreen`)** : Ouvre `StarWars42EasterEggDialog` en plein écran spatial étoilé avec un grand **`42` jaune (`#FFE81F`) composé de vrais dés Pixel Art du jeu (`PixelDiceCanvas`)**, suivi de la citation en anglais original quelle que soit la langue active : *"Answer to the Ultimate Question of Life, the Universe, and Everything"*, qui s'éloigne en perspective inclinée (`rotationX = 56f`) comme le générique de *Star Wars*.
+  - **Secret #2 (`13` taps sur le panneau d'entropie hybride de `HomeScreen`)** : Ouvre `Matrix1337EasterEggDialog` (*"OVERCLOCK 1337 // Wake up, Runner... Follow the White Dice"* en dés LED Phosphor).
+  - **Secret #3 (`7` taps sur le badge de version en bas de `InfoScreen`)** : Ouvre `HoloAurebeshEasterEggDialog` (clin d'œil galactique à `OCRAurebesh` et au Sabacc : *"Never tell me the odds! 1 / 7 776"*).
 
 ### 5.5. Système de 20 Succès à Comptage Infini & Télémétrie Fun (Lot 4)
 - **Comptage continu post-déverrouillage** : Chaque succès (`AchievementId`) est stocké dans Room (`AchievementEntity`) avec :
