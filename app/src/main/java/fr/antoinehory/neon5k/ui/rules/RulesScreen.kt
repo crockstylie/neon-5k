@@ -45,8 +45,10 @@ import fr.antoinehory.neon5k.domain.rules.RulesPreset
 import fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode
 import fr.antoinehory.neon5k.ui.components.CyberCutShape
 import fr.antoinehory.neon5k.ui.components.CyberPanel
+import fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar
 import fr.antoinehory.neon5k.ui.components.PixelButton
 import fr.antoinehory.neon5k.ui.components.PixelDiceCanvas
+import fr.antoinehory.neon5k.ui.components.PixelIconId
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 import kotlin.random.Random
 
@@ -90,9 +92,9 @@ fun RulesScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Barre supérieure harmonisée
-        fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar(
+        NeonSubScreenTopBar(
             title = stringResource(R.string.rules_screen_title),
-            icon = fr.antoinehory.neon5k.ui.components.PixelIconId.BOOK,
+            icon = PixelIconId.BOOK,
             backLabel = stringResource(R.string.back).uppercase(),
             onBack = onBack
         )
@@ -119,7 +121,6 @@ fun RulesScreen(
                     textAlign = TextAlign.Center
                 )
 
-                // Sélecteur rapide de preset pour le simulateur
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -150,7 +151,6 @@ fun RulesScreen(
                     )
                 }
 
-                // Grille de dés Pixel Art toujours cliquables (1 ligne de 5 dés, ou 2 lignes de 3 dés en mode 6 dés)
                 val isSixDice = currentFaces.size == 6
                 val indexedFaces = currentFaces.mapIndexed { idx, face -> idx to face }
                 val rowsOfIndexedDice = if (isSixDice) {
@@ -212,7 +212,6 @@ fun RulesScreen(
                     }
                 }
 
-                // Boutons de combinaisons d'exemple rapides
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -259,7 +258,6 @@ fun RulesScreen(
                     }
                 }
 
-                // Résultat d'évaluation en direct
                 val isHotDice = bestSubsetIndices.size == simulatedRules.diceCount && evaluation.totalPoints > 0
                 Column(
                     modifier = Modifier
@@ -347,29 +345,33 @@ fun RulesScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "PALIERS, 3 ENCOCHES (✕) & VARIANTES",
+                    text = "PALIERS, 3 ENCOCHES (✕) & VARIANTES DE TABLE",
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.secondaryNeon
                 )
                 RuleBullet(
-                    title = "Ouverture (${simulatedRules.openingThreshold} pts)",
-                    body = if (simulatedRules.openingThreshold > 0) {
-                        "Pour entrer dans la partie, votre premier tour banqué doit atteindre au moins ${simulatedRules.openingThreshold} pts en un seul tour."
-                    } else {
-                        "Ouverture libre (0 pt) : vous pouvez banquer dès votre premier point."
-                    }
+                    title = "Ouverture (${simulatedRules.openingThreshold} pts) & Minimum par tour",
+                    body = "Pour entrer dans la partie, votre premier tour banqué doit atteindre le seuil d'ouverture (${simulatedRules.openingThreshold} pts). Vous pouvez également activer un minimum requis à chaque tour après ouverture (200, 250 ou 500 pts)."
+                )
+                RuleBullet(
+                    title = "Chiffre rond obligatoire (multiple de 100)",
+                    body = "Variante entre potes : lorsqu'elle est activée, il est interdit de banquer un total de tour qui se termine par 50 (ex: un 5 isolé = 50 pts, ou As + 5 = 150 pts). Vous devez relancer jusqu'à obtenir un second 5 ou banquer un multiple rond de 100 !"
+                )
+                RuleBullet(
+                    title = "Sprint final (les 1 000 derniers points en un seul tour)",
+                    body = "Variante traditionnelle : une fois arrivé à 1 000 points ou moins de la cible (ex: 4 000 pts pour une partie en 5 000), vous ne pouvez plus banquer de palier intermédiaire : il faut franchir la ligne d'arrivée en un seul tour !"
                 )
                 RuleBullet(
                     title = "3 Encoches (✕✕✕) & Recul de Palier avec mémoire",
-                    body = "Sur feuille papier, chaque score banqué crée un Palier et chaque coup nul ajoute une Encoche (✕) en face de ce palier. Avec la variante « Palier préc. (mémoire ✕) » : si vous êtes à 1 000, montez à 1 200 et faites 2 nuls (1 200 [✕✕·]), puis montez à 1 700 et faites 3 nuls d'affilée, vous retombez au palier 1 200 en retrouvant vos 2 encoches [✕✕·] ! Un seul nouveau nul suffit alors à totaliser 3 encoches sur 1 200 et vous refait descendre à 1 000."
+                    body = "Sur feuille papier, chaque score banqué crée un Palier et chaque coup nul ajoute une Encoche (✕) en face de ce palier. Avec « Palier préc. (mémoire ✕) » : si vous êtes à 1 000, montez à 1 200 et faites 2 nuls (1 200 [✕✕·]), puis montez à 1 700 et faites 3 nuls d'affilée, vous retombez au palier 1 200 en retrouvant vos 2 encoches [✕✕·] ! Un seul nouveau nul suffit alors à totaliser 3 encoches sur 1 200 et vous refait descendre à 1 000."
                 )
                 RuleBullet(
-                    title = "Chapeau / Écrasement",
-                    body = "Si la variante est activée et que vous banquez un score total identique à celui d'un adversaire, vous lui faites un « Chapeau » : il recule de 500 pts ou retombe à son palier précédent."
+                    title = "Quinte (×4 ou 5×5 = 5000) & 5 As = Victoire instantanée",
+                    body = "La valorisation de la Quinte (Brelan × 4, ou 5 × « 5 » = 5 000 pts) et la Victoire instantanée sur 5 As en un seul lancer sont deux options indépendantes et cumulables."
                 )
                 RuleBullet(
-                    title = "Repiquage du pot précédent",
-                    body = "Si activé, lorsqu'un joueur banque en laissant des dés libres, le joueur suivant (s'il est déjà ouvert) peut reprendre ce pot et lancer uniquement les dés restants."
+                    title = "Chapeau & Repiquage",
+                    body = "En égalisant exactement le score d'un adversaire, vous lui infligez un Chapeau (-500 pts ou retour à son palier précédent). Avec le Repiquage, le joueur suivant peut reprendre le pot et les dés non verrouillés laissés par le joueur précédent."
                 )
             }
         }
@@ -406,16 +408,24 @@ fun PaytableSectionPanel(
             PaytableRow(
                 label = "Quinte (5 identiques)",
                 value = when (rules.fiveOfAKindMode) {
-                    FiveOfAKindMode.QUAD_TRIPLE -> "Brelan × 4 (ex: 4 000)"
-                    FiveOfAKindMode.INSTANT_WIN_ON_ONES -> "5×As = VICTOIRE / ×4"
+                    FiveOfAKindMode.QUAD_TRIPLE, FiveOfAKindMode.INSTANT_WIN_ON_ONES -> "Brelan × 4 (ex: 4 000)"
+                    FiveOfAKindMode.FIVE_FIVES_5000 -> "×4 (et 5×5 = 5 000 pts)"
                     FiveOfAKindMode.DISABLED -> "Désactivée"
                 }
             )
             PaytableRow(
-                label = "Suite (1..5 ou 2..6)",
+                label = "5 As en un seul lancer",
+                value = if (rules.isInstantWinOnFiveOnesActive) "VICTOIRE INSTANTANÉE" else "Points normaux"
+            )
+            PaytableRow(
+                label = "Suite 5 dés (1..5 ou 2..6)",
                 value = if (rules.straightScore > 0) "${rules.straightScore} pts" else "Désactivée"
             )
             if (rules.diceCount == 6) {
+                PaytableRow(
+                    label = "Grande Suite 6 dés (1..6)",
+                    value = if (rules.fullStraight6DiceScore > 0) "${rules.fullStraight6DiceScore} pts" else "Désactivée"
+                )
                 PaytableRow(
                     label = "3 Paires distinctes (6 dés)",
                     value = if (rules.threePairsScore > 0) "${rules.threePairsScore} pts" else "Désactivées"
@@ -424,6 +434,14 @@ fun PaytableSectionPanel(
             PaytableRow(
                 label = "Bonus Full (Brelan + Paire)",
                 value = if (rules.fullHouseBonus > 0) "Brelan + ${rules.fullHouseBonus} pts" else "Désactivé"
+            )
+            PaytableRow(
+                label = "Conditions de Banque",
+                value = buildString {
+                    if (rules.requireMultipleOf100ToBank) append("Rond ×100") else append("Libre")
+                    if (rules.minTurnScoreAfterOpening > 0) append(" • Min. ${rules.minTurnScoreAfterOpening}")
+                    if (rules.finalSprintLast1000InOneTurn) append(" • Sprint 1000")
+                }
             )
             PaytableRow(
                 label = "Pénalité 3 Encoches (✕✕✕)",
@@ -528,6 +546,7 @@ fun QuickRulesPaytableDialog(
                 Spacer(modifier = Modifier.height(4.dp))
                 PixelButton(
                     text = "FERMER L'AIDE",
+                    icon = PixelIconId.BACK,
                     onClick = onDismiss,
                     accentColor = colors.primaryNeon,
                     modifier = Modifier.fillMaxWidth()

@@ -45,8 +45,11 @@
 - **Animations fluides et sobres** :
     - Animer les dés lors d'un lancer avec des `Animatable` / `animateFloatAsState` (durée courte `250ms–400ms`, respectant une option « Réduire les animations » si activée). **Seuls les dés non verrouillés (`!die.isLocked`) tournent lors d'une relance** ; un dé qui vient d'être verrouillé ou était déjà verrouillé reste strictement immobile (`0°`).
     - Ne jamais bloquer les boutons trop longtemps : la boucle *Lancer → Sélectionner → Relancer/Banquer* doit rester nerveuse et agréable sur des parties de 10–15 minutes.
-- **Ergonomie à une main (Zone du pouce)** :
-    - Sur `GameScreen`, regrouper les panneaux de lecture seule (scores, statut du tour, pot) dans la moitié supérieure de l'écran, et ancrer la ligne de dés interactive ainsi que les boutons d'action (`LANCER`, `RELANCER`, `BANQUER`) dans la moitié inférieure pour une utilisation confortable au pouce à une main.
+- **Ergonomie à une main (Zone du pouce), Stabilité du bloc Dés & Mode Paysage** :
+    - Sur `GameScreen`, regrouper les panneaux de lecture seule (carrousel des joueurs centré automatiquement sur le joueur actif, bandeau de statut avec pilule du pot sur une seule ligne, historique en direct des lancers et paliers d'encoches `✕`) dans la moitié supérieure de l'écran, et ancrer la ligne de dés interactive ainsi que les boutons d'action (`LANCER`, `RELANCER`, `BANQUER`) dans la moitié inférieure.
+    - **Zéro saut vertical des dés** : le bouton `TOUT PRENDRE` est logé dans la barre d'en-tête fixe du panneau de dés et la zone de contrôles sous les dés conserve une hauteur fixe (`112.dp` portrait, `96.dp` paysage) afin que les dés ne bougent jamais verticalement lorsqu'on les sélectionne.
+    - **Mode Paysage (`maxWidth > maxHeight`)** : basculer automatiquement sur une disposition 2 colonnes (colonne gauche : carrousel joueurs + statut + historique des lancers/paliers ; colonne droite : plateau de dés + boutons d'action verrouillés) tenant à 100 % dans l'écran sans aucun défilement vertical.
+    - **Harmonisation des boutons Retour** : utiliser systématiquement `icon = PixelIconId.BACK` sur tous les `PixelButton` de retour (`NeonSubScreenTopBar` et bouton `MENU` de `GameScreen`), sans flèche ASCII texte (`←`).
 - **Edge-to-Edge, Contraste & `Keep Screen On`** :
     - Calculer `backgroundColor.luminance() > 0.5f` pour mettre à jour `WindowInsetsControllerCompat.isAppearanceLightStatusBars` et `isAppearanceLightNavigationBars` sur tous les thèmes (prédéfinis et custom).
     - Appliquer `Modifier.keepScreenOn()` sur `GameScreen` si la préférence utilisateur est active (pratique en Pass & Play posé sur la table).

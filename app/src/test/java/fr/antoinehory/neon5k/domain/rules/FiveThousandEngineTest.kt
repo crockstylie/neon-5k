@@ -305,4 +305,79 @@ class FiveThousandEngineTest {
         assertEquals(0, state.winnerPlayerId)
         assertFalse(state.players[1].isOpened)
     }
+
+    @Test
+    fun `requireMultipleOf100ToBank rejects banking non-round scores ending in 50 and accepts multiples of 100`() {
+        val rules = GameRulesConfig.CLASSIC_5_DICE.copy(
+            openingThreshold = 500,
+            requireMultipleOf100ToBank = true
+        )
+        var state = FiveThousandEngine.startNewMatch(
+            "m9",
+            rules,
+            twoPlayers(p1Score = 1000, p1Opened = true)
+        )
+
+        // Lancer : un seul 5 (50 pts) + 4 dés morts (2, 2, 3, 4) -> pot = 50 pts, non multiple de 100
+        state = FiveThousandEngine.rollDice(state, listOf(5, 2, 2, 3, 4)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        assertEquals(50, state.turn.totalTurnPointsWithSelection)
+
+        val rejected50 = FiveThousandEngine.bankTurn(state)
+        assertTrue(rejected50 is EngineResult.Rejected)
+        assertTrue((rejected50 as EngineResult.Rejected).error is MoveValidationError.RoundMultipleOf100Required)
+
+        // Relance des 4 dés : un autre 5 (50 pts) + 3 dés morts (2, 3, 4) -> pot = 100 pts (chiffre rond !)
+        state = FiveThousandEngine.rollDice(state, listOf(5, 2, 3, 4)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        assertEquals(100, state.turn.totalTurnPointsWithSelection)
+
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+        assertEquals(1100, state.players[0].score)
+    }
+
+    @Test
+    fun `minTurnScoreAfterOpening and finalSprintLast1000InOneTurn enforce minimum banking thresholds`() {
+        val rules = GameRulesConfig.CLASSIC_5_DICE.copy(
+            minTurnScoreAfterOpening = 200,
+            finalSprintLast1000InOneTurn = true
+        )
+        var state = FiveThousandEngine.startNewMatch(
+            "m10",
+            rules,
+            twoPlayers(p1Score = 1000, p1Opened = true, p2Score = 4200, p2Opened = true)
+        )
+
+        // Joueur 1 (1000 pts) tire un seul As (100 pts) < minTurnScoreAfterOpening (200) -> Rejeté
+        state = FiveThousandEngine.rollDice(state, listOf(1, 2, 3, 4, 6)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        val rejectedMin = FiveThousandEngine.bankTurn(state)
+        assertTrue(rejectedMin is EngineResult.Rejected)
+        assertTrue((rejectedMin as EngineResult.Rejected).error is MoveValidationError.MinTurnScoreAfterOpeningNotMet)
+
+        // Il relance et tire un second As (+100 => 200 pts) -> Banqué avec succès !
+        state = FiveThousandEngine.rollDice(state, listOf(1, 2, 3, 4)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+        assertEquals(1200, state.players[0].score)
+
+        // Tour du Joueur 2 (4200 pts -> dans les 1000 derniers points avant 5000 !) :
+        // Il tire 300 pts (Brelan de 3) -> 4200 + 300 = 4500 != 5000 -> Rejeté par finalSprintLast1000InOneTurn !
+        state = FiveThousandEngine.rollDice(state, listOf(3, 3, 3, 2, 4)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        val rejectedSprint = FiveThousandEngine.bankTurn(state)
+        assertTrue(rejectedSprint is EngineResult.Rejected)
+        assertTrue((rejectedSprint as EngineResult.Rejected).error is MoveValidationError.FinalSprint1000Required)
+
+        // Il relance les 2 dés et tire un Brelan de 5 ? Non, il a 2 dés : il tire deux As (+200 = 500, Main pleine)
+        state = FiveThousandEngine.rollDice(state, listOf(1, 1)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        // Main pleine : il relance les 5 dés et tire Brelan de 3 (+300 => total tour 800 -> 4200 + 800 = 5000 !)
+        state = FiveThousandEngine.rollDice(state, listOf(3, 3, 3, 2, 4)).requireSuccess()
+        state = FiveThousandEngine.selectAllScoringDice(state).requireSuccess()
+        state = FiveThousandEngine.bankTurn(state).requireSuccess()
+        assertTrue(state.isFinished)
+        assertEquals(5000, state.players[1].score)
+        assertTrue(state.rollHistoryLog.isNotEmpty())
+    }
 }

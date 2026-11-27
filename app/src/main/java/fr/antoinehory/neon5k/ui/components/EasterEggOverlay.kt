@@ -12,6 +12,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,7 +29,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +47,8 @@ import androidx.compose.ui.window.DialogProperties
 import fr.antoinehory.neon5k.domain.model.DieState
 import fr.antoinehory.neon5k.domain.theme.DiceVisualStyle
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 private val StarWarsYellow = Color(0xFFFFE81F)
 private val DeepSpaceBlack = Color(0xFF020308)
@@ -76,34 +76,72 @@ private val DIGIT_2_DICE_GRID: List<IntArray> = listOf(
     intArrayOf(2, 2, 2, 2, 2)
 )
 
+private data class StarPoint(
+    val xNorm: Float,
+    val yNorm: Float,
+    val sizeDp: Float,
+    val colorType: Int,
+    val twinkleGroup: Int
+)
+
+private val RANDOM_STARFIELD: List<StarPoint> = buildList {
+    val rng = Random(42_1337_5000L)
+    repeat(96) {
+        add(
+            StarPoint(
+                xNorm = rng.nextFloat(),
+                yNorm = rng.nextFloat(),
+                sizeDp = when (rng.nextInt(10)) {
+                    0 -> 3.0f
+                    1, 2 -> 2.2f
+                    else -> 1.5f
+                },
+                colorType = rng.nextInt(14),
+                twinkleGroup = rng.nextInt(3)
+            )
+        )
+    }
+}
+
 /**
  * Easter Egg #1 (42 taps sur la zone des dés de l'écran d'accueil) :
- * Affiche un grand **42** jaune composé de vrais dés Pixel Art du jeu (`PixelDiceCanvas`),
- * suivi de *"Answer to the Ultimate Question of Life, the Universe, and Everything"* (toujours en anglais original)
- * qui s'éloigne en perspective inclinée dans l'espace comme le générique d'ouverture de Star Wars.
+ * 1. Séquence d'ouverture Star Wars fidèle : *"A long time ago in a dice tavern far, far away...."*
+ *    s'affiche seul au centre de l'écran noir étoilé en cyan, puis s'efface complètement.
+ * 2. Générique incliné en perspective 3D (avec inclinaison renforcée en mode portrait) :
+ *    un grand **42** jaune composé de vrais dés Pixel Art du jeu (`PixelDiceCanvas`),
+ *    suivi de *"Answer to the Ultimate Question of Life, the Universe, and Everything"* (en anglais original)
+ *    défile du bas vers l'horizon spatial.
  */
 @Composable
 fun StarWars42EasterEggDialog(
     onDismiss: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
+    val introAlpha = remember { Animatable(0f) }
     val crawlProgress = remember { Animatable(0f) }
+    var sequenceKey by remember { mutableIntStateOf(0) }
     var rollTick by remember { mutableIntStateOf(1) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(sequenceKey) {
         crawlProgress.snapTo(0f)
+        introAlpha.snapTo(0f)
+        // Phase 1 : Apparition au centre de "A long time ago in a dice tavern far, far away...."
+        introAlpha.animateTo(1f, animationSpec = tween(durationMillis = 650, easing = LinearEasing))
+        delay(2000L)
+        introAlpha.animateTo(0f, animationSpec = tween(durationMillis = 650, easing = LinearEasing))
+        delay(250L)
+        // Phase 2 : Défilement en perspective du grand 42 en dés et du texte jaune Star Wars
         crawlProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 26000, easing = LinearEasing)
+            animationSpec = tween(durationMillis = 27000, easing = LinearEasing)
         )
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "starsTwinkle")
     val starAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.45f,
+        initialValue = 0.40f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600, easing = LinearEasing),
+            animation = tween(durationMillis = 1700, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "starAlpha"
@@ -117,107 +155,122 @@ fun StarWars42EasterEggDialog(
             dismissOnClickOutside = false
         )
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(DeepSpaceBlack)
         ) {
-            // Champ d'étoiles spatiales en arrière-plan
+            val isPortrait = maxHeight > maxWidth
+
+            // Champ d'étoiles pseudo-aléatoires sans alignement diagonal
             StarfieldCanvas(
                 twinkleFactor = starAlpha,
                 modifier = Modifier.fillMaxSize()
             )
 
-            // En-tête galactique "A long time ago in a galaxy far, far away...."
-            Text(
-                text = "A long time ago in a dice tavern far, far away....",
-                style = MaterialTheme.typography.bodyMedium,
-                color = IntroCyan.copy(alpha = (1f - crawlProgress.value * 2.2f).coerceIn(0.15f, 1f)),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 28.dp, start = 20.dp, end = 20.dp)
-            )
-
-            // Conteneur en perspective 3D Star Wars (incliné vers l'horizon et fuyant au loin)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                val p = crawlProgress.value
-                // Déplacement du bas vers l'horizon lointain + réduction progressive d'échelle
-                val translateY = (1f - p * 1.65f) * 520f
-                val distanceScale = (1.05f - p * 0.72f).coerceAtLeast(0.22f)
-                val distanceAlpha = (1.15f - p * 0.85f).coerceIn(0.15f, 1f)
-
-                Column(
+            // Phase 1 : Texte d'introduction centré au milieu de l'écran, qui disparaît avant le crawl
+            if (introAlpha.value > 0.01f) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            transformOrigin = TransformOrigin(0.5f, 0.15f)
-                            rotationX = 56f
-                            cameraDistance = 15f * density
-                            translationY = translateY
-                            scaleX = distanceScale
-                            scaleY = distanceScale
-                            alpha = distanceAlpha
-                        },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = 28.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Grand "42" jaune composé de vrais dés Pixel Art du jeu !
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        DiceDigitMatrix(
-                            grid = DIGIT_4_DICE_GRID,
-                            rollTrigger = rollTick,
-                            onTapDie = { rollTick++ }
-                        )
-                        DiceDigitMatrix(
-                            grid = DIGIT_2_DICE_GRID,
-                            rollTrigger = rollTick,
-                            onTapDie = { rollTick++ }
-                        )
-                    }
-
                     Text(
-                        text = "EPISODE XLII\nDEEP THOUGHT // NEON 5K",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 2.sp
-                        ),
-                        color = StarWarsYellow,
-                        textAlign = TextAlign.Center
-                    )
-
-                    // Citation obligatoire en anglais original quelle que soit la langue de l'application
-                    Text(
-                        text = "Answer to the Ultimate Question of Life, the Universe, and Everything",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
+                        text = "A long time ago in a dice tavern\nfar, far away....",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Medium,
                             lineHeight = 32.sp
                         ),
-                        color = StarWarsYellow,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        color = IntroCyan.copy(alpha = introAlpha.value),
+                        textAlign = TextAlign.Center
                     )
+                }
+            }
 
-                    Text(
-                        text = "For seven and a half million years, the supercomputer Deep Thought rolled five cyberpunk dice across the SHA-256 entropy continuum.\n\n" +
-                            "Gyroscopes spun. Nanosecond clocks ticked. Four Aces and a Five gleamed in pure golden neon.\n\n" +
-                            "Don't Panic, bring your towel, and never forget: forty-two taps always reveal the truth of the universe.",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 26.sp
-                        ),
-                        color = StarWarsYellow.copy(alpha = 0.92f),
-                        textAlign = TextAlign.Justify,
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
+            // Phase 2 : Conteneur en perspective 3D Star Wars (inclinaison plus prononcée en portrait)
+            val p = crawlProgress.value
+            if (p > 0.001f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = if (isPortrait) 8.dp else 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val startOffsetPx = if (isPortrait) 640f else 480f
+                    val translateY = (1f - p * 1.72f) * startOffsetPx
+                    val distanceScale = (1.08f - p * 0.78f).coerceAtLeast(0.18f)
+                    val distanceAlpha = (1.20f - p * 0.92f).coerceIn(0.10f, 1f)
+                    val tiltAngleX = if (isPortrait) 68f else 58f
+                    val camDistFactor = if (isPortrait) 8.2f else 12.5f
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                transformOrigin = TransformOrigin(0.5f, 0.08f)
+                                rotationX = tiltAngleX
+                                cameraDistance = camDistFactor * density
+                                translationY = translateY
+                                scaleX = distanceScale
+                                scaleY = distanceScale
+                                alpha = distanceAlpha
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        // Grand "42" jaune composé de vrais dés Pixel Art du jeu
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DiceDigitMatrix(
+                                grid = DIGIT_4_DICE_GRID,
+                                rollTrigger = rollTick,
+                                onTapDie = { rollTick++ }
+                            )
+                            DiceDigitMatrix(
+                                grid = DIGIT_2_DICE_GRID,
+                                rollTrigger = rollTick,
+                                onTapDie = { rollTick++ }
+                            )
+                        }
+
+                        Text(
+                            text = "EPISODE XLII\nDEEP THOUGHT // NEON 5K",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 2.sp
+                            ),
+                            color = StarWarsYellow,
+                            textAlign = TextAlign.Center
+                        )
+
+                        // Citation obligatoire en anglais original quelle que soit la langue de l'application
+                        Text(
+                            text = "Answer to the Ultimate Question of Life, the Universe, and Everything",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                lineHeight = 32.sp
+                            ),
+                            color = StarWarsYellow,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+
+                        Text(
+                            text = "For seven and a half million years, the supercomputer Deep Thought rolled five cyberpunk dice across the SHA-256 entropy continuum.\n\n" +
+                                "Gyroscopes spun. Nanosecond clocks ticked. Four Aces and a Five gleamed in pure golden neon.\n\n" +
+                                "Don't Panic, bring your towel, and never forget: forty-two taps always reveal the truth of the universe.",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 26.sp
+                            ),
+                            color = StarWarsYellow.copy(alpha = 0.92f),
+                            textAlign = TextAlign.Justify,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                    }
                 }
             }
 
@@ -225,7 +278,7 @@ fun StarWars42EasterEggDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
+                    .height(125.dp)
                     .align(Alignment.TopCenter)
                     .background(
                         Brush.verticalGradient(
@@ -250,13 +303,7 @@ fun StarWars42EasterEggDialog(
                     accentColor = StarWarsYellow,
                     onClick = {
                         rollTick++
-                        scope.launch {
-                            crawlProgress.snapTo(0f)
-                            crawlProgress.animateTo(
-                                targetValue = 1f,
-                                animationSpec = tween(durationMillis = 26000, easing = LinearEasing)
-                            )
-                        }
+                        sequenceKey++
                     },
                     modifier = Modifier.weight(1f)
                 )
@@ -314,21 +361,24 @@ private fun StarfieldCanvas(
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Coordonnées déterministes de 70 étoiles
-        for (i in 0 until 70) {
-            val sx = ((i * 73 + 19) % 100) / 100f * w
-            val sy = ((i * 41 + 37) % 100) / 100f * h
-            val starSize = if (i % 5 == 0) 3.dp.toPx() else 1.8.dp.toPx()
-            val alpha = if (i % 3 == 0) twinkleFactor else (1.35f - twinkleFactor).coerceIn(0.3f, 0.95f)
-            val color = when {
-                i % 11 == 0 -> StarWarsYellow.copy(alpha = alpha)
-                i % 7 == 0 -> IntroCyan.copy(alpha = alpha)
+        for (star in RANDOM_STARFIELD) {
+            val sx = star.xNorm * w
+            val sy = star.yNorm * h
+            val starPx = star.sizeDp.dp.toPx()
+            val alpha = when (star.twinkleGroup) {
+                0 -> twinkleFactor
+                1 -> (1.38f - twinkleFactor).coerceIn(0.28f, 0.95f)
+                else -> 0.72f
+            }
+            val color = when (star.colorType) {
+                0 -> StarWarsYellow.copy(alpha = alpha)
+                1 -> IntroCyan.copy(alpha = alpha)
                 else -> Color.White.copy(alpha = alpha)
             }
             drawRect(
                 color = color,
                 topLeft = Offset(sx, sy),
-                size = Size(starSize, starSize)
+                size = Size(starPx, starPx)
             )
         }
     }

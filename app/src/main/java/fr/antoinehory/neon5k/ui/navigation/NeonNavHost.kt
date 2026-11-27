@@ -51,6 +51,8 @@ fun NeonNavHost(
     val uiState by gameViewModel.uiState.collectAsStateWithLifecycle()
     val preferences by gameViewModel.preferencesState.collectAsStateWithLifecycle()
     val playerStats by gameViewModel.playerStatsState.collectAsStateWithLifecycle()
+    val finishedMatches by gameViewModel.finishedMatchesState.collectAsStateWithLifecycle()
+    val adaptiveLearning by gameViewModel.adaptiveLearningState.collectAsStateWithLifecycle()
     val achievements by gameViewModel.achievementsState.collectAsStateWithLifecycle()
     val playGamesStatus by gameViewModel.playGamesStatusState.collectAsStateWithLifecycle()
     val decisionLogsCount by gameViewModel.decisionLogsCountState.collectAsStateWithLifecycle()
@@ -137,6 +139,8 @@ fun NeonNavHost(
                 NeonDestination.STATS -> {
                     StatsScreen(
                         stats = playerStats,
+                        finishedMatches = finishedMatches,
+                        adaptiveLearning = adaptiveLearning,
                         achievements = achievements,
                         playGamesStatus = playGamesStatus,
                         decisionLogsCount = decisionLogsCount,

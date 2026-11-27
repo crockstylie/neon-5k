@@ -78,6 +78,10 @@ class UserPreferencesRepository(
             ?.let { runCatching { DiceVisualStyle.valueOf(it) }.getOrNull() }
             ?: DiceVisualStyle.PIXEL_SOLID
 
+        val rawFiveKind = prefs[KEY_RULES_FIVE_KIND]
+            ?.let { runCatching { FiveOfAKindMode.valueOf(it) }.getOrNull() }
+            ?: FiveOfAKindMode.QUAD_TRIPLE
+
         val favoriteRules = GameRulesConfig(
             preset = prefs[KEY_RULES_PRESET]
                 ?.let { runCatching { RulesPreset.valueOf(it) }.getOrNull() }
@@ -85,15 +89,23 @@ class UserPreferencesRepository(
             diceCount = (prefs[KEY_RULES_DICE_COUNT] ?: 5).coerceIn(5, 6),
             targetScore = prefs[KEY_RULES_TARGET_SCORE] ?: 5000,
             openingThreshold = prefs[KEY_RULES_OPENING] ?: 750,
+            minTurnScoreAfterOpening = prefs[KEY_RULES_MIN_TURN_AFTER_OPENING] ?: 0,
+            requireMultipleOf100ToBank = prefs[KEY_RULES_REQUIRE_ROUND_100] ?: false,
+            finalSprintLast1000InOneTurn = prefs[KEY_RULES_FINAL_SPRINT_1000] ?: false,
             exactFinishRequired = prefs[KEY_RULES_EXACT_FINISH] ?: true,
             mandatoryRerollOnHotDice = prefs[KEY_RULES_HOT_DICE_MANDATORY] ?: true,
             fourOfAKindMode = prefs[KEY_RULES_FOUR_KIND]
                 ?.let { runCatching { FourOfAKindMode.valueOf(it) }.getOrNull() }
                 ?: FourOfAKindMode.DOUBLE_TRIPLE,
-            fiveOfAKindMode = prefs[KEY_RULES_FIVE_KIND]
-                ?.let { runCatching { FiveOfAKindMode.valueOf(it) }.getOrNull() }
-                ?: FiveOfAKindMode.QUAD_TRIPLE,
+            fiveOfAKindMode = if (rawFiveKind == FiveOfAKindMode.INSTANT_WIN_ON_ONES) {
+                FiveOfAKindMode.QUAD_TRIPLE
+            } else {
+                rawFiveKind
+            },
+            instantWinOnFiveOnes = prefs[KEY_RULES_INSTANT_WIN_FIVE_ONES]
+                ?: (rawFiveKind == FiveOfAKindMode.INSTANT_WIN_ON_ONES),
             straightScore = prefs[KEY_RULES_STRAIGHT] ?: 1500,
+            fullStraight6DiceScore = prefs[KEY_RULES_FULL_STRAIGHT_6] ?: 2500,
             threePairsScore = prefs[KEY_RULES_THREE_PAIRS] ?: 1000,
             fullHouseBonus = prefs[KEY_RULES_FULL_HOUSE] ?: 0,
             piggybackEnabled = prefs[KEY_RULES_PIGGYBACK] ?: false,
@@ -169,11 +181,16 @@ class UserPreferencesRepository(
             prefs[KEY_RULES_DICE_COUNT] = rules.diceCount
             prefs[KEY_RULES_TARGET_SCORE] = rules.targetScore
             prefs[KEY_RULES_OPENING] = rules.openingThreshold
+            prefs[KEY_RULES_MIN_TURN_AFTER_OPENING] = rules.minTurnScoreAfterOpening
+            prefs[KEY_RULES_REQUIRE_ROUND_100] = rules.requireMultipleOf100ToBank
+            prefs[KEY_RULES_FINAL_SPRINT_1000] = rules.finalSprintLast1000InOneTurn
             prefs[KEY_RULES_EXACT_FINISH] = rules.exactFinishRequired
             prefs[KEY_RULES_HOT_DICE_MANDATORY] = rules.mandatoryRerollOnHotDice
             prefs[KEY_RULES_FOUR_KIND] = rules.fourOfAKindMode.name
             prefs[KEY_RULES_FIVE_KIND] = rules.fiveOfAKindMode.name
+            prefs[KEY_RULES_INSTANT_WIN_FIVE_ONES] = rules.instantWinOnFiveOnes
             prefs[KEY_RULES_STRAIGHT] = rules.straightScore
+            prefs[KEY_RULES_FULL_STRAIGHT_6] = rules.fullStraight6DiceScore
             prefs[KEY_RULES_THREE_PAIRS] = rules.threePairsScore
             prefs[KEY_RULES_FULL_HOUSE] = rules.fullHouseBonus
             prefs[KEY_RULES_PIGGYBACK] = rules.piggybackEnabled
@@ -202,11 +219,16 @@ class UserPreferencesRepository(
         private val KEY_RULES_DICE_COUNT = intPreferencesKey("rules_dice_count")
         private val KEY_RULES_TARGET_SCORE = intPreferencesKey("rules_target_score")
         private val KEY_RULES_OPENING = intPreferencesKey("rules_opening")
+        private val KEY_RULES_MIN_TURN_AFTER_OPENING = intPreferencesKey("rules_min_turn_after_opening")
+        private val KEY_RULES_REQUIRE_ROUND_100 = booleanPreferencesKey("rules_require_round_100")
+        private val KEY_RULES_FINAL_SPRINT_1000 = booleanPreferencesKey("rules_final_sprint_1000")
         private val KEY_RULES_EXACT_FINISH = booleanPreferencesKey("rules_exact_finish")
         private val KEY_RULES_HOT_DICE_MANDATORY = booleanPreferencesKey("rules_hot_dice_mandatory")
         private val KEY_RULES_FOUR_KIND = stringPreferencesKey("rules_four_kind")
         private val KEY_RULES_FIVE_KIND = stringPreferencesKey("rules_five_kind")
+        private val KEY_RULES_INSTANT_WIN_FIVE_ONES = booleanPreferencesKey("rules_instant_win_five_ones")
         private val KEY_RULES_STRAIGHT = intPreferencesKey("rules_straight")
+        private val KEY_RULES_FULL_STRAIGHT_6 = intPreferencesKey("rules_full_straight_6")
         private val KEY_RULES_THREE_PAIRS = intPreferencesKey("rules_three_pairs")
         private val KEY_RULES_FULL_HOUSE = intPreferencesKey("rules_full_house")
         private val KEY_RULES_PIGGYBACK = booleanPreferencesKey("rules_piggyback")

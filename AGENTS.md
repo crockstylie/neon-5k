@@ -59,10 +59,11 @@ Avant d'implémenter l'un des sujets ci-dessous, **lis le fichier `SKILL.md` cor
     - Jetpack Compose (BOM `2026.02.01`), Material 3, Edge-to-Edge activé (`Neon5KTheme`).
     - Style **Minimaliste × Cyberpunk × Pixel Art** : rendu natif 100 % Compose `Canvas` (grille pixel sans antialiasing) et `VectorDrawable` XML — **aucune librairie graphique ou moteur de jeu tiers**.
     - **Icône XML VectorDrawable pixel-cyberpunk** + **Splash Screen Android 12+** (`androidx.core:core-splashscreen:1.2.0`).
-    - **Personnalisation complète de la fenêtre de jeu** : presets cyberpunk (*Neon Night*, *Terminal Phosphor*, *CRT Amber*, *Pocket Mono*, *OLED Minimal*), couleurs sur-mesure (roue HSV + `#RRGGBB` avec contrôle contraste WCAG), styles de dés (*Pixel Solid*, *Neon Wireframe*, *Dot Matrix*), scanlines optionnelles, mode droitier/gaucher, haptique & secousse.
-- **Persistance Locale** :
-    - AndroidX Room (`2.8.5` via KSP) : parties sauvegardées, statistiques locales et journal des décisions (`decision_logs`) pour l'entraînement futur d'IA.
-    - AndroidX DataStore Preferences (`1.1.3`) : thème, personnalisation visuelle, préférences de jeu, presets de règles favoris, consentement opt-in dataset IA.
+    - **Personnalisation complète de la fenêtre de jeu** : 14 thèmes prédéfinis classés en 4 familles (*Cyberpunk & Rétro*, *Niveaux de Gris* en 3 contrastes, *Sépia* en 3 contrastes, *Accessibilité Daltonisme* Okabe-Ito / Tritanopie / Achromatopsie) + générateurs aléatoires (*Random Harmonieux* & *Random Chaos*) + couleurs sur-mesure (sélecteur hybride HSV / RGB `0..255` + `#RRGGBB` avec contrôle contraste WCAG 2.1), 3 styles de dés (*Pixel Solid* 3D, *Neon Wireframe* CAO, *Dot Matrix* LED), scanlines optionnelles, mode droitier/gaucher, haptique & secousse.
+- **Persistance Locale & IA Auto-Apprenante** :
+    - AndroidX Room (`2.8.5` via KSP) : parties sauvegardées (en cours et historique complet des parties terminées avec journal des lancers et paliers d'encoches `✕`), statistiques locales, 20 succès à comptage infini post-déverrouillage et journal des décisions (`decision_logs`).
+    - **IA Locale Auto-Apprenante (`AdaptiveBotLearner`)** : les 3 profils de bots locaux (*Safe Runner*, *Cyber Balanced*, *Overclock Kamikaze*) se nourrissent automatiquement en temps réel du dataset local `decision_logs` par apprentissage par renforcement tabulaire (régularisation bayésienne empirique) hybridé avec la table exacte $6^N$ (`RollProbabilityTable`), sans aucune dépendance ML externe.
+    - AndroidX DataStore Preferences (`1.1.3`) : thème, personnalisation visuelle, préférences de jeu, presets et variantes favorites du 5000, consentement opt-in dataset IA.
 - **Aléatoire Hybride Capteurs** : `SensorManager` (gyroscope + accéléromètre) + `nanoTime` + coordonnées/durée tactiles + sel `SecureRandom` → hash `SHA-256` → seed déterministe traçable.
 - **Services & Multijoueur (par lots)** :
     - **Lot 4** : Google Play Games Services v2 (`com.google.android.gms:play-services-games-v2`) — authentification silencieuse & succès.

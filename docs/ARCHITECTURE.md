@@ -159,8 +159,9 @@ fr.antoinehory.neon5k/
 | `app/src/test/java/fr/antoinehory/neon5k/domain/rules/FiveThousandEngineTest.kt` | Tests unitaires JVM de `FiveThousandEngine` | Actif |
 | `app/src/test/java/fr/antoinehory/neon5k/domain/entropy/EntropySeedGeneratorTest.kt` | Tests unitaires JVM de `EntropySeedGenerator` | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/domain/ai/RollProbabilityTable.kt` | Calculateur exact et cache des probabilités de coup nul et d'espérance ($6^N$) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/domain/ai/AdaptiveBotLearner.kt` | Apprentissage par renforcement tabulaire à régularisation bayésienne nourri par `decision_logs` | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/domain/ai/BotPolicy.kt` | Contrat de stratégie IA et profils `BotProfile` (`SAFE_RUNNER`, `CYBER_BALANCED`, `OVERCLOCK_KAMIKAZE`) | Actif |
-| `app/src/main/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicy.kt` | IA probabiliste V1 évaluant les sous-ensembles scorants et l'EV nette | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicy.kt` | IA probabiliste V1+ hybridant l'EV mathématique exacte ($6^N$) et l'apprentissage empirique `AdaptiveBotLearner` | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/local/AppDatabase.kt` | Base Room `neon_5k.db` | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/SavedMatchEntity.kt` | Entité Room de sauvegarde/reprise de partie et mappers JSON | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/PlayerStatsEntity.kt` | Entité Room des statistiques locales cumulées | Actif |
@@ -207,11 +208,16 @@ Basé sur les règles de référence Wikipédia (`5 000`), avec préréglages et
 | `diceCount` | `5` | `5` ou `6` |
 | `targetScore` | `5 000` | `2 500`, `5 000`, `10 000` |
 | `openingThreshold` | `750` | `0`, `500`, `750`, `1 000` |
+| `minTurnScoreAfterOpening` | `0` (libre) | `0` (libre), `200`, `250`, `500` |
+| `requireMultipleOf100ToBank` | `false` | `false` / `true` (chiffre rond multiple de `100` pts obligatoire pour banquer ; interdit de banquer un `5` isolé ou un total finissant par `50`) |
+| `finalSprintLast1000InOneTurn` | `false` | `false` / `true` (les `1 000` derniers points avant la cible doivent être marqués en un seul tour) |
 | `exactFinishRequired` | `true` | `true` (dépassement = tour annulé) / `false` |
 | `mandatoryRerollOnHotDice` | `true` | `true` (main pleine = relance obligatoire de tous les dés) / `false` |
 | `fourOfAKindMode` | `DOUBLE_TRIPLE` | `DISABLED`, `DOUBLE_TRIPLE` (×2 brelan) |
-| `fiveOfAKindMode` | `QUAD_TRIPLE` | `QUAD_TRIPLE` (×4 brelan), `INSTANT_WIN_ON_ONES` |
-| `straightScore` | `1 500` | `0` (désactivé), `500`, `1 000`, `1 500` |
+| `fiveOfAKindMode` | `QUAD_TRIPLE` | `QUAD_TRIPLE` (×4 brelan), `FIVE_FIVES_5000` (`5×5 = 5 000 pts`), `DISABLED` |
+| `instantWinOnFiveOnes` | `false` | `false` / `true` (`5×As` gagne immédiatement la partie, indépendant du mode Quinte) |
+| `straightScore` (5 dés) | `1 500` | `0` (désactivé), `500`, `1 000`, `1 500` (`1-2-3-4-5` ou `2-3-4-5-6`) |
+| `fullStraight6DiceScore` (6 dés) | `2 500` | `0` (désactivé), `1 500`, `2 000`, `2 500`, `3 000` (`1-2-3-4-5-6`) |
 | `threePairsScore` (6 dés) | `1 000` | `0` (désactivé), `750`, `1 000`, `1 500` |
 | `fullHouseBonus` | `0` (désactivé) | `0` (désactivé), `+200` au brelan |
 | `piggybackEnabled` (Repiquage) | `false` | `false` / `true` (reprise des dés restants & du pot du joueur précédent) |

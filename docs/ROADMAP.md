@@ -97,7 +97,13 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
     - Différenciation franche des 3 styles de dés (`PIXEL_SOLID` plein 3D biseauté, `NEON_WIREFRAME` filaire CAO creux, `DOT_MATRIX` diodes LED circulaires)
     - Ajout des générateurs de thèmes aléatoires (*Random Harmonieux* & *Random Chaos*), des presets *Niveaux de Gris* (3 contrastes), *Sépia* (3 contrastes) et *Accessibilité Daltonisme* (Protanopie/Deutéranopie Okabe-Ito, Tritanopie, Achromatopsie)
     - Évolution de `ColorPickerDialog` avec bascule **Mode HSV / Mode RGB (`0..255`)** et bouton **Random**
-    - Système d'Easter Eggs multi-taps (`EasterEggOverlay.kt`) : **42 taps** sur les dés d'accueil (générique Star Wars `42` en dés jaunes + *"Answer to the Ultimate Question of Life, the Universe, and Everything"* en anglais), **13 taps** sur l'entropie d'accueil (*Overclock 1337 Matrix*) et **7 taps** sur la version dans `InfoScreen` (*Holocron Aurebesh / Sabacc*)
+    - Système d'Easter Eggs multi-taps (`EasterEggOverlay.kt`) : **42 taps** sur les dés d'accueil (générique Star Wars `42` en dés jaunes avec ciel étoilé aléatoire, intro cyan en fondu et inclinaison 3D renforcée + *"Answer to the Ultimate Question of Life, the Universe, and Everything"* en anglais), **13 taps** sur l'entropie d'accueil (*Overclock 1337 Matrix*) et **7 taps** sur la version dans `InfoScreen` (*Holocron Aurebesh / Sabacc*)
+    - **Recettage Gameplay, Plateau Portrait/Paysage, Graphiques & IA Auto-Apprenante** :
+        - Nouvelles variantes : **Chiffre rond multiple de 100 obligatoire pour banquer** (`requireMultipleOf100ToBank`), **Seuil minimal par tour après ouverture** (`minTurnScoreAfterOpening`), **Sprint final des 1 000 derniers points en 1 tour** (`finalSprintLast1000InOneTurn`), découplage **Quinte (`×4` / `5×5 = 5000`) & Victoire instantanée sur `5×As`**, et séparation **Suite 5 dés (`straightScore`) / Grande Suite 6 dés (`fullStraight6DiceScore`)**
+        - **IA Locale Auto-Apprenante (`AdaptiveBotLearner`)** : apprentissage par renforcement tabulaire bayésien nourri automatiquement en temps réel par `decision_logs`
+        - **Refonte `GameScreen`** : carrousel joueurs centré automatiquement (`LazyRow`), bandeau tour/pot sur 1 ligne, historique en direct des lancers & paliers d'encoches (`✕`) au centre + modale dédiée, hauteur du bloc d'actions sous les dés verrouillée (zéro saut des dés), bouton retour avec icône Pixel Art `BACK`, et mode Paysage 2 colonnes sans scroll
+        - **Correction `NEON_WIREFRAME`** : points `2×2` dessinés en bloc unifié (sans effet « mini-fenêtre »)
+        - **Graphiques & Historique des parties (`StatsScreen`)** : onglet `PARTIES` (journal dépliable des parties et lancers) + graphiques Compose `Canvas` (camemberts/donuts, courbe de scores, barres verticales)
 
 ---
 

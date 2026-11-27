@@ -61,9 +61,25 @@ object DiceScorer {
         // 1. Partition standard face par face (Brelan / Carré / Quinte / Sextuplé + As et 5 isolés)
         candidates += evaluateFaceByFace(counts, diceFaces.size, config)
 
-        // 2. Suite (Straight) : en 5 dés -> (1..5) ou (2..6) ; en 6 dés -> (1..6) ou suite de 5 dés + éventuel 1/5
+        // 2a. Grande Suite de 6 dés (1-2-3-4-5-6) en variante 6 dés (score configurable séparément)
+        if (diceFaces.size == 6 && config.fullStraight6DiceScore > 0 && (1..6).all { counts[it] == 1 }) {
+            val combo = ScoringCombination(
+                kind = CombinationKind.STRAIGHT,
+                diceFaces = listOf(1, 2, 3, 4, 5, 6),
+                points = config.fullStraight6DiceScore,
+                labelFr = "Grande Suite (1-6)"
+            )
+            candidates += PartitionResult(
+                totalPoints = config.fullStraight6DiceScore,
+                combinations = listOf(combo),
+                scoringDiceCount = 6,
+                deadDiceCount = 0
+            )
+        }
+
+        // 2b. Suite de 5 dés (1..5 ou 2..6) + éventuel 6e dé scorant (ex: Suite 2-6 + As isolé)
         if (config.straightScore > 0 && diceFaces.size >= 5) {
-            evaluateStraights(counts, diceFaces.size, config)?.let { candidates += it }
+            evaluateFiveDiceStraights(counts, diceFaces.size, config).forEach { candidates += it }
         }
 
         // 3. Trois Paires (uniquement lorsque 6 dés sont évalués et threePairsScore > 0)
@@ -193,9 +209,7 @@ object DiceScorer {
      * Identifie tous les indices (`0 until rolledFaces.size`) des dés du lancer qui peuvent participer à **au moins une**
      * combinaison scorante valide.
      *
-     * Garantit une cohérence mathématique totale entre l'UI (`canScoreOnCurrentRoll`) et l'IA (`HeuristicBotPolicy`) :
-     * par exemple, sur `[1, 2, 3, 4, 5, 2]` en mode 6 dés, les deux `2` (indices 1 et 5) appartiennent chacun à une
-     * Suite `1-5` valide et sont donc tous deux cliquables.
+     * Garantit une cohérence mathématique totale entre l'UI (`canScoreOnCurrentRoll`) et l'IA (`HeuristicBotPolicy`).
      */
     fun findScoringDieIndices(
         rolledFaces: List<Int>,
@@ -213,7 +227,6 @@ object DiceScorer {
         var unionMask = 0
 
         for (mask in 1..maxMask) {
-            // Optimisation : si tous les bits de ce masque sont déjà dans unionMask, inutile de réévaluer
             if ((mask and unionMask.inv()) == 0) continue
 
             val subsetFaces = mutableListOf<Int>()
@@ -262,23 +275,28 @@ object DiceScorer {
 
             val baseTriple = tripleBasePoints(face)
             val label = faceLabelFr(face)
+            val isInstantOnesEnabled = face == 1 && config.isInstantWinOnFiveOnesActive
+            val isFiveFives5000 = face == 5 && config.fiveOfAKindMode == FiveOfAKindMode.FIVE_FIVES_5000
 
             // 6 dés identiques (en variante 6 dés)
             if (remaining == 6) {
                 when {
-                    config.fiveOfAKindMode != FiveOfAKindMode.DISABLED -> {
-                        val pts = baseTriple * 8
-                        val win = face == 1 && config.fiveOfAKindMode == FiveOfAKindMode.INSTANT_WIN_ON_ONES
+                    config.fiveOfAKindMode != FiveOfAKindMode.DISABLED || isInstantOnesEnabled -> {
+                        val pts = when {
+                            isInstantOnesEnabled -> config.targetScore.coerceAtLeast(baseTriple * 8)
+                            isFiveFives5000 -> 10000
+                            else -> baseTriple * 8
+                        }
                         combinations += ScoringCombination(
                             kind = CombinationKind.SIX_OF_A_KIND,
                             diceFaces = List(6) { face },
                             points = pts,
-                            labelFr = "Sextuplé de $label",
-                            triggersInstantWin = win
+                            labelFr = if (isInstantOnesEnabled) "Sextuplé d'As (Victoire !)" else "Sextuplé de $label",
+                            triggersInstantWin = isInstantOnesEnabled
                         )
                         totalPoints += pts
                         scoringDice += 6
-                        if (win) instantWin = true
+                        if (isInstantOnesEnabled) instantWin = true
                         remaining = 0
                     }
                     else -> {
@@ -298,21 +316,29 @@ object DiceScorer {
                 }
             }
 
-            // 5 dés identiques (Quinte)
-            if (remaining == 5 && config.fiveOfAKindMode != FiveOfAKindMode.DISABLED) {
-                val isInstantOnes = face == 1 && config.fiveOfAKindMode == FiveOfAKindMode.INSTANT_WIN_ON_ONES
-                val pts = if (isInstantOnes) config.targetScore.coerceAtLeast(baseTriple * 4) else baseTriple * 4
+            // 5 dés identiques (Quinte ou 5 As = Victoire instantanée)
+            if (remaining >= 5 && (config.fiveOfAKindMode != FiveOfAKindMode.DISABLED || isInstantOnesEnabled)) {
+                val pts = when {
+                    isInstantOnesEnabled -> config.targetScore.coerceAtLeast(baseTriple * 4)
+                    isFiveFives5000 -> 5000
+                    else -> baseTriple * 4
+                }
+                val comboLabel = when {
+                    isInstantOnesEnabled -> "5 As (Victoire !)"
+                    isFiveFives5000 -> "Quinte de 5 (5 000 !)"
+                    else -> "Quinte de $label"
+                }
                 combinations += ScoringCombination(
                     kind = CombinationKind.FIVE_OF_A_KIND,
                     diceFaces = List(5) { face },
                     points = pts,
-                    labelFr = if (isInstantOnes) "Quinte d'As (Victoire !)" else "Quinte de $label",
-                    triggersInstantWin = isInstantOnes
+                    labelFr = comboLabel,
+                    triggersInstantWin = isInstantOnesEnabled
                 )
                 totalPoints += pts
                 scoringDice += 5
-                if (isInstantOnes) instantWin = true
-                remaining = 0
+                if (isInstantOnesEnabled) instantWin = true
+                remaining -= 5
             }
 
             // 4 dés identiques (Carré)
@@ -382,59 +408,59 @@ object DiceScorer {
         )
     }
 
-    private fun evaluateStraights(
+    private fun evaluateFiveDiceStraights(
         counts: IntArray,
         totalDice: Int,
         config: GameRulesConfig
-    ): PartitionResult? {
-        // Grande suite de 6 dés (1-2-3-4-5-6) en variante 6 dés
-        if (totalDice == 6 && (1..6).all { counts[it] == 1 }) {
-            val combo = ScoringCombination(
-                kind = CombinationKind.STRAIGHT,
-                diceFaces = listOf(1, 2, 3, 4, 5, 6),
-                points = config.straightScore,
-                labelFr = "Grande Suite (1-6)"
-            )
-            return PartitionResult(
-                totalPoints = config.straightScore,
-                combinations = listOf(combo),
-                scoringDiceCount = 6,
-                deadDiceCount = 0
-            )
-        }
+    ): List<PartitionResult> {
+        val results = mutableListOf<PartitionResult>()
 
-        // Suite de 5 dés : 1-2-3-4-5 ou 2-3-4-5-6
         val isLowStraight = (1..5).all { counts[it] >= 1 }
         val isHighStraight = (2..6).all { counts[it] >= 1 }
-        if (!isLowStraight && !isHighStraight) return null
 
-        val straightRange = if (isLowStraight) 1..5 else 2..6
-        val remainingCounts = counts.copyOf()
-        for (face in straightRange) {
-            remainingCounts[face]--
+        if (isLowStraight) {
+            val remainingCounts = counts.copyOf()
+            for (face in 1..5) remainingCounts[face]--
+            val straightCombo = ScoringCombination(
+                kind = CombinationKind.STRAIGHT,
+                diceFaces = (1..5).toList(),
+                points = config.straightScore,
+                labelFr = "Suite (1-5)"
+            )
+            val extraResult = evaluateFaceByFace(remainingCounts, totalDice - 5, config)
+            results += PartitionResult(
+                totalPoints = config.straightScore + extraResult.totalPoints,
+                combinations = listOf(straightCombo) + extraResult.combinations,
+                scoringDiceCount = 5 + extraResult.scoringDiceCount,
+                deadDiceCount = extraResult.deadDiceCount
+            )
         }
 
-        val straightCombo = ScoringCombination(
-            kind = CombinationKind.STRAIGHT,
-            diceFaces = straightRange.toList(),
-            points = config.straightScore,
-            labelFr = if (isLowStraight) "Suite (1-5)" else "Suite (2-6)"
-        )
+        if (isHighStraight) {
+            val remainingCounts = counts.copyOf()
+            for (face in 2..6) remainingCounts[face]--
+            val straightCombo = ScoringCombination(
+                kind = CombinationKind.STRAIGHT,
+                diceFaces = (2..6).toList(),
+                points = config.straightScore,
+                labelFr = "Suite (2-6)"
+            )
+            val extraResult = evaluateFaceByFace(remainingCounts, totalDice - 5, config)
+            results += PartitionResult(
+                totalPoints = config.straightScore + extraResult.totalPoints,
+                combinations = listOf(straightCombo) + extraResult.combinations,
+                scoringDiceCount = 5 + extraResult.scoringDiceCount,
+                deadDiceCount = extraResult.deadDiceCount
+            )
+        }
 
-        val extraResult = evaluateFaceByFace(remainingCounts, totalDice - 5, config)
-        return PartitionResult(
-            totalPoints = config.straightScore + extraResult.totalPoints,
-            combinations = listOf(straightCombo) + extraResult.combinations,
-            scoringDiceCount = 5 + extraResult.scoringDiceCount,
-            deadDiceCount = extraResult.deadDiceCount
-        )
+        return results
     }
 
     private fun evaluateThreePairs(
         counts: IntArray,
         config: GameRulesConfig
     ): PartitionResult? {
-        // 3 paires en 6 dés : soit 3 faces à 2 dés, soit 1 face à 4 dés + 1 face à 2 dés, soit 6 dés identiques
         val pairCount = (1..6).sumOf { counts[it] / 2 }
         val hasOddRemainder = (1..6).any { counts[it] % 2 != 0 }
         if (pairCount != 3 || hasOddRemainder) return null
@@ -459,7 +485,6 @@ object DiceScorer {
         totalDice: Int,
         config: GameRulesConfig
     ): PartitionResult? {
-        // Chercher un brelan (counts[t] >= 3) et une paire d'une face distincte (counts[p] >= 2)
         var bestResult: PartitionResult? = null
 
         for (tripleFace in 1..6) {

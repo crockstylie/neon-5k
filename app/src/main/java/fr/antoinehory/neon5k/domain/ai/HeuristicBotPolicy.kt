@@ -3,24 +3,26 @@ package fr.antoinehory.neon5k.domain.ai
 import fr.antoinehory.neon5k.domain.model.MatchState
 import fr.antoinehory.neon5k.domain.rules.CombinationKind
 import fr.antoinehory.neon5k.domain.rules.DiceScorer
+import fr.antoinehory.neon5k.domain.rules.FiveThousandEngine
 import fr.antoinehory.neon5k.domain.rules.GameRulesConfig
 import fr.antoinehory.neon5k.domain.rules.SelectionEvaluation
 
 /**
- * Implémentation probabiliste et heuristique de [BotPolicy] en Kotlin pur.
+ * Implémentation probabiliste, heuristique et auto-adaptative de [BotPolicy] en Kotlin pur.
  *
  * Principes de décision :
  * 1. Génère tous les sous-ensembles valides de dés scorants parmi les dés libres (`!isLocked && canScoreOnCurrentRoll`).
  * 2. Règles de cohérence humaine au 5000 :
- *    - **En cas de `BANK`** : le bot prend **toujours** le sous-ensemble maximal qui ne dépasse pas `targetScore`
- *      (il ne laisse jamais de points gratuits sur la table au moment de banquer).
+ *    - **En cas de `BANK`** : le bot prend **toujours** le sous-ensemble maximal légalement banquable
+ *      (il ne laisse jamais de points gratuits sur la table au moment de banquer, tout en respectant
+ *      `exactFinishRequired` et `requireMultipleOf100ToBank`).
  *    - **En cas de `ROLL_AGAIN`** :
  *      - Si prendre tous les dés scorants déclenche une **Main pleine** (`remainingDiceToRoll == 0`), le bot prend toujours tout.
  *      - Un bot ne laisse **jamais** passer un Brelan (`>= 200 pts`), un Carré, une Quinte, une Suite, 3 Paires, un Full
  *        ni un As (`100 pts`), sauf si les prendre ferait dépasser `targetScore` en mode score exact.
- *      - L'économie tactique de dés (garder l'As et relancer un `5` isolé de `50 pts`) est réservée au profil
- *        [BotProfile.OVERCLOCK_KAMIKAZE] ou au cas critique où garder le `5` isolé forcerait à ne relancer qu'un seul dé (`P(bust) = 66,7 %`)
- *        alors qu'il est interdit de banquer.
+ * 3. **Couche d'apprentissage local ([AdaptiveBotLearner])** :
+ *    - Combine l'espérance mathématique théorique à 1 coup ([RollProbabilityTable]) avec l'espérance empirique
+ *      apprise sur le dataset local `decision_logs` de l'appareil.
  */
 object HeuristicBotPolicy : BotPolicy {
 
@@ -31,7 +33,6 @@ object HeuristicBotPolicy : BotPolicy {
         val offer = state.turn.piggybackOffer ?: return false
         if (!state.rules.piggybackEnabled || !state.activePlayer.isOpened) return false
 
-        // Si le pot hérité fait déjà dépasser le score cible, refuser
         if (state.rules.exactFinishRequired && state.activePlayer.score + offer.inheritedPoints >= state.rules.targetScore) {
             return false
         }
@@ -77,20 +78,19 @@ object HeuristicBotPolicy : BotPolicy {
             BotProfile.OVERCLOCK_KAMIKAZE -> 0.55
         }
 
-        val minBankTargetWhenOpened = when (profile) {
+        val baseMinBankTarget = when (profile) {
             BotProfile.SAFE_RUNNER -> 250
             BotProfile.CYBER_BALANCED -> if (trailingBehind) 450 else 350
             BotProfile.OVERCLOCK_KAMIKAZE -> 600
         }
+        val minBankTargetWhenOpened = maxOf(baseMinBankTarget, rules.minTurnScoreAfterOpening)
 
-        // Sous-ensembles qui ne font pas dépasser targetScore (si exactFinishRequired)
         val nonOverflowCandidates = candidateSubsets.filter { candidate ->
             val projectedTotal = player.score + turn.bankedInTurn + candidate.points
             !rules.exactFinishRequired || projectedTotal <= rules.targetScore
         }
 
         if (nonOverflowCandidates.isEmpty()) {
-            // Tous les sous-ensembles dépassent la cible : prendre le plus petit sous-ensemble valide
             val smallest = candidateSubsets.minBy { it.points }
             return BotMovePlan(
                 indicesToSelect = smallest.indices,
@@ -110,9 +110,12 @@ object HeuristicBotPolicy : BotPolicy {
             } else {
                 projectedTotalScore >= rules.targetScore
             }
-            val canBankThis = (player.isOpened || projectedTurnPot >= rules.openingThreshold) &&
-                (!rules.exactFinishRequired || projectedTotalScore <= rules.targetScore) &&
-                (!triggersHotDice || !rules.mandatoryRerollOnHotDice)
+            val canBankThis = FiveThousandEngine.canPlayerBankPot(
+                player = player,
+                totalTurnPoints = projectedTurnPot,
+                triggersHotDice = triggersHotDice,
+                rules = rules
+            )
 
             if (canBankThis && winsOnBank) {
                 return BotMovePlan(
@@ -122,7 +125,7 @@ object HeuristicBotPolicy : BotPolicy {
             }
         }
 
-        // 2. Identifier le sous-ensemble maximal (celui qui maximise les points, puis le nombre de dés pour favoriser la Main pleine)
+        // 2. Identifier le sous-ensemble maximal
         val maxCandidate = nonOverflowCandidates.maxWith(
             compareBy<CandidateSelection> { it.points }.thenBy { it.indices.size }
         )
@@ -130,9 +133,12 @@ object HeuristicBotPolicy : BotPolicy {
         // Si le sous-ensemble maximal déclenche une Main pleine (remainingDiceToRoll == 0), on prend TOUJOURS tout !
         if (totalFreeDiceCount - maxCandidate.indices.size == 0) {
             val projectedTurnPot = turn.bankedInTurn + maxCandidate.points
-            val canBankHotDice = !rules.mandatoryRerollOnHotDice &&
-                (player.isOpened || projectedTurnPot >= rules.openingThreshold)
-            // Même si mandatoryRerollOnHotDice est false, relancer 5 ou 6 dés a ~92-97% de réussite
+            val canBankHotDice = FiveThousandEngine.canPlayerBankPot(
+                player = player,
+                totalTurnPoints = projectedTurnPot,
+                triggersHotDice = true,
+                rules = rules
+            )
             return BotMovePlan(
                 indicesToSelect = maxCandidate.indices,
                 nextAction = if (canBankHotDice && profile == BotProfile.SAFE_RUNNER && projectedTurnPot >= 1500) {
@@ -143,21 +149,27 @@ object HeuristicBotPolicy : BotPolicy {
             )
         }
 
-        // 3. Filtrer les candidats autorisés pour ROLL_AGAIN :
-        //    Un bot ne doit JAMAIS abandonner un Brelan, Carré, Quinte, Suite, 3 Paires, Full, ni un As (100 pts) présent dans maxCandidate.
+        // Meilleur sous-ensemble légalement banquable (ex: si requireMultipleOf100ToBank est actif et que maxCandidate finit par 50,
+        // on autorise aussi le plus grand sous-ensemble multiple de 100 pour banquer)
+        val bestBankableCandidate = nonOverflowCandidates
+            .filter { cand ->
+                val pot = turn.bankedInTurn + cand.points
+                val triggersHot = (totalFreeDiceCount - cand.indices.size) == 0
+                FiveThousandEngine.canPlayerBankPot(player, pot, triggersHot, rules)
+            }
+            .maxWithOrNull(compareBy<CandidateSelection> { it.points }.thenBy { it.indices.size })
+
+        // 3. Filtrer les candidats autorisés :
         val maxHighValueCount = maxCandidate.highValueDiceCount
-        val eligibleRollCandidates = nonOverflowCandidates.filter { candidate ->
-            if (candidate.indices == maxCandidate.indices) {
+        val eligibleCandidates = nonOverflowCandidates.filter { candidate ->
+            if (candidate.indices == maxCandidate.indices || candidate.indices == bestBankableCandidate?.indices) {
                 true
             } else if (candidate.highValueDiceCount < maxHighValueCount) {
-                // Ce sous-ensemble abandonne un As ou une combinaison majeure -> interdit !
                 false
             } else {
-                // Ce sous-ensemble ne laisse de côté qu'un ou plusieurs 5 isolés (50 pts) :
-                // Autorisé pour OVERCLOCK_KAMIKAZE, ou si prendre maxCandidate ne laisserait qu'1 seul dé à relancer sans pouvoir banquer
                 val maxRemainingDice = totalFreeDiceCount - maxCandidate.indices.size
                 val maxProjectedPot = turn.bankedInTurn + maxCandidate.points
-                val canBankMax = player.isOpened || maxProjectedPot >= rules.openingThreshold
+                val canBankMax = FiveThousandEngine.canPlayerBankPot(player, maxProjectedPot, maxRemainingDice == 0, rules)
                 profile == BotProfile.OVERCLOCK_KAMIKAZE || (!canBankMax && maxRemainingDice == 1)
             }
         }.ifEmpty { listOf(maxCandidate) }
@@ -165,16 +177,21 @@ object HeuristicBotPolicy : BotPolicy {
         var bestPlan: BotMovePlan? = null
         var bestUtility = Double.NEGATIVE_INFINITY
 
-        for (candidate in eligibleRollCandidates) {
+        for (candidate in eligibleCandidates) {
             val projectedTurnPot = turn.bankedInTurn + candidate.points
             val projectedTotalScore = player.score + projectedTurnPot
             val remainingDiceToRoll = totalFreeDiceCount - candidate.indices.size
             val triggersHotDice = remainingDiceToRoll == 0
 
-            val canBankThis = candidate.points == maxCandidate.points &&
-                (player.isOpened || projectedTurnPot >= rules.openingThreshold) &&
-                (!rules.exactFinishRequired || projectedTotalScore <= rules.targetScore) &&
-                (!triggersHotDice || !rules.mandatoryRerollOnHotDice)
+            val isMaxOrBestBankable = candidate.points == maxCandidate.points ||
+                (bestBankableCandidate != null && candidate.indices == bestBankableCandidate.indices)
+
+            val canBankThis = isMaxOrBestBankable && FiveThousandEngine.canPlayerBankPot(
+                player = player,
+                totalTurnPoints = projectedTurnPot,
+                triggersHotDice = triggersHotDice,
+                rules = rules
+            )
 
             val nextDiceCount = if (triggersHotDice) rules.diceCount else remainingDiceToRoll
             val odds = RollProbabilityTable.getOdds(nextDiceCount, rules)
@@ -186,7 +203,16 @@ object HeuristicBotPolicy : BotPolicy {
                 odds.bustProbability * projectedTurnPot * riskAversion
 
             val hotDiceBonus = if (triggersHotDice) 220.0 else 0.0
-            val rollUtility = expectedPotIfRoll + hotDiceBonus
+            val theoreticalRollUtility = expectedPotIfRoll + hotDiceBonus
+
+            // Fusion auto-adaptative avec le dataset local decision_logs
+            val rollUtility = AdaptiveBotLearner.blendRollUtility(
+                theoreticalRollUtility = theoreticalRollUtility,
+                remainingDiceToRoll = nextDiceCount,
+                projectedTurnPot = projectedTurnPot,
+                isOpened = player.isOpened,
+                riskAversion = riskAversion
+            )
 
             if (!canBankThis) {
                 if (rollUtility > bestUtility) {
@@ -219,12 +245,14 @@ object HeuristicBotPolicy : BotPolicy {
             nextAction = BotTurnAction.ROLL_AGAIN
         )
 
-        // Garantie finale : si l'action retenue est BANK, toujours banquer le sous-ensemble maximal (maxCandidate)
-        return if (finalPlan.nextAction == BotTurnAction.BANK && finalPlan.indicesToSelect != maxCandidate.indices) {
-            finalPlan.copy(indicesToSelect = maxCandidate.indices)
-        } else {
-            finalPlan
+        // Garantie finale : si l'action retenue est BANK, toujours banquer le meilleur sous-ensemble légalement banquable
+        if (finalPlan.nextAction == BotTurnAction.BANK) {
+            val targetBankCandidate = bestBankableCandidate ?: maxCandidate
+            if (finalPlan.indicesToSelect != targetBankCandidate.indices) {
+                return finalPlan.copy(indicesToSelect = targetBankCandidate.indices)
+            }
         }
+        return finalPlan
     }
 
     private data class CandidateSelection(
@@ -232,10 +260,6 @@ object HeuristicBotPolicy : BotPolicy {
         val points: Int,
         val evaluation: SelectionEvaluation
     ) {
-        /**
-         * Nombre de dés appartenant à une combinaison à haute valeur (As isolé = 100 pts, Brelan, Carré, Quinte, Suite, 3 Paires, Full),
-         * c'est-à-dire tous les dés scorants hors `5` isolés (`SINGLE_FIVE`).
-         */
         val highValueDiceCount: Int
             get() = evaluation.combinations
                 .filter { it.kind != CombinationKind.SINGLE_FIVE }
@@ -250,7 +274,6 @@ object HeuristicBotPolicy : BotPolicy {
         val results = mutableListOf<CandidateSelection>()
         val n = freeDiceIndices.size
 
-        // Énumérer les sous-ensembles non vides (2^n - 1, au maximum 2^6 - 1 = 63 combinaisons -> < 0.05 ms)
         val maxMask = (1 shl n) - 1
         for (mask in 1..maxMask) {
             val chosenIndices = mutableListOf<Int>()

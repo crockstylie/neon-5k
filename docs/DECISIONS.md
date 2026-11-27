@@ -97,3 +97,14 @@
     3. Remplacer `threeStrikesPenalty: Int` par `ThreeStrikesMode` offrant 5 modes dans `SetupScreen` : `DISABLED`, `MINUS_500`, `MINUS_1000`, `REVERT_TO_PREVIOUS_CLEAR_STRIKES` (recul au palier précédent avec remise à `0 ✕`) et `REVERT_TO_PREVIOUS_PERSIST_STRIKES` (recul au palier précédent avec conservation des encoches historiques `✕`).
 - **Conséquences** : Reproduction 100 % fidèle du comportement d'une feuille de match papier, également exploitée par la variante Chapeau (`BumpOpponentMode.RESET_TO_PREVIOUS`) et persistée en JSON dans `SavedMatchEntity`.
 
+## ADR-014 : Auto-Apprentissage Local de l'IA (`AdaptiveBotLearner`) & Nouvelles Variantes Classiques du 5000
+- **Date** : 2026-11-27
+- **Contexte** :
+    1. Exploiter directement sur l'appareil les milliers de décisions enregistrées dans la table Room `decision_logs` pour que les bots locaux (*Safe Runner*, *Cyber Balanced*, *Overclock Kamikaze*) s'améliorent tout seuls au fil des parties sans embarquer de librairie ML lourde.
+    2. Prendre en charge les variantes classiques de table : interdiction de banquer un score non multiple de 100 (`5` isolé interdit en banque seule), seuil minimal par tour après ouverture (`200/250/500`), sprint final des `1 000` derniers points en un seul tour, découplage entre Quinte (`×4 brelan` / `5×Cinq = 5 000`) et Victoire instantanée sur `5×As`, et distinction en mode 6 dés entre Suite à 5 dés (`1-5` / `2-6`) et Grande Suite à 6 dés (`1-2-3-4-5-6`).
+- **Décision** :
+    1. Créer `AdaptiveBotLearner` (`domain/ai/AdaptiveBotLearner.kt`) en Kotlin pur : un apprenant par renforcement tabulaire contextuel (`(remainingDice, potBucket, isOpened)`) avec régularisation bayésienne empirique (`PRIOR_WEIGHT = 10.0`) qui pondère les trajectoires issues de parties gagnées et hybride en temps réel l'espérance empirique multi-lancers observée avec l'espérance théorique à 1 coup de `RollProbabilityTable`.
+    2. Étendre `GameRulesConfig`, `DiceScorer` et `FiveThousandEngine` avec `requireMultipleOf100ToBank`, `minTurnScoreAfterOpening`, `finalSprintLast1000InOneTurn`, `instantWinOnFiveOnes`, `FiveOfAKindMode.FIVE_FIVES_5000` et `fullStraight6DiceScore`, tout en préservant la compatibilité du schéma Room `version = 2`.
+- **Conséquences** : Une IA locale vivante qui progresse en < 2 ms de RAM sans dépendance externe, et une couverture exhaustive des règles officielles et familiales du 5000.
+
+

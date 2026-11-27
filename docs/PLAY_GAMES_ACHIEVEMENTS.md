@@ -1,32 +1,70 @@
-# Guide Google Play Jeux v2 — Déclaration des 20 Succès & Icônes 512×512 (Neon 5K)
+# Guide Google Play Jeux v2 — Import ZIP en 1 Clic des 20 Succès & Configuration (Neon 5K)
 
-> Ce document explique pas à pas comment déclarer les **20 succès** de **Neon 5K** dans la **Google Play Console** et où récupérer leurs **20 icônes Pixel Art Cyberpunk (`512 × 512 px` PNG)** générées automatiquement par le projet.
-
----
-
-## 1. Où se trouvent les 20 icônes PNG `512 × 512 px` ?
-
-Les 20 icônes au format officiel exigé par Google Play (`512 × 512 px`, PNG 32-bit) sont générées automatiquement à partir des matrices Pixel Art `16×16` de [`AchievementDefinition.kt`](../app/src/main/java/fr/antoinehory/neon5k/domain/achievement/AchievementDefinition.kt) lors de l'exécution des tests unitaires (`./gradlew :app:testDebugUnitTest`).
-
-Elles sont disponibles directement dans le dossier :
-- `docs/play_console_achievements_icons/achievement_01_first_boot.png` jusqu'à `achievement_20_entropy_master.png`.
-
-> **Astuce Google Play Console** : Tu n'as besoin d'uploader qu'**une seule icône en couleur** par succès (`512 × 512 px`). La Google Play Console génère automatiquement la version grisée pour l'état « verrouillé » dans l'application Google Play Jeux.
+> Ce document explique pas à pas comment configurer **Google Play Jeux v2** dans la **Google Play Console** et importer **d'un seul coup** les **20 succès** (avec leurs 20 icônes PNG `512 × 512 px` et leurs traductions en **4 langues : Anglais, Français, Espagnol, Portugais**) grâce à l'archive `.zip` générée automatiquement par le projet.
 
 ---
 
-## 2. Étapes de configuration dans la Google Play Console
+## 1. L'archive ZIP « Import en 1 clic » (20 Succès + 4 Langues + 20 Icônes 512×512)
 
+La Google Play Console propose un bouton **« Importer des succès »** (*Import achievements*) qui accepte une archive `.zip` contenant :
+1. `AchievementsMetadata.csv` (sans ligne d'en-tête, avec la langue par défaut `en-US` suivie des traductions `fr-FR`, `es-ES` et `pt-PT` sur chaque ligne).
+2. Les 20 fichiers d'icônes `achievement_01_first_boot.png` à `achievement_20_entropy_master.png` (`512 × 512 px` PNG 32-bit).
+
+Cette archive prête à l'emploi a été générée automatiquement dans :
+- **[`docs/play_store_assets/play_games_achievements_import_fr_en.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_import_fr_en.zip)**
+- Le fichier CSV seul est également consultable dans **[`docs/play_store_assets/AchievementsMetadata.csv`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/AchievementsMetadata.csv)**
+- Les 20 icônes individuelles sont dans **[`docs/play_console_achievements_icons/`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_console_achievements_icons)**
+
+---
+
+## 2. Visuels de la Fiche Google Play Store (Icône 512×512 & Bannière 1024×500)
+
+Les deux visuels principaux exigés par la fiche Google Play Store ont également été générés dans [`docs/play_store_assets/`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets) :
+1. **Icône de l'application (`512 × 512 px` PNG 32-bit)** :
+   - [`docs/play_store_assets/play_store_icon_512x512.png`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_store_icon_512x512.png)
+2. **Image de présentation / Feature Graphic (`1 024 × 500 px` PNG 32-bit)** :
+   - [`docs/play_store_assets/play_store_feature_graphic_1024x500.png`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_store_feature_graphic_1024x500.png)
+
+---
+
+## 3. Étapes de configuration Google Play Jeux v2 dans la Play Console
+
+### Étape A — Créer le projet Services de jeux Play & Lier les certificats SHA-1
 1. Ouvre la **Google Play Console** → sélectionne l'application **Neon 5K**.
-2. Dans le menu latéral gauche, va dans **Croissance > Services de jeux Play > Configuration et gestion > Configuration**.
-3. Choisis **Créer un projet de services de jeux Play** (si ce n'est pas encore fait) et associe ton empreinte de certificat **SHA-1** (Debug et Release/Upload key) dans **Identifiants**.
-4. Copie l'**ID du projet** à 12 chiffres (ex. `123456789012`) et colle-le dans [`app/src/main/res/values/games-ids.xml`](../app/src/main/res/values/games-ids.xml) dans `<string name="game_services_project_id">`.
-5. Va ensuite dans **Services de jeux Play > Configuration et gestion > Succès** et clique sur **Créer un succès** pour chacun des 20 succès du tableau ci-dessous.
-6. Une fois les 20 succès créés, clique sur **Obtenir les ressources** en haut de la liste des succès dans la Play Console : copie les 20 chaînes `<string name="achievement_...">CgkI...</string>` dans [`app/src/main/res/values/games-ids.xml`](../app/src/main/res/values/games-ids.xml).
+2. Dans le menu de gauche, va dans **Croissance > Services de jeux Play > Configuration et gestion > Configuration**.
+3. Sélectionne **« Non, mon jeu n'utilise pas les API Google »** → clique sur **Créer** (la langue par défaut conseillée pour l'import CSV et la traduction auto est **English (United States) – `en-US`**).
+4. Dans la section **Identifiants** (*Credentials*) :
+   - Clique sur **Ajouter un identifiant** (*Add credential*) → Type **Android**.
+   - Crée un identifiant OAuth pour ta **clé de signature de publication (Release / Play App Signing)** et un second pour ta **clé Debug** (pour tester sur ton téléphone/émulateur en développement).
+   - Pour afficher ton SHA-1 Debug sous Android Studio / terminal :
+     ```bash
+     ./gradlew signingReport
+     ```
+5. En haut de la page **Configuration**, copie l'**ID du projet** à 12 chiffres (ex. `123456789012`).
+
+### Étape B — Importer les 20 succès en 1 clic via le ZIP
+1. Va dans **Services de jeux Play > Configuration et gestion > Succès**.
+2. Clique sur le bouton **Importer des succès** (*Import achievements*).
+3. Sélectionne le fichier **[`docs/play_store_assets/play_games_achievements_import_fr_en.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_import_fr_en.zip)**.
+4. La Play Console crée automatiquement les **20 succès** (total = **1 000 XP**), attache leurs **20 icônes Pixel Art `512 × 512 px`** et remplit les traductions **`en-US`**, **`fr-FR`**, **`es-ES`** et **`pt-PT`** !
+
+### Étape C — Copier les IDs générés dans `games-ids.xml`
+1. En haut de la page **Succès** dans la Play Console, clique sur **Obtenir les ressources** (*Get resources*).
+2. Copie l'`app_id` (`game_services_project_id`) et les 20 identifiants `CgkI...` dans [`app/src/main/res/values/games-ids.xml`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/app/src/main/res/values/games-ids.xml).
+3. Ajoute ton adresse Gmail dans **Services de jeux Play > Configuration et gestion > Testeurs** pour que les succès se débloquent immédiatement avant même la publication publique.
 
 ---
 
-## 3. Tableau récapitulatif des 20 Succès (Total = 1 000 XP pile)
+## 4. Astuce Google Play Console : Fiche Store Multilingue & Traduction Automatique depuis l'Anglais
+
+Sur la fiche principale du Play Store (**Développer la présence > Présence sur le Play Store > Fiche Play Store principale**) :
+1. **Définir l'Anglais (`en-US`) comme langue par défaut** de la fiche : copie-colle le titre, la description courte et la description complète de la section **🇬🇧 ENGLISH (`en-US`)** de [`PLAY_STORE.md`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/PLAY_STORE.md).
+2. **Pour le Français (`fr-FR`), l'Espagnol (`es-ES`) et le Portugais (`pt-PT`)** : clique sur **Gérer les traductions > Gérer vos propres traductions** et copie-colle nos textes sur-mesure de [`PLAY_STORE.md`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/PLAY_STORE.md) (qui utilisent le vrai vocabulaire officiel du 5000 dans chaque langue : *Main pleine / Repiquage / Chapeau / Encoches*, *Hot Dice / Piggyback / Bump*, *Mano plena / Repóker*, *Mão cheia / Quina*).
+3. **Pour toutes les autres langues du monde (Allemand, Italien, Japonais, Coréen, Polonais, etc.)** : dans **Croissance > Traductions > Traduire la fiche Play Store**, coche toutes les langues additionnelles gratuites proposées par Google Play et choisis **Traduire depuis l'anglais (`en-US`)**. Google traduira automatiquement ta fiche anglaise vers +40 langues gratuitement en quelques secondes.
+
+---
+
+## 5. Tableau récapitulatif des 20 Succès (Total = 1 000 XP pile)
 
 | # | Clé XML (`games-ids.xml`) | Nom (FR / EN) | Description (FR) | Type Play Console | Étapes | XP | Fichier Icône `512×512` |
 | :-: | :--- | :--- | :--- | :---: | :-: | :-: | :--- |

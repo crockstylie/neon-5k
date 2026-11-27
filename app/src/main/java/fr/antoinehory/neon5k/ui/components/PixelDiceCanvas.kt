@@ -37,7 +37,7 @@ import kotlin.math.floor
  * - `0` : Vide (transparent)
  * - `1` : Bordure extérieure / chanfrein pixel-art du dé
  * - `2` : Corps intérieur du dé
- * - `3` : Point (pip) de la face (`1..6`) ou motif central `?` (`0`)
+ * - `3` : Point (pip `2×2`) de la face (`1..6`) ou motif central (`0`)
  */
 object PixelDiceSprites {
     const val GRID_SIZE = 16
@@ -47,9 +47,7 @@ object PixelDiceSprites {
         val x = index % GRID_SIZE
         val y = index / GRID_SIZE
         when {
-            // Coins extérieurs coupés -> transparent
             (x == 0 || x == 15) && (y == 0 || y == 15) -> 0
-            // Bordure de 1px + pixels diagonaux des coins
             x == 0 || x == 15 || y == 0 || y == 15 -> 1
             (x == 1 || x == 14) && (y == 1 || y == 14) -> 1
             else -> 2
@@ -77,7 +75,6 @@ object PixelDiceSprites {
         return matrix
     }
 
-    // Face 0 (avant le premier lancer) : croix centrale cyber discrète
     private val SPRITE_0: IntArray = BASE_SHELL.copyOf().apply {
         this[7 * GRID_SIZE + 7] = 3
         this[7 * GRID_SIZE + 8] = 3
@@ -114,8 +111,8 @@ object PixelDiceSprites {
  *
  * Trois styles visuels distincts :
  * - [DiceVisualStyle.PIXEL_SOLID] : bloc rétro plein avec remplissage coloré saturé, biseau 3D clair/sombre et points contrastés.
- * - [DiceVisualStyle.NEON_WIREFRAME] : hologramme filaire transparent à double cadre CAO, mire interne et points vectoriels creux.
- * - [DiceVisualStyle.DOT_MATRIX] : afficheur matriciel à diodes LED circulaires (diodes éteintes en fond + diodes allumées pour le cadre et les points).
+ * - [DiceVisualStyle.NEON_WIREFRAME] : hologramme filaire transparent à double cadre CAO, mire interne et points `2×2` unifiés (sans quadrillage interne).
+ * - [DiceVisualStyle.DOT_MATRIX] : afficheur matriciel à diodes LED circulaires.
  */
 @Composable
 fun PixelDiceCanvas(
@@ -215,7 +212,6 @@ fun PixelDiceCanvas(
         }
 
         else -> {
-            // Dé mort (non scorant sur ce lancer)
             borderColor = colors.textMuted.copy(alpha = 0.32f)
             solidFillColor = colors.textMuted.copy(alpha = 0.14f)
             solidHighlightBevel = colors.textMuted.copy(alpha = 0.22f)
@@ -275,7 +271,6 @@ fun PixelDiceCanvas(
 
             when (style) {
                 DiceVisualStyle.PIXEL_SOLID -> {
-                    // Fond opaque sous le bloc pour isoler de la surface du panneau
                     drawRect(
                         color = colors.background,
                         topLeft = Offset(startX + px, startY + px),
@@ -292,9 +287,7 @@ fun PixelDiceCanvas(
                             val cellColor = when (cellCode) {
                                 1 -> borderColor
                                 2 -> when {
-                                    // Biseau 3D arcade haut/gauche clair
                                     x == 1 || y == 1 -> solidHighlightBevel
-                                    // Biseau 3D arcade bas/droite sombre
                                     x == 14 || y == 14 -> solidShadowBevel
                                     else -> solidFillColor
                                 }
@@ -312,8 +305,10 @@ fun PixelDiceCanvas(
                 }
 
                 DiceVisualStyle.NEON_WIREFRAME -> {
-                    // Fond 100 % transparent/creux + double cadre filaire CAO + mire interne + points vectoriels
+                    // Fond 100 % transparent/creux + double cadre filaire CAO + mire interne
+                    // + points (pips) 2x2 dessinés comme un seul bloc vectoriel unifié (sans croix interne de "mini-fenêtres")
                     val cellSize = Size(px, px)
+                    val pipBlockSize = Size(px * 2f, px * 2f)
                     val wireInnerColor = borderColor.copy(alpha = 0.24f)
                     val wireCrosshairColor = borderColor.copy(alpha = 0.38f)
                     val wirePipColor = if (die.canScoreOnCurrentRoll && !die.isSelected && !die.isLocked && customTint == null) {
@@ -339,7 +334,6 @@ fun PixelDiceCanvas(
                                     )
                                 }
                                 2 -> {
-                                    // Cadre filaire interne à 1px d'écart + encoches de mire au centre
                                     val isInnerFrame = ((x == 2 || x == 13) && y in 2..13) ||
                                         ((y == 2 || y == 13) && x in 2..13)
                                     val isCrosshairTick = ((x == 7 || x == 8) && (y == 2 || y == 13)) ||
@@ -359,18 +353,22 @@ fun PixelDiceCanvas(
                                     }
                                 }
                                 3 -> {
-                                    // Point filaire (contour vectoriel néon + coeur semi-transparent)
-                                    drawRect(
-                                        color = wirePipColor.copy(alpha = 0.25f),
-                                        topLeft = topLeft,
-                                        size = cellSize
-                                    )
-                                    drawRect(
-                                        color = wirePipColor,
-                                        topLeft = topLeft,
-                                        size = cellSize,
-                                        style = Stroke(width = (px * 0.32f).coerceAtLeast(1f))
-                                    )
+                                    // Ne dessiner le point 2x2 qu'une seule fois à partir de son coin supérieur gauche
+                                    val isPipTopLeft = (x == 0 || sprite[rowOffset + x - 1] != 3) &&
+                                        (y == 0 || sprite[(y - 1) * grid + x] != 3)
+                                    if (isPipTopLeft) {
+                                        drawRect(
+                                            color = wirePipColor.copy(alpha = 0.32f),
+                                            topLeft = topLeft,
+                                            size = pipBlockSize
+                                        )
+                                        drawRect(
+                                            color = wirePipColor,
+                                            topLeft = topLeft,
+                                            size = pipBlockSize,
+                                            style = Stroke(width = (px * 0.45f).coerceAtLeast(1.2f))
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -378,7 +376,6 @@ fun PixelDiceCanvas(
                 }
 
                 DiceVisualStyle.DOT_MATRIX -> {
-                    // Plaque matricielle sombre + diodes LED circulaires espacées (éteintes / bordure / points)
                     drawRect(
                         color = colors.background.copy(alpha = 0.90f),
                         topLeft = Offset(startX + px * 0.5f, startY + px * 0.5f),

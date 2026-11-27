@@ -1,84 +1,132 @@
 package fr.antoinehory.neon5k.domain.rules
 
 /**
- * Préréglages rapides des règles du jeu de dés 5000.
+ * Préréglages rapides de règles du 5000 proposés à l'écran de configuration.
  */
 enum class RulesPreset(val labelFr: String) {
-    CLASSIC_5_DICE("Classique 5 dés"),
-    VARIANT_6_DICE("Variante 6 dés"),
-    QUICK_2500("Rapide 2 500"),
+    CLASSIC_5_DICE("Classique 5 Dés"),
+    ARCADE_FAST("Arcade Rapide"),
+    STRATEGIC_PRO("Stratégique Pro"),
+    VARIANT_6_DICE("Variante 6 Dés"),
     CUSTOM("Personnalisé")
 }
 
 /**
- * Mode de valorisation du Carré (4 dés identiques en un seul lancer).
+ * Mode de valorisation d'un Carré (4 dés identiques lancés simultanément).
  */
-enum class FourOfAKindMode {
-    /** Désactivé : un carré est compté comme un brelan (+ 1 dé individuel s'il s'agit d'un 1 ou d'un 5). */
-    DISABLED,
-    /** Double la valeur du brelan correspondant (ex: quatre 2 = 400 pts, quatre As = 2 000 pts). */
-    DOUBLE_TRIPLE
+enum class FourOfAKindMode(val labelFr: String) {
+    /** Double la valeur du brelan correspondant (ex: 4 × 2 = 400 pts, 4 × 1 = 2000 pts). */
+    DOUBLE_TRIPLE("Brelan × 2"),
+
+    /** Non reconnu comme combinaison dédiée (seul le brelan + dé isolé éventuel comptent). */
+    DISABLED("Désactivé")
 }
 
 /**
- * Mode de valorisation de la Quinte (5 dés identiques en un seul lancer).
+ * Mode de valorisation en points d'une Quinte (5 dés identiques lancés simultanément).
+ *
+ * Note : la victoire instantanée sur 5 As (`instantWinOnFiveOnes`) est désormais un réglage
+ * booléen indépendant dans [GameRulesConfig], permettant d'activer `×4 Brelan` ET/OU `5 As = Victoire`.
  */
-enum class FiveOfAKindMode {
-    /** Désactivé : compté selon le mode inférieur (carré ou brelan). */
-    DISABLED,
-    /** Quadruple la valeur du brelan correspondant (ex: cinq 2 = 800 pts, cinq As = 4 000 pts). */
-    QUAD_TRIPLE,
-    /** Quadruple les brelans ordinaires (2..6), mais 5 As en un seul lancer donnent la victoire instantanée. */
-    INSTANT_WIN_ON_ONES
+enum class FiveOfAKindMode(val labelFr: String) {
+    /** Quadruple la valeur du brelan correspondant (ex: 5 × 2 = 800 pts, 5 × 1 = 4000 pts). */
+    QUAD_TRIPLE("Brelan × 4"),
+
+    /** Quadruple la valeur du brelan, et 5 × « 5 » valent 5 000 pts (variante traditionnelle). */
+    FIVE_FIVES_5000("×4 (et 5×5 = 5000)"),
+
+    /** Conservé pour compatibilité : équivaut à `QUAD_TRIPLE` + `instantWinOnFiveOnes = true`. */
+    INSTANT_WIN_ON_ONES("5×As = Victoire + ×4"),
+
+    /** Non reconnu comme combinaison dédiée. */
+    DISABLED("Désactivée")
 }
 
 /**
- * Mode de la variante « Chapeau / Écrasement » lorsqu'un joueur atteint exactement le score d'un adversaire.
+ * Mode de pénalité en cas d'égalité de score avec un adversaire lors d'une banque ("Chapeau" / "Écrasement").
  */
-enum class BumpOpponentMode {
-    /** Aucun effet lorsqu'un joueur égalise le score d'un adversaire. */
-    DISABLED,
-    /** L'adversaire rejoint recule de 500 points (sans descendre sous 0). */
-    MINUS_500,
-    /** L'adversaire rejoint retombe à son palier de score précédent dans sa pile d'historique (ou 0). */
-    RESET_TO_PREVIOUS
+enum class BumpOpponentMode(val labelFr: String) {
+    /** Aucun effet si deux joueurs ont le même score. */
+    DISABLED("Désactivé"),
+
+    /** L'adversaire rejoint recule de 500 points (sans passer sous son palier d'ouverture ou 0). */
+    MINUS_500("-500 pts à l'adversaire"),
+
+    /** L'adversaire rejoint retombe à son score du tour précédent. */
+    RESET_TO_PREVIOUS("Retour au score précédent")
 }
 
 /**
- * Mode de pénalité après 3 coups nuls (3 Strikes / 3 Encoches sur le palier courant).
+ * Mode de pénalité après 3 tours consécutifs sans marquer ("3 Encoches" / "3 Croix").
+ *
+ * Sur feuille papier, chaque coup nul est noté par une **Encoche** (`✕`) en face du **Palier**
+ * de score actuel du joueur. À la 3e encoche sur un même palier, la pénalité choisie s'applique.
  */
-enum class ThreeStrikesMode {
-    /** Aucune pénalité après 3 coups nuls. */
-    DISABLED,
-    /** Retire 500 points au score courant (sans descendre sous 0) et remet les encoches à 0. */
-    MINUS_500,
-    /** Retire 1 000 points au score courant (sans descendre sous 0) et remet les encoches à 0. */
-    MINUS_1000,
+enum class ThreeStrikesMode(
+    val labelFr: String,
+    val descriptionFr: String
+) {
+    /** Aucune pénalité après 3 coups nuls consécutifs. */
+    DISABLED(
+        labelFr = "Désactivé",
+        descriptionFr = "Aucune pénalité après 3 tours nuls consécutifs."
+    ),
+
+    /** Pénalité fixe classique de -500 points (sans descendre sous 0), compteur remis à 0. */
+    MINUS_500(
+        labelFr = "-500 pts",
+        descriptionFr = "3 encoches d'affilée retirent 500 pts au score (minimum 0)."
+    ),
+
+    /** Pénalité fixe sévère de -1000 points (sans descendre sous 0), compteur remis à 0. */
+    MINUS_1000(
+        labelFr = "-1 000 pts",
+        descriptionFr = "3 encoches d'affilée retirent 1 000 pts au score (minimum 0)."
+    ),
+
     /**
-     * Recul au palier de score précédent (Roll-back) en effaçant les encoches du palier retrouvé (`strikes = 0`).
+     * Variante "Chute de Palier (encoches effacées)" :
+     * Après 3 tours nuls sur le palier actuel, le joueur recule à son palier de score précédent
+     * avec 0 encoche sur ce palier retrouvé.
      */
-    REVERT_TO_PREVIOUS_CLEAR_STRIKES,
+    REVERT_TO_PREVIOUS_CLEAR_STRIKES(
+        labelFr = "Palier préc. (0 ✕)",
+        descriptionFr = "3 encoches font reculer au palier de score précédent en effaçant ses anciennes encoches."
+    ),
+
     /**
-     * Recul au palier de score précédent avec **mémoire des encoches** (variante feuille de score papier) :
-     * ex. `1000 (0✕) -> 1200 (2✕) -> 1700 (3✕ => tombe à 1200 avec ses 2✕) -> 1 nouveau nul => 3✕ sur 1200 => tombe à 1000`.
+     * Variante "Chute de Palier avec mémoire des encoches" (règle papier entre potes) :
+     * Chaque palier de score conserve son historique d'encoches (`0..2`).
+     * Si l'on avait déjà 2 encoches sur `1200`, qu'on monte à `1700`, puis qu'on fait 3 nuls sur `1700`,
+     * on retombe à `1200` **avec ses 2 encoches** : un seul nouveau coup nul suffit alors à refaire
+     * tomber au palier encore inférieur (`1000`) !
      */
-    REVERT_TO_PREVIOUS_PERSIST_STRIKES
+    REVERT_TO_PREVIOUS_PERSIST_STRIKES(
+        labelFr = "Palier préc. (mémoire ✕)",
+        descriptionFr = "3 encoches font reculer au palier précédent en conservant les encoches déjà accumulées sur ce palier !"
+    )
 }
 
 /**
- * Configuration immuable complète d'une partie de 5000.
- * Pur Kotlin (aucune dépendance Android).
+ * Configuration complète, immuable et sérialisable des règles d'une partie de 5000.
+ *
+ * Ce modèle appartient à la couche `domain/` (100% Kotlin pur, sans dépendance Android).
  */
 data class GameRulesConfig(
     val preset: RulesPreset = RulesPreset.CLASSIC_5_DICE,
     val diceCount: Int = 5,
     val targetScore: Int = 5000,
     val openingThreshold: Int = 750,
+    val minTurnScoreAfterOpening: Int = 0,
+    val requireMultipleOf100ToBank: Boolean = false,
+    val finalSprintLast1000InOneTurn: Boolean = false,
     val exactFinishRequired: Boolean = true,
     val mandatoryRerollOnHotDice: Boolean = true,
     val fourOfAKindMode: FourOfAKindMode = FourOfAKindMode.DOUBLE_TRIPLE,
     val fiveOfAKindMode: FiveOfAKindMode = FiveOfAKindMode.QUAD_TRIPLE,
+    val instantWinOnFiveOnes: Boolean = false,
     val straightScore: Int = 1500,
+    val fullStraight6DiceScore: Int = 2500,
     val threePairsScore: Int = 1000,
     val fullHouseBonus: Int = 0,
     val piggybackEnabled: Boolean = false,
@@ -86,45 +134,67 @@ data class GameRulesConfig(
     val threeStrikesMode: ThreeStrikesMode = ThreeStrikesMode.DISABLED
 ) {
     init {
-        require(diceCount in 5..6) { "diceCount must be 5 or 6 (was $diceCount)" }
-        require(targetScore > 0) { "targetScore must be positive (was $targetScore)" }
-        require(openingThreshold >= 0) { "openingThreshold must be >= 0 (was $openingThreshold)" }
-        require(straightScore >= 0) { "straightScore must be >= 0" }
-        require(threePairsScore >= 0) { "threePairsScore must be >= 0" }
-        require(fullHouseBonus >= 0) { "fullHouseBonus must be >= 0" }
+        require(diceCount in 5..6) { "diceCount must be 5 or 6 (got $diceCount)" }
+        require(targetScore >= 1000) { "targetScore must be >= 1000 (got $targetScore)" }
+        require(openingThreshold >= 0) { "openingThreshold must be >= 0 (got $openingThreshold)" }
+        require(minTurnScoreAfterOpening >= 0) { "minTurnScoreAfterOpening must be >= 0" }
     }
+
+    /** Vrai si la règle « 5 As en un seul lancer = Victoire instantanée » est active. */
+    val isInstantWinOnFiveOnesActive: Boolean
+        get() = instantWinOnFiveOnes || fiveOfAKindMode == FiveOfAKindMode.INSTANT_WIN_ON_ONES
+
+    /** Compatibilité ascendante avec les anciens appels `threeStrikesPenalty`. */
+    val threeStrikesPenalty: Int
+        get() = when (threeStrikesMode) {
+            ThreeStrikesMode.MINUS_500 -> 500
+            ThreeStrikesMode.MINUS_1000 -> 1000
+            else -> 0
+        }
 
     /**
-     * Empreinte compacte et déterministe des règles actives (utilisée pour taguer les logs IA et salons réseau).
+     * Empreinte compacte et déterministe de la configuration des règles (pour les logs IA et stats).
      */
-    fun fingerprint(): String = buildString {
-        append("D").append(diceCount)
-        append("_T").append(targetScore)
-        append("_O").append(openingThreshold)
-        append("_EX").append(if (exactFinishRequired) 1 else 0)
-        append("_HD").append(if (mandatoryRerollOnHotDice) 1 else 0)
-        append("_4K").append(fourOfAKindMode.ordinal)
-        append("_5K").append(fiveOfAKindMode.ordinal)
-        append("_ST").append(straightScore)
-        append("_3P").append(if (diceCount == 6) threePairsScore else 0)
-        append("_FH").append(fullHouseBonus)
-        append("_PB").append(if (piggybackEnabled) 1 else 0)
-        append("_BP").append(bumpOpponentMode.ordinal)
-        append("_3S").append(threeStrikesMode.ordinal)
+    fun toFingerprint(): String = buildString {
+        append("d").append(diceCount)
+        append("_t").append(targetScore)
+        append("_o").append(openingThreshold)
+        append("_mto").append(minTurnScoreAfterOpening)
+        append("_r100").append(if (requireMultipleOf100ToBank) 1 else 0)
+        append("_fs1k").append(if (finalSprintLast1000InOneTurn) 1 else 0)
+        append("_ex").append(if (exactFinishRequired) 1 else 0)
+        append("_hd").append(if (mandatoryRerollOnHotDice) 1 else 0)
+        append("_4k").append(fourOfAKindMode.ordinal)
+        append("_5k").append(fiveOfAKindMode.ordinal)
+        append("_iw1").append(if (isInstantWinOnFiveOnesActive) 1 else 0)
+        append("_st").append(straightScore)
+        append("_st6").append(fullStraight6DiceScore)
+        append("_3p").append(threePairsScore)
+        append("_fh").append(fullHouseBonus)
+        append("_pb").append(if (piggybackEnabled) 1 else 0)
+        append("_bm").append(bumpOpponentMode.ordinal)
+        append("_3s").append(threeStrikesMode.name)
     }
 
+    /** Alias de compatibilité pour [toFingerprint]. */
+    fun fingerprint(): String = toFingerprint()
+
     companion object {
-        /** Preset par défaut : Classique 5 dés (cible 5 000, ouverture 750, score exact, main pleine obligatoire). */
         val CLASSIC_5_DICE = GameRulesConfig(
             preset = RulesPreset.CLASSIC_5_DICE,
             diceCount = 5,
             targetScore = 5000,
             openingThreshold = 750,
+            minTurnScoreAfterOpening = 0,
+            requireMultipleOf100ToBank = false,
+            finalSprintLast1000InOneTurn = false,
             exactFinishRequired = true,
             mandatoryRerollOnHotDice = true,
             fourOfAKindMode = FourOfAKindMode.DOUBLE_TRIPLE,
             fiveOfAKindMode = FiveOfAKindMode.QUAD_TRIPLE,
+            instantWinOnFiveOnes = false,
             straightScore = 1500,
+            fullStraight6DiceScore = 2500,
             threePairsScore = 0,
             fullHouseBonus = 0,
             piggybackEnabled = false,
@@ -132,46 +202,77 @@ data class GameRulesConfig(
             threeStrikesMode = ThreeStrikesMode.DISABLED
         )
 
-        /** Preset Variante 6 dés (cible 5 000, ouverture 750, 3 paires = 1 000 pts, full +200 pts). */
-        val VARIANT_6_DICE = GameRulesConfig(
-            preset = RulesPreset.VARIANT_6_DICE,
-            diceCount = 6,
-            targetScore = 5000,
-            openingThreshold = 750,
-            exactFinishRequired = true,
-            mandatoryRerollOnHotDice = true,
-            fourOfAKindMode = FourOfAKindMode.DOUBLE_TRIPLE,
-            fiveOfAKindMode = FiveOfAKindMode.QUAD_TRIPLE,
-            straightScore = 1500,
-            threePairsScore = 1000,
-            fullHouseBonus = 200,
-            piggybackEnabled = false,
-            bumpOpponentMode = BumpOpponentMode.DISABLED,
-            threeStrikesMode = ThreeStrikesMode.DISABLED
-        )
-
-        /** Preset Rapide 2 500 (5 dés, cible 2 500, ouverture 500, sans score exact obligatoire). */
-        val QUICK_2500 = GameRulesConfig(
-            preset = RulesPreset.QUICK_2500,
+        val ARCADE_FAST = GameRulesConfig(
+            preset = RulesPreset.ARCADE_FAST,
             diceCount = 5,
-            targetScore = 2500,
+            targetScore = 3000,
             openingThreshold = 500,
+            minTurnScoreAfterOpening = 0,
+            requireMultipleOf100ToBank = false,
+            finalSprintLast1000InOneTurn = false,
             exactFinishRequired = false,
             mandatoryRerollOnHotDice = false,
             fourOfAKindMode = FourOfAKindMode.DOUBLE_TRIPLE,
             fiveOfAKindMode = FiveOfAKindMode.QUAD_TRIPLE,
+            instantWinOnFiveOnes = true,
             straightScore = 1500,
+            fullStraight6DiceScore = 2500,
+            threePairsScore = 0,
+            fullHouseBonus = 250,
+            piggybackEnabled = true,
+            bumpOpponentMode = BumpOpponentMode.MINUS_500,
+            threeStrikesMode = ThreeStrikesMode.DISABLED
+        )
+
+        val STRATEGIC_PRO = GameRulesConfig(
+            preset = RulesPreset.STRATEGIC_PRO,
+            diceCount = 5,
+            targetScore = 5000,
+            openingThreshold = 750,
+            minTurnScoreAfterOpening = 0,
+            requireMultipleOf100ToBank = true,
+            finalSprintLast1000InOneTurn = false,
+            exactFinishRequired = true,
+            mandatoryRerollOnHotDice = true,
+            fourOfAKindMode = FourOfAKindMode.DOUBLE_TRIPLE,
+            fiveOfAKindMode = FiveOfAKindMode.QUAD_TRIPLE,
+            instantWinOnFiveOnes = false,
+            straightScore = 1500,
+            fullStraight6DiceScore = 2500,
             threePairsScore = 0,
             fullHouseBonus = 0,
+            piggybackEnabled = true,
+            bumpOpponentMode = BumpOpponentMode.MINUS_500,
+            threeStrikesMode = ThreeStrikesMode.REVERT_TO_PREVIOUS_PERSIST_STRIKES
+        )
+
+        val VARIANT_6_DICE = GameRulesConfig(
+            preset = RulesPreset.VARIANT_6_DICE,
+            diceCount = 6,
+            targetScore = 10000,
+            openingThreshold = 1000,
+            minTurnScoreAfterOpening = 0,
+            requireMultipleOf100ToBank = false,
+            finalSprintLast1000InOneTurn = false,
+            exactFinishRequired = true,
+            mandatoryRerollOnHotDice = false,
+            fourOfAKindMode = FourOfAKindMode.DOUBLE_TRIPLE,
+            fiveOfAKindMode = FiveOfAKindMode.QUAD_TRIPLE,
+            instantWinOnFiveOnes = false,
+            straightScore = 1500,
+            fullStraight6DiceScore = 2500,
+            threePairsScore = 1000,
+            fullHouseBonus = 250,
             piggybackEnabled = false,
             bumpOpponentMode = BumpOpponentMode.DISABLED,
-            threeStrikesMode = ThreeStrikesMode.DISABLED
+            threeStrikesMode = ThreeStrikesMode.MINUS_500
         )
 
         fun fromPreset(preset: RulesPreset): GameRulesConfig = when (preset) {
             RulesPreset.CLASSIC_5_DICE -> CLASSIC_5_DICE
+            RulesPreset.ARCADE_FAST -> ARCADE_FAST
+            RulesPreset.STRATEGIC_PRO -> STRATEGIC_PRO
             RulesPreset.VARIANT_6_DICE -> VARIANT_6_DICE
-            RulesPreset.QUICK_2500 -> QUICK_2500
             RulesPreset.CUSTOM -> CLASSIC_5_DICE.copy(preset = RulesPreset.CUSTOM)
         }
     }

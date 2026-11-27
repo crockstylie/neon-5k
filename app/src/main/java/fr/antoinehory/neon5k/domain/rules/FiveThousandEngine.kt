@@ -7,6 +7,8 @@ import fr.antoinehory.neon5k.domain.model.MatchState
 import fr.antoinehory.neon5k.domain.model.MoveValidationError
 import fr.antoinehory.neon5k.domain.model.PiggybackOffer
 import fr.antoinehory.neon5k.domain.model.PlayerState
+import fr.antoinehory.neon5k.domain.model.RollHistoryEntry
+import fr.antoinehory.neon5k.domain.model.ScoreCheckpoint
 import fr.antoinehory.neon5k.domain.model.TurnPhase
 import fr.antoinehory.neon5k.domain.model.TurnState
 
@@ -15,6 +17,70 @@ import fr.antoinehory.neon5k.domain.model.TurnState
  * Aucune dépendance Android : toutes les transitions sont déterministes et immuables.
  */
 object FiveThousandEngine {
+
+    private const val MAX_HISTORY_ENTRIES = 45
+
+    /**
+     * Vérifie si un pot de tour (`totalTurnPoints`) remplit toutes les conditions de banque
+     * pour le joueur `player` selon `rules`.
+     */
+    fun canPlayerBankPot(
+        player: PlayerState,
+        totalTurnPoints: Int,
+        triggersHotDice: Boolean,
+        rules: GameRulesConfig
+    ): Boolean = validateBankConditions(player, totalTurnPoints, triggersHotDice, rules) == null
+
+    /**
+     * Retourne l'erreur de validation empêchant de banquer `totalTurnPoints`, ou `null` si la banque est légale.
+     */
+    fun validateBankConditions(
+        player: PlayerState,
+        totalTurnPoints: Int,
+        triggersHotDice: Boolean,
+        rules: GameRulesConfig
+    ): MoveValidationError? {
+        if (totalTurnPoints <= 0) {
+            return MoveValidationError.SelectionContainsDeadDiceOrEmpty
+        }
+        if (triggersHotDice && rules.mandatoryRerollOnHotDice) {
+            return MoveValidationError.MandatoryHotDiceRerollRequired
+        }
+        if (!player.isOpened && totalTurnPoints < rules.openingThreshold) {
+            return MoveValidationError.OpeningThresholdNotMet(
+                required = rules.openingThreshold,
+                current = totalTurnPoints
+            )
+        }
+        if (player.isOpened && rules.minTurnScoreAfterOpening > 0 && totalTurnPoints < rules.minTurnScoreAfterOpening) {
+            return MoveValidationError.MinTurnScoreAfterOpeningNotMet(
+                required = rules.minTurnScoreAfterOpening,
+                current = totalTurnPoints
+            )
+        }
+        if (rules.requireMultipleOf100ToBank && totalTurnPoints % 100 != 0) {
+            return MoveValidationError.RoundMultipleOf100Required(
+                currentTurnPot = totalTurnPoints
+            )
+        }
+        val projectedScore = player.score + totalTurnPoints
+        if (rules.exactFinishRequired && projectedScore > rules.targetScore) {
+            return MoveValidationError.TargetOverflowNotAllowed(
+                target = rules.targetScore,
+                projected = projectedScore
+            )
+        }
+        if (rules.finalSprintLast1000InOneTurn &&
+            player.score >= rules.targetScore - 1000 &&
+            projectedScore < rules.targetScore
+        ) {
+            return MoveValidationError.FinalSprint1000Required(
+                targetScore = rules.targetScore,
+                projectedScore = projectedScore
+            )
+        }
+        return null
+    }
 
     /**
      * Démarre une nouvelle partie avec les joueurs et la configuration de règles fournis.
@@ -46,11 +112,6 @@ object FiveThousandEngine {
 
     /**
      * Exécute un lancer de dés normal (premier lancer du tour, relance après sélection, ou relance obligatoire de Main pleine).
-     *
-     * @param state État courant de la partie.
-     * @param rolledFaces Faces (`1..6`) tirées pour les dés à lancer. Si la liste contient `rules.diceCount` faces,
-     *                    seules les `N` premières nécessaires aux dés libres sont consommées.
-     * @param entropySnapshot Trace d'entropie optionnelle associée à ce lancer.
      */
     fun rollDice(
         state: MatchState,
@@ -64,7 +125,6 @@ object FiveThousandEngine {
         val turn = state.turn
         val rules = state.rules
 
-        // Verrouiller la sélection courante si on est en phase SELECTING_DICE
         val diceBeforeRoll: List<DieState>
         val bankedBeforeRoll: Int
         val hotDiceBeforeRoll: Int
@@ -79,7 +139,6 @@ object FiveThousandEngine {
             }
 
             TurnPhase.HOT_DICE_MANDATORY_REROLL -> {
-                // Main pleine : tous les dés sont déverrouillés et relancés
                 diceBeforeRoll = List(rules.diceCount) { idx ->
                     DieState(index = idx, face = 0, isLocked = false, isSelected = false)
                 }
@@ -139,7 +198,6 @@ object FiveThousandEngine {
 
     /**
      * Exécute un lancer en acceptant l'offre de Repiquage (`piggybackOffer`) laissée par le joueur précédent.
-     * Le joueur actif reprend le pot (`inheritedPoints`) et ne lance que les `remainingDiceCount` dés restants.
      */
     fun acceptPiggybackAndRoll(
         state: MatchState,
@@ -221,8 +279,7 @@ object FiveThousandEngine {
     }
 
     /**
-     * Sélectionne automatiquement le meilleur sous-ensemble complet de dés scorants du lancer courant
-     * (raccourci ergonomique « Tout prendre » garanti 100 % valide et sans dé mort).
+     * Sélectionne automatiquement le meilleur sous-ensemble complet de dés scorants du lancer courant.
      */
     fun selectAllScoringDice(state: MatchState): EngineResult {
         if (state.isFinished) {
@@ -260,60 +317,38 @@ object FiveThousandEngine {
 
         val totalTurnPoints: Int
         val remainingFreeDiceCount: Int
+        val triggersHotDice: Boolean
 
         when (turn.phase) {
             TurnPhase.SELECTING_DICE -> {
                 if (!turn.isSelectionValid || turn.selectedPoints <= 0) {
                     return EngineResult.Rejected(state, MoveValidationError.SelectionContainsDeadDiceOrEmpty)
                 }
-                if (turn.selectionTriggersHotDice && rules.mandatoryRerollOnHotDice) {
-                    return EngineResult.Rejected(state, MoveValidationError.MandatoryHotDiceRerollRequired)
-                }
                 totalTurnPoints = turn.bankedInTurn + turn.selectedPoints
                 remainingFreeDiceCount = turn.remainingDiceAfterSelection
+                triggersHotDice = turn.selectionTriggersHotDice
             }
 
             TurnPhase.HOT_DICE_MANDATORY_REROLL -> {
-                if (rules.mandatoryRerollOnHotDice) {
-                    return EngineResult.Rejected(state, MoveValidationError.MandatoryHotDiceRerollRequired)
-                }
                 totalTurnPoints = turn.bankedInTurn
                 remainingFreeDiceCount = 0
+                triggersHotDice = true
             }
 
             else -> return EngineResult.Rejected(state, MoveValidationError.InvalidPhaseForAction)
         }
 
-        // Vérification du seuil d'ouverture si le joueur n'est pas encore ouvert
-        if (!player.isOpened && totalTurnPoints < rules.openingThreshold) {
-            return EngineResult.Rejected(
-                state,
-                MoveValidationError.OpeningThresholdNotMet(
-                    required = rules.openingThreshold,
-                    current = totalTurnPoints
-                )
-            )
+        val validationError = validateBankConditions(
+            player = player,
+            totalTurnPoints = totalTurnPoints,
+            triggersHotDice = triggersHotDice,
+            rules = rules
+        )
+        if (validationError != null) {
+            return EngineResult.Rejected(state, validationError)
         }
 
-        val projectedScore = player.score + totalTurnPoints
-
-        // Vérification du dépassement du score cible
-        if (projectedScore > rules.targetScore && rules.exactFinishRequired) {
-            // En cas de dépassement avec exactFinishRequired, le tour peut être soit bloqué soit passé en OVERFLOW_BUSTED
-            return EngineResult.Rejected(
-                state,
-                MoveValidationError.TargetOverflowNotAllowed(
-                    target = rules.targetScore,
-                    projected = projectedScore
-                )
-            )
-        }
-
-        val finalScore = if (rules.exactFinishRequired) {
-            projectedScore
-        } else {
-            projectedScore
-        }
+        val finalScore = player.score + totalTurnPoints
 
         // Application de la variante Chapeau / Écrasement (bumpOpponentMode) si un adversaire possède exactement ce score (> 0)
         var bumpedPlayerName: String? = null
@@ -321,7 +356,7 @@ object FiveThousandEngine {
             when {
                 idx == turn.activePlayerIndex -> {
                     val currentStack = p.normalizedCheckpoints()
-                    val newStack = currentStack + fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(
+                    val newStack = currentStack + ScoreCheckpoint(
                         score = finalScore,
                         strikes = 0
                     )
@@ -343,9 +378,9 @@ object FiveThousandEngine {
                         BumpOpponentMode.MINUS_500 -> {
                             val newOpponentScore = (p.score - 500).coerceAtLeast(0)
                             val updatedStack = if (currentStack.isEmpty()) {
-                                listOf(fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(newOpponentScore, 0))
+                                listOf(ScoreCheckpoint(newOpponentScore, 0))
                             } else {
-                                currentStack.dropLast(1) + fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(newOpponentScore, 0)
+                                currentStack.dropLast(1) + ScoreCheckpoint(newOpponentScore, 0)
                             }
                             val prevScore = updatedStack.dropLast(1).lastOrNull()?.score ?: 0
                             p.copy(
@@ -377,7 +412,22 @@ object FiveThousandEngine {
             }
         }
 
-        // Victoire atteinte ?
+        val bumpSuffix = bumpedPlayerName?.let { " • Chapeau sur $it !" }.orEmpty()
+        val bankHistoryEntry = RollHistoryEntry(
+            turnNumber = turn.turnNumber,
+            rollNumber = turn.rollIndexInTurn,
+            playerId = player.id,
+            playerName = player.name,
+            rolledFaces = turn.dice.filter { !it.isLocked && it.isSelected }.map { it.face },
+            summaryFr = "BANQUE +$totalTurnPoints pts → Palier $finalScore pts$bumpSuffix",
+            playerScoreAfter = finalScore,
+            playerStrikesAfter = 0,
+            isBust = false,
+            isBank = true,
+            isHotDice = triggersHotDice
+        )
+        val updatedLog = appendHistory(state.rollHistoryLog, bankHistoryEntry)
+
         val hasWon = if (rules.exactFinishRequired) {
             finalScore == rules.targetScore
         } else {
@@ -395,12 +445,12 @@ object FiveThousandEngine {
                     players = updatedPlayers,
                     turn = winTurn,
                     winnerPlayerId = player.id,
-                    isInstantWin = false
+                    isInstantWin = false,
+                    rollHistoryLog = updatedLog
                 )
             )
         }
 
-        // Préparation de l'offre de Repiquage pour le joueur suivant si activé et s'il reste des dés libres (1..diceCount-1)
         val nextPiggybackOffer = if (rules.piggybackEnabled && remainingFreeDiceCount in 1 until rules.diceCount) {
             PiggybackOffer(
                 inheritedPoints = totalTurnPoints,
@@ -411,9 +461,8 @@ object FiveThousandEngine {
             null
         }
 
-        val bumpSuffix = bumpedPlayerName?.let { " (Chapeau sur $it !)" }.orEmpty()
         val nextState = advanceToNextPlayer(
-            state = state.copy(players = updatedPlayers),
+            state = state.copy(players = updatedPlayers, rollHistoryLog = updatedLog),
             piggybackOffer = nextPiggybackOffer,
             transitionNote = "${player.name} banque +$totalTurnPoints pts$bumpSuffix."
         )
@@ -444,7 +493,7 @@ object FiveThousandEngine {
 
         if (!triggersThreeStrikes) {
             val updatedStack = if (currentStack.isEmpty()) {
-                listOf(fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(score = player.score, strikes = newBustCount))
+                listOf(ScoreCheckpoint(score = player.score, strikes = newBustCount))
             } else {
                 currentStack.dropLast(1) + currentStack.last().copy(strikes = newBustCount)
             }
@@ -464,9 +513,9 @@ object FiveThousandEngine {
                     val penalty = if (rules.threeStrikesMode == ThreeStrikesMode.MINUS_1000) 1000 else 500
                     val penalizedScore = (player.score - penalty).coerceAtLeast(0)
                     val updatedStack = if (currentStack.isEmpty()) {
-                        listOf(fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(score = penalizedScore, strikes = 0))
+                        listOf(ScoreCheckpoint(score = penalizedScore, strikes = 0))
                     } else {
-                        currentStack.dropLast(1) + fr.antoinehory.neon5k.domain.model.ScoreCheckpoint(score = penalizedScore, strikes = 0)
+                        currentStack.dropLast(1) + ScoreCheckpoint(score = penalizedScore, strikes = 0)
                     }
                     val prevScore = updatedStack.dropLast(1).lastOrNull()?.score ?: 0
                     updatedPlayer = player.copy(
@@ -534,9 +583,20 @@ object FiveThousandEngine {
             if (idx == turn.activePlayerIndex) updatedPlayer else p
         }
 
+        val updatedHistory = if (state.rollHistoryLog.isNotEmpty() && state.rollHistoryLog.last().isBust) {
+            val last = state.rollHistoryLog.last()
+            state.rollHistoryLog.dropLast(1) + last.copy(
+                summaryFr = "${last.summaryFr} • $note",
+                playerScoreAfter = updatedPlayer.score,
+                playerStrikesAfter = updatedPlayer.consecutiveBusts
+            )
+        } else {
+            state.rollHistoryLog
+        }
+
         return EngineResult.Success(
             advanceToNextPlayer(
-                state = state.copy(players = updatedPlayers),
+                state = state.copy(players = updatedPlayers, rollHistoryLog = updatedHistory),
                 piggybackOffer = null,
                 transitionNote = note
             )
@@ -579,6 +639,18 @@ object FiveThousandEngine {
 
         // 1. Cas Coup nul (aucun dé libre ne score)
         if (scoringFreePositions.isEmpty()) {
+            val projectedStrikes = (player.consecutiveBusts + 1).coerceAtMost(3)
+            val bustEntry = RollHistoryEntry(
+                turnNumber = state.turn.turnNumber,
+                rollNumber = nextRollIndex,
+                playerId = player.id,
+                playerName = player.name,
+                rolledFaces = activeRollFaces,
+                summaryFr = "GLITCH (0 pt) — Pot de $bankedBeforeRoll pts perdu",
+                playerScoreAfter = player.score,
+                playerStrikesAfter = projectedStrikes,
+                isBust = true
+            )
             val bustedTurn = state.turn.copy(
                 phase = TurnPhase.BUSTED,
                 dice = updatedDice,
@@ -596,7 +668,8 @@ object FiveThousandEngine {
             return EngineResult.Success(
                 state.copy(
                     turn = bustedTurn,
-                    totalRollsInMatch = nextTotalRolls
+                    totalRollsInMatch = nextTotalRolls,
+                    rollHistoryLog = appendHistory(state.rollHistoryLog, bustEntry)
                 )
             )
         }
@@ -615,6 +688,18 @@ object FiveThousandEngine {
             val winDice = updatedDice.map { die ->
                 if (!die.isLocked && die.canScoreOnCurrentRoll) die.copy(isSelected = true) else die
             }
+            val winEntry = RollHistoryEntry(
+                turnNumber = state.turn.turnNumber,
+                rollNumber = nextRollIndex,
+                playerId = player.id,
+                playerName = player.name,
+                rolledFaces = activeRollFaces,
+                summaryFr = "5 AS ! VICTOIRE INSTANTANÉE ($winningScore pts)",
+                playerScoreAfter = winningScore,
+                playerStrikesAfter = 0,
+                isBank = true,
+                isHotDice = true
+            )
             val winTurn = state.turn.copy(
                 phase = TurnPhase.SELECTING_DICE,
                 dice = winDice,
@@ -635,7 +720,8 @@ object FiveThousandEngine {
                     turn = winTurn,
                     winnerPlayerId = player.id,
                     isInstantWin = true,
-                    totalRollsInMatch = nextTotalRolls
+                    totalRollsInMatch = nextTotalRolls,
+                    rollHistoryLog = appendHistory(state.rollHistoryLog, winEntry)
                 )
             )
         }
@@ -643,6 +729,18 @@ object FiveThousandEngine {
         // 3. Vérifier si même le plus petit score sélectionnable sur ce lancer fait dépasser targetScore (avec exactFinishRequired)
         val minPossibleScoreOnRoll = computeMinValidScoreOnRoll(activeRollFaces, rules)
         if (rules.exactFinishRequired && player.score + bankedBeforeRoll + minPossibleScoreOnRoll > rules.targetScore) {
+            val projectedStrikes = (player.consecutiveBusts + 1).coerceAtMost(3)
+            val overflowEntry = RollHistoryEntry(
+                turnNumber = state.turn.turnNumber,
+                rollNumber = nextRollIndex,
+                playerId = player.id,
+                playerName = player.name,
+                rolledFaces = activeRollFaces,
+                summaryFr = "DÉPASSEMENT (> ${rules.targetScore} pts) — Tour annulé",
+                playerScoreAfter = player.score,
+                playerStrikesAfter = projectedStrikes,
+                isBust = true
+            )
             val overflowTurn = state.turn.copy(
                 phase = TurnPhase.OVERFLOW_BUSTED,
                 dice = updatedDice,
@@ -660,12 +758,27 @@ object FiveThousandEngine {
             return EngineResult.Success(
                 state.copy(
                     turn = overflowTurn,
-                    totalRollsInMatch = nextTotalRolls
+                    totalRollsInMatch = nextTotalRolls,
+                    rollHistoryLog = appendHistory(state.rollHistoryLog, overflowEntry)
                 )
             )
         }
 
         // 4. Lancer normal avec au moins une sélection valide possible
+        val isHotRoll = scoringFreePositions.size == activeRollFaces.size
+        val combosSummary = maxEval.combinations.joinToString(" + ") { it.labelFr }
+        val rollEntry = RollHistoryEntry(
+            turnNumber = state.turn.turnNumber,
+            rollNumber = nextRollIndex,
+            playerId = player.id,
+            playerName = player.name,
+            rolledFaces = activeRollFaces,
+            summaryFr = "$combosSummary (max +${maxEval.totalPoints} pts${if (isHotRoll) " ★ Main pleine" else ""})",
+            playerScoreAfter = player.score,
+            playerStrikesAfter = player.consecutiveBusts,
+            isHotDice = isHotRoll
+        )
+
         val selectingTurn = state.turn.copy(
             phase = TurnPhase.SELECTING_DICE,
             dice = updatedDice,
@@ -683,17 +796,28 @@ object FiveThousandEngine {
         return EngineResult.Success(
             state.copy(
                 turn = selectingTurn,
-                totalRollsInMatch = nextTotalRolls
+                totalRollsInMatch = nextTotalRolls,
+                rollHistoryLog = appendHistory(state.rollHistoryLog, rollEntry)
             )
         )
+    }
+
+    private fun appendHistory(
+        current: List<RollHistoryEntry>,
+        entry: RollHistoryEntry
+    ): List<RollHistoryEntry> {
+        val next = current + entry
+        return if (next.size > MAX_HISTORY_ENTRIES) {
+            next.takeLast(MAX_HISTORY_ENTRIES)
+        } else {
+            next
+        }
     }
 
     private fun computeMinValidScoreOnRoll(
         activeRollFaces: List<Int>,
         rules: GameRulesConfig
     ): Int {
-        // Si un 5 est présent, le minimum sélectionnable est 50 ; si un 1 est présent, 100 ;
-        // sinon c'est la plus petite combinaison insécable (brelan, suite, 3 paires).
         if (5 in activeRollFaces) return 50
         if (1 in activeRollFaces) return 100
 

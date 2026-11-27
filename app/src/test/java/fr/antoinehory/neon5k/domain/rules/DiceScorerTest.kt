@@ -154,4 +154,47 @@ class DiceScorerTest {
         val partialIndices = DiceScorer.findScoringDieIndices(listOf(1, 2, 3, 3, 3), classic5)
         assertEquals(setOf(0, 2, 3, 4), partialIndices)
     }
+
+    @Test
+    fun `decoupled instantWinOnFiveOnes and FIVE_FIVES_5000 work independently`() {
+        val fiveFivesConfig = classic5.copy(
+            fiveOfAKindMode = FiveOfAKindMode.FIVE_FIVES_5000,
+            instantWinOnFiveOnes = false
+        )
+        val evalFiveFives = DiceScorer.evaluateSelection(listOf(5, 5, 5, 5, 5), fiveFivesConfig)
+        assertTrue(evalFiveFives.isValid)
+        assertEquals(5000, evalFiveFives.totalPoints)
+        assertFalse(evalFiveFives.triggersInstantWin)
+
+        val instantOnesAndQuadConfig = classic5.copy(
+            fiveOfAKindMode = FiveOfAKindMode.QUAD_TRIPLE,
+            instantWinOnFiveOnes = true
+        )
+        val evalFiveOnes = DiceScorer.evaluateSelection(listOf(1, 1, 1, 1, 1), instantOnesAndQuadConfig)
+        assertTrue(evalFiveOnes.isValid)
+        assertTrue(evalFiveOnes.triggersInstantWin)
+        assertEquals(5000, evalFiveOnes.totalPoints)
+
+        // Et 5 Quatre en mode QUAD_TRIPLE + instantWinOnFiveOnes continue de valoir 4 × 400 = 1600
+        val evalFiveFours = DiceScorer.evaluateSelection(listOf(4, 4, 4, 4, 4), instantOnesAndQuadConfig)
+        assertTrue(evalFiveFours.isValid)
+        assertEquals(1600, evalFiveFours.totalPoints)
+        assertFalse(evalFiveFours.triggersInstantWin)
+    }
+
+    @Test
+    fun `6-dice full straight 1-6 scores fullStraight6DiceScore independently from 5-dice straightScore`() {
+        val custom6 = variant6.copy(
+            straightScore = 1000,
+            fullStraight6DiceScore = 2500
+        )
+        val evalFull6 = DiceScorer.evaluateSelection(listOf(1, 2, 3, 4, 5, 6), custom6)
+        assertTrue(evalFull6.isValid)
+        assertEquals(2500, evalFull6.totalPoints)
+        assertEquals(CombinationKind.STRAIGHT, evalFull6.combinations.single().kind)
+
+        val evalSmall5 = DiceScorer.evaluateSelection(listOf(1, 2, 3, 4, 5), custom6)
+        assertTrue(evalSmall5.isValid)
+        assertEquals(1000, evalSmall5.totalPoints)
+    }
 }
