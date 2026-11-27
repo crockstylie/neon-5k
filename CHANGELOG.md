@@ -5,9 +5,17 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
-## [Unreleased]
+## [1.0.4] - Lot 4.5 (Audio 8-bit, Vitesse Bots & Polish Pré-Lot 5)
+- **Sélecteur de vitesse des Bots (`BotSpeed`)** : cadence réglable `Normal ×1`, `Rapide ×2`, `Turbo ×4` ou `Instantané ⚡` (persistée dans DataStore, modifiable à la volée sur le plateau `GameScreen` avec prise en compte réactive sous `25 ms` et dans `CustomizationScreen`).
+- **Succès strictement réservés aux joueurs humains** : garde-fou multi-couches (`GameViewModel`, `GameRepository`, `AchievementEvaluator`) garantissant qu'aucun lancer, banque, crash ou victoire d'un bot IA ne peut débloquer ni faire progresser un succès.
+- **Synthèse Audio 8-bit Rétro (`SoundEffectsEngine`)** : moteur PCM Kotlin pur (`AudioTrack`, zéro asset externe, exécution sur thread dédié) pour lancers, sélection de dés, Main pleine, banque, Glitch et victoire, avec interrupteur dans `CustomizationScreen`.
+- **Version dynamique & Diagnostic Play Jeux (`InfoScreen`, `StatsScreen`)** : lecture dynamique de `versionName` / `longVersionCode` via `PackageManager`, bloc diagnostic PGS v2 (`Project ID`, authentification, compteur transmis) et bouton de synchronisation manuelle `SYNCHRONISER`.
+- **Inspecteur & Reset IA (`StatsScreen`, `AdaptiveBotLearner`)** : affichage de la maturité du modèle local, couverture des 72 cellules d'états, ratio Ouvert/Fermé, trajectoires Victoires/Défaites et bouton de réinitialisation ciblée sans perte des statistiques joueur.
+- **Récapitulatif de fin de match & Onboarding (`GameScreen`)** : modale `MatchSummaryDialog` (classement final, meilleur tour banqué, lancers, mains pleines, glitchs, succès débloqués dans la partie, bouton `RÉCAP`), ainsi qu'une astuce non-bloquante lors du tout premier lancer.
 
-### 🛠️ Recettage Play Store, Bots & Easter Eggs (Pré-Lot 5)
+---
+
+## [1.0.3] - Recettage Play Store, Bots & Easter Eggs
 - **Identifiants Play Jeux v2 & Fiabilisation PGS (`Neon5KApplication`, `GooglePlayGamesService`)** : ajout de `games-ids.xml` (App ID `59639547526` et les 20 IDs de succès), initialisation officielle `PlayGamesSdk.initialize()` dans `Neon5KApplication.onCreate()`, synchronisation automatique des succès locaux dès l'authentification Play Jeux et remontée des codes `ApiException` dans le diagnostic, ainsi que migration Room non-destructive `v2 -> v3` (`AppDatabase`).
 - **Conformité Play Console (`EdgeToEdge`, `androidx.fragment`)** : contrainte Gradle vers `androidx.fragment:fragment:1.9.1` (remplace `1.1.0` tiré transitivement), appel `enableEdgeToEdge()` avant `super.onCreate()`, `decorFitsSystemWindows = false` + `safeDrawing` sur le plein écran `StarWars42EasterEggDialog` et conservation R8 de `EdgeToEdge.enable*` via `app/proguard-rules.pro`.
 - **Pause & Pas-à-Pas sur les tours de Bots (`GameViewModel`, `GameScreen`)** : bouton rapide `⏸` / `▶` permettant de suspendre une partie IA (y compris 100 % Bots) pour inspecter chaque lancer ou avancer coup par coup, avec mise en pause automatique lorsque l'écran passe en arrière-plan.

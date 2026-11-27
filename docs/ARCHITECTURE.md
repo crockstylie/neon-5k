@@ -149,6 +149,7 @@ fr.antoinehory.neon5k/
 | `app/src/main/java/fr/antoinehory/neon5k/domain/entropy/EntropySeedGenerator.kt` | Hachage `SHA-256` déterministe et tirage uniforme `1..6` | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/domain/theme/CyberPalette.kt` | Palettes cyberpunk prédéfinies, styles de dés et calcul de contraste WCAG 2.1 | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/sensors/SensorEntropyCollector.kt` | Collecteur non-bloquant gyroscope/accéléromètre/tactile/horloge + détection secousse | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/audio/SoundEffectsEngine.kt` | Synthèse audio PCM 8-bit rétro sans asset (`AudioTrack` sur thread dédié) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/theme/*` | `Neon5KTheme`, `Neon5KColors`, `LocalNeon5KColors` et typographie Monospace | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/components/PixelDiceCanvas.kt` | Rendu Compose `Canvas` pixel art `16×16` des dés (3 styles, animations, halo néon) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/components/PixelComponents.kt` | `PixelButton`, `CyberPanel`, `ScanlineOverlay` et `EntropyBadgeDialog` | Actif |

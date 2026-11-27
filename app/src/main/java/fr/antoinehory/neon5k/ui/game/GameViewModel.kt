@@ -5,6 +5,8 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import fr.antoinehory.neon5k.data.audio.SoundCue
+import fr.antoinehory.neon5k.data.audio.SoundEffectsEngine
 import fr.antoinehory.neon5k.data.export.AiDatasetExporter
 import fr.antoinehory.neon5k.data.export.DatasetExportFormat
 import fr.antoinehory.neon5k.data.export.DatasetExportResult
@@ -23,6 +25,7 @@ import fr.antoinehory.neon5k.domain.achievement.AchievementUnlockNotification
 import fr.antoinehory.neon5k.domain.ai.AdaptiveLearningSummary
 import fr.antoinehory.neon5k.domain.ai.BotPolicy
 import fr.antoinehory.neon5k.domain.ai.BotProfile
+import fr.antoinehory.neon5k.domain.ai.BotSpeed
 import fr.antoinehory.neon5k.domain.ai.BotTurnAction
 import fr.antoinehory.neon5k.domain.ai.HeuristicBotPolicy
 import fr.antoinehory.neon5k.domain.model.EngineResult
@@ -72,9 +75,11 @@ data class GameUiState(
     val showEntropyDialog: Boolean = false,
     val showRulesDialog: Boolean = false,
     val showHistoryDialog: Boolean = false,
+    val showMatchSummaryDialog: Boolean = false,
     val errorBannerFr: String? = null,
     val exportStatusMessageFr: String? = null,
-    val latestAchievementToast: AchievementUnlockNotification? = null
+    val latestAchievementToast: AchievementUnlockNotification? = null,
+    val matchUnlockedAchievements: List<AchievementUnlockNotification> = emptyList()
 )
 
 /**
@@ -100,10 +105,13 @@ sealed interface GameUiEvent {
     data object AcknowledgeBust : GameUiEvent
     data object ToggleBotPause : GameUiEvent
     data object StepBotTurn : GameUiEvent
+    data object CycleBotSpeed : GameUiEvent
     data object RestartMatch : GameUiEvent
     data object ToggleEntropyDialog : GameUiEvent
     data object ToggleRulesDialog : GameUiEvent
     data object ToggleHistoryDialog : GameUiEvent
+    data object ToggleMatchSummaryDialog : GameUiEvent
+    data object DismissFirstRollTutorial : GameUiEvent
     data object DismissErrorBanner : GameUiEvent
     data object DismissAchievementToast : GameUiEvent
 }
@@ -124,6 +132,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val datasetExporter = AiDatasetExporter(application)
     private val playGamesService = GooglePlayGamesService(application)
     private val sensorCollector = SensorEntropyCollector(application)
+    private val soundEffectsEngine = SoundEffectsEngine()
     private val botPolicy: BotPolicy = HeuristicBotPolicy
 
     val preferencesState: StateFlow<UserPreferences> = preferencesRepository.preferencesFlow
@@ -242,6 +251,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
         botTurnJob?.cancel()
         sensorCollector.stopListening()
+        soundEffectsEngine.release()
     }
 
     fun startMatch(
@@ -260,11 +270,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 match = newMatch,
                 hasActiveMatch = true,
                 isBotThinking = false,
+                isBotPaused = false,
                 rollTriggerCounter = 0,
                 errorBannerFr = null,
                 showEntropyDialog = false,
                 showRulesDialog = false,
-                showHistoryDialog = false
+                showHistoryDialog = false,
+                showMatchSummaryDialog = false,
+                matchUnlockedAchievements = emptyList()
             )
         }
         viewModelScope.launch {
@@ -308,7 +321,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 val current = _uiState.value.match
                 if (current.activePlayer.type != PlayerType.HUMAN) return
                 when (val result = FiveThousandEngine.toggleDieSelection(current, event.dieIndex)) {
-                    is EngineResult.Success -> updateMatchAndPersist(result.state)
+                    is EngineResult.Success -> {
+                        playSound(SoundCue.SELECT_DIE)
+                        updateMatchAndPersist(result.state)
+                    }
                     is EngineResult.Rejected -> {
                         _uiState.update { it.copy(errorBannerFr = formatRejectionMessage(result.error)) }
                     }
@@ -319,7 +335,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 val current = _uiState.value.match
                 if (current.activePlayer.type != PlayerType.HUMAN) return
                 when (val result = FiveThousandEngine.selectAllScoringDice(current)) {
-                    is EngineResult.Success -> updateMatchAndPersist(result.state)
+                    is EngineResult.Success -> {
+                        playSound(SoundCue.SELECT_DIE)
+                        updateMatchAndPersist(result.state)
+                    }
                     is EngineResult.Rejected -> {
                         _uiState.update { it.copy(errorBannerFr = formatRejectionMessage(result.error)) }
                     }
@@ -357,6 +376,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
+            GameUiEvent.CycleBotSpeed -> {
+                val nextSpeed = preferencesState.value.botSpeed.next()
+                setBotSpeed(nextSpeed)
+            }
+
             GameUiEvent.RestartMatch -> {
                 val current = _uiState.value.match
                 val resetPlayers = current.players.map { p ->
@@ -381,6 +405,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
             GameUiEvent.ToggleHistoryDialog -> {
                 _uiState.update { it.copy(showHistoryDialog = !it.showHistoryDialog) }
+            }
+
+            GameUiEvent.ToggleMatchSummaryDialog -> {
+                _uiState.update { it.copy(showMatchSummaryDialog = !it.showMatchSummaryDialog) }
+            }
+
+            GameUiEvent.DismissFirstRollTutorial -> {
+                viewModelScope.launch { preferencesRepository.setFirstRollTutorialCompleted(true) }
             }
 
             GameUiEvent.DismissErrorBanner -> {
@@ -425,6 +457,20 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { preferencesRepository.setKeepScreenOn(enabled) }
     }
 
+    fun setSoundEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setSoundEnabled(enabled) }
+    }
+
+    fun setBotSpeed(speed: BotSpeed) {
+        viewModelScope.launch { preferencesRepository.setBotSpeed(speed) }
+    }
+
+    private fun playSound(cue: SoundCue) {
+        if (preferencesState.value.soundEnabled) {
+            soundEffectsEngine.play(cue)
+        }
+    }
+
     fun exportAiDataset(uri: Uri, format: DatasetExportFormat) {
         viewModelScope.launch {
             val logs = gameRepository.getAllDecisionLogsForExport()
@@ -455,7 +501,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             gameRepository.clearAllDecisionLogs()
             _uiState.update {
-                it.copy(exportStatusMessageFr = "Journal de décisions IA réinitialisé.")
+                it.copy(exportStatusMessageFr = "Apprentissage IA & journal de décisions réinitialisés (stats et succès joueur conservés).")
             }
         }
     }
@@ -466,12 +512,36 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun syncPlayGamesNow() {
+        viewModelScope.launch {
+            val allProgress = gameRepository.getAllAchievementsProgress()
+            val syncedCount = playGamesService.syncAchievementsToPlayGames(allProgress)
+            _uiState.update {
+                it.copy(
+                    exportStatusMessageFr = if (playGamesService.status.value.isAuthenticated) {
+                        "Synchronisation Play Jeux exécutée ($syncedCount succès/étapes transmis)."
+                    } else {
+                        "Play Jeux non connecté : appuyez sur PLAY JEUX pour vous connecter d'abord."
+                    }
+                )
+            }
+        }
+    }
+
     private suspend fun publishAchievementNotifications(notifications: List<AchievementUnlockNotification>) {
         if (notifications.isEmpty()) return
         val allProgress = gameRepository.getAllAchievementsProgress()
         playGamesService.syncAchievementsToPlayGames(allProgress)
+        val freshUnlocks = notifications.filter { it.isFirstUnlock }
         _uiState.update { current ->
-            current.copy(latestAchievementToast = notifications.first())
+            current.copy(
+                latestAchievementToast = notifications.first(),
+                matchUnlockedAchievements = if (freshUnlocks.isEmpty()) {
+                    current.matchUnlockedAchievements
+                } else {
+                    (current.matchUnlockedAchievements + freshUnlocks).distinctBy { it.achievementId }
+                }
+            )
         }
     }
 
@@ -485,6 +555,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         isHumanActor: Boolean
     ) {
         if (state.turn.phase == TurnPhase.SELECTING_DICE && state.turn.isSelectionValid) {
+            if (isHumanActor && !preferencesState.value.hasCompletedFirstRollTutorial) {
+                viewModelScope.launch { preferencesRepository.setFirstRollTutorialCompleted(true) }
+            }
             val freeFacesBefore = state.turn.dice.filter { !it.isLocked }.map { it.face }
             val keptFaces = state.turn.dice.filter { !it.isLocked && it.isSelected }.map { it.face }
             currentTurnStepCounter++
@@ -525,14 +598,24 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 val maxEval = DiceScorer.evaluateMaxScoringSubset(newlyRolledFaces, newState.rules)
                 val scoredOnSingleDie = newlyRolledFaces.size == 1 && maxEval.totalPoints > 0
 
-                if (isHumanActor) {
+                when {
+                    newState.isFinished && newState.isInstantWin -> playSound(SoundCue.VICTORY)
+                    newState.turn.phase == TurnPhase.BUSTED ||
+                        newState.turn.phase == TurnPhase.OVERFLOW_BUSTED -> playSound(SoundCue.BUST)
+                    newState.turn.phase == TurnPhase.HOT_DICE_MANDATORY_REROLL -> playSound(SoundCue.HOT_DICE)
+                    else -> playSound(SoundCue.ROLL)
+                }
+
+                val actorBeforeRoll = state.activePlayer.type
+                if (isHumanActor && actorBeforeRoll == PlayerType.HUMAN) {
                     viewModelScope.launch {
                         val rollNotifs = gameRepository.recordHumanRoll(
                             rolledFaces = newlyRolledFaces,
                             combinationsOnRoll = maxEval.combinations,
                             triggeredByShake = triggeredByShake,
                             pressDurationMs = pressDurationMs,
-                            scoredOnSingleRemainingDie = scoredOnSingleDie
+                            scoredOnSingleRemainingDie = scoredOnSingleDie,
+                            actorType = actorBeforeRoll
                         )
                         publishAchievementNotifications(rollNotifs)
                     }
@@ -557,6 +640,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     current.copy(
                         match = newState,
                         hasActiveMatch = !newState.isFinished,
+                        showMatchSummaryDialog = if (newState.isFinished) true else current.showMatchSummaryDialog,
                         rollTriggerCounter = current.rollTriggerCounter + 1,
                         errorBannerFr = null
                     )
@@ -595,6 +679,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         when (val result = FiveThousandEngine.bankTurn(state)) {
             is EngineResult.Success -> {
                 val newState = result.state
+                if (isHumanActor && !preferencesState.value.hasCompletedFirstRollTutorial) {
+                    viewModelScope.launch { preferencesRepository.setFirstRollTutorialCompleted(true) }
+                }
+                playSound(if (newState.isFinished) SoundCue.VICTORY else SoundCue.BANK)
                 currentTurnStepCounter++
                 val step = currentTurnStepCounter
 
@@ -616,14 +704,15 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     if (didBumpHuman && !isHumanActor) {
                         gameRepository.recordHumanBumpedByOpponent()
                     }
-                    if (isHumanActor) {
+                    if (isHumanActor && activePlayerBefore.type == PlayerType.HUMAN) {
                         val bankNotifs = gameRepository.recordHumanBank(
                             turnPoints = totalBankedPoints,
                             wasOpeningTurn = wasOpeningTurn,
                             hotDiceCountInTurn = turnBefore.hotDiceCountInTurn +
                                 if (turnBefore.selectionTriggersHotDice) 1 else 0,
                             usedPiggyback = turnBefore.usedPiggyback,
-                            didBumpOpponent = didBumpOpponent
+                            didBumpOpponent = didBumpOpponent,
+                            actorType = activePlayerBefore.type
                         )
                         publishAchievementNotifications(bankNotifs)
                     }
@@ -641,6 +730,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     it.copy(
                         match = newState,
                         hasActiveMatch = !newState.isFinished,
+                        showMatchSummaryDialog = if (newState.isFinished) true else it.showMatchSummaryDialog,
                         errorBannerFr = null
                     )
                 }
@@ -673,10 +763,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                         turnNumber = turnBefore.turnNumber,
                         finalPoints = 0
                     )
-                    if (isHumanActor) {
+                    if (isHumanActor && playerBefore.type == PlayerType.HUMAN) {
                         val bustNotifs = gameRepository.recordHumanBust(
                             lostTurnPot = turnBefore.bankedInTurn,
-                            triggeredThreeStrikesPenalty = triggeredThreeStrikes
+                            triggeredThreeStrikesPenalty = triggeredThreeStrikes,
+                            actorType = playerBefore.type
                         )
                         publishAchievementNotifications(bustNotifs)
                     }
@@ -728,7 +819,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         botTurnJob = viewModelScope.launch {
             _uiState.update { it.copy(isBotThinking = true) }
-            delay(550L)
+            delayForBotSpeed { it.initialDelayMs }
 
             while (true) {
                 if (_uiState.value.isBotPaused) break
@@ -748,7 +839,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                             isPiggyback = acceptPiggyback,
                             isHumanActor = false
                         )
-                        delay(700L)
+                        delayForBotSpeed { it.rollDelayMs }
                     }
 
                     TurnPhase.HOT_DICE_MANDATORY_REROLL -> {
@@ -761,7 +852,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                             isPiggyback = false,
                             isHumanActor = false
                         )
-                        delay(700L)
+                        delayForBotSpeed { it.rollDelayMs }
                     }
 
                     TurnPhase.SELECTING_DICE -> {
@@ -784,7 +875,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                         }
 
                         _uiState.update { it.copy(match = workingState) }
-                        delay(650L)
+                        delayForBotSpeed { it.selectDelayMs }
                         if (_uiState.value.isBotPaused) break
 
                         if (plan.nextAction == BotTurnAction.BANK) {
@@ -802,7 +893,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                                     isPiggyback = false,
                                     isHumanActor = false
                                 )
-                                delay(700L)
+                                delayForBotSpeed { it.rollDelayMs }
                             } else {
                                 break
                             }
@@ -816,12 +907,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                                 isPiggyback = false,
                                 isHumanActor = false
                             )
-                            delay(700L)
+                            delayForBotSpeed { it.rollDelayMs }
                         }
                     }
 
                     TurnPhase.BUSTED, TurnPhase.OVERFLOW_BUSTED -> {
-                        delay(900L)
+                        delayForBotSpeed { it.bustDelayMs }
+                        if (_uiState.value.isBotPaused) break
                         executeAcknowledgeBust(current, isHumanActor = false)
                         break
                     }
@@ -829,6 +921,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             _uiState.update { it.copy(isBotThinking = false) }
+        }
+    }
+
+    private suspend fun delayForBotSpeed(delaySelector: (BotSpeed) -> Long) {
+        var elapsed = 0L
+        val stepMs = 25L
+        while (elapsed < delaySelector(preferencesState.value.botSpeed)) {
+            if (_uiState.value.isBotPaused) return
+            delay(stepMs)
+            elapsed += stepMs
         }
     }
 

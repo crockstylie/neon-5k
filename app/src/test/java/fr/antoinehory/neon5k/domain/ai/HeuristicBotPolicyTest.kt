@@ -1,5 +1,6 @@
 package fr.antoinehory.neon5k.domain.ai
 
+import fr.antoinehory.neon5k.domain.model.DecisionRecord
 import fr.antoinehory.neon5k.domain.model.EngineResult
 import fr.antoinehory.neon5k.domain.model.PlayerState
 import fr.antoinehory.neon5k.domain.model.PlayerType
@@ -180,5 +181,68 @@ class HeuristicBotPolicyTest {
 
         assertFalse(HeuristicBotPolicy.shouldAcceptPiggyback(state, BotProfile.SAFE_RUNNER))
         assertTrue(HeuristicBotPolicy.shouldAcceptPiggyback(state, BotProfile.OVERCLOCK_KAMIKAZE))
+    }
+
+    @Test
+    fun `BotSpeed cycles cleanly and AdaptiveBotLearner builds enriched summary`() {
+        assertEquals(BotSpeed.FAST, BotSpeed.NORMAL.next())
+        assertEquals(BotSpeed.TURBO, BotSpeed.FAST.next())
+        assertEquals(BotSpeed.INSTANT, BotSpeed.TURBO.next())
+        assertEquals(BotSpeed.NORMAL, BotSpeed.INSTANT.next())
+
+        AdaptiveBotLearner.trainFromRecords(emptyList())
+        val emptySummary = AdaptiveBotLearner.getSummary()
+        assertEquals(0, emptySummary.completedSamplesCount)
+        assertEquals(0, emptySummary.bucketCoveragePercent)
+        assertEquals("Initialisation (Prior théorique)", emptySummary.maturityLabelFr)
+
+        val records = listOf(
+            DecisionRecord(
+                matchUuid = "m1",
+                rulesFingerprint = "classic5",
+                turnIndex = 1,
+                stepIndex = 1,
+                actorType = "HUMAN",
+                myScore = 0,
+                bestOpponentScore = 0,
+                turnScoreBefore = 250,
+                remainingDiceBefore = 5,
+                isOpened = false,
+                consecutiveBusts = 0,
+                rolledDiceCsv = "1,1,2,3,4",
+                keptDiceCsv = "1,1",
+                decision = "ROLL_AGAIN",
+                turnFinalPoints = 800,
+                matchWon = true
+            ),
+            DecisionRecord(
+                matchUuid = "m1",
+                rulesFingerprint = "classic5",
+                turnIndex = 2,
+                stepIndex = 1,
+                actorType = "BOT_BALANCED",
+                myScore = 1000,
+                bestOpponentScore = 800,
+                turnScoreBefore = 300,
+                remainingDiceBefore = 4,
+                isOpened = true,
+                consecutiveBusts = 1,
+                rolledDiceCsv = "1,5,2,3",
+                keptDiceCsv = "1",
+                decision = "ROLL_AGAIN",
+                turnFinalPoints = 0,
+                matchWon = false
+            )
+        )
+        AdaptiveBotLearner.trainFromRecords(records)
+        val populated = AdaptiveBotLearner.getSummary()
+        assertEquals(2, populated.completedSamplesCount)
+        assertEquals(1, populated.openedSamplesCount)
+        assertEquals(1, populated.unopenedSamplesCount)
+        assertEquals(1, populated.winTrajectoriesCount)
+        assertEquals(1, populated.lossTrajectoriesCount)
+        assertEquals(2, populated.activeStateBucketsCount)
+        assertEquals(2, populated.bucketCoveragePercent)
+        assertEquals(400, populated.averageEmpiricalRollOutcome)
     }
 }

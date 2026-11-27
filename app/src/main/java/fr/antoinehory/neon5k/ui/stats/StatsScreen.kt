@@ -86,6 +86,7 @@ fun StatsScreen(
     decisionLogsCount: Int,
     exportStatusMessageFr: String?,
     onOpenPlayGamesAchievements: () -> Unit,
+    onSyncPlayGamesNow: () -> Unit,
     onExportDataset: (uri: Uri, format: DatasetExportFormat) -> Unit,
     onClearDataset: () -> Unit,
     onBack: () -> Unit,
@@ -159,7 +160,8 @@ fun StatsScreen(
                 achievements = achievements,
                 playGamesStatus = playGamesStatus,
                 statusMessageFr = exportStatusMessageFr,
-                onOpenPlayGamesAchievements = onOpenPlayGamesAchievements
+                onOpenPlayGamesAchievements = onOpenPlayGamesAchievements,
+                onSyncPlayGamesNow = onSyncPlayGamesNow
             )
             StatsTab.AI_DATASET -> AiDatasetTabContent(
                 decisionLogsCount = decisionLogsCount,
@@ -728,7 +730,8 @@ private fun AchievementsTabContent(
     achievements: List<AchievementProgress>,
     playGamesStatus: PlayGamesStatus,
     statusMessageFr: String?,
-    onOpenPlayGamesAchievements: () -> Unit
+    onOpenPlayGamesAchievements: () -> Unit,
+    onSyncPlayGamesNow: () -> Unit
 ) {
     val colors = LocalNeon5KColors.current
     val unlockedCount = achievements.count { it.isUnlocked }
@@ -757,11 +760,32 @@ private fun AchievementsTabContent(
                 color = colors.textMuted
             )
 
-            Text(
-                text = "Play Jeux : ${playGamesStatus.statusNoteFr}",
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.secondaryNeon
-            )
+            // Diagnostic détaillé PGS v2
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.background.copy(alpha = 0.6f), CyberCutShape)
+                    .border(1.dp, colors.secondaryNeon.copy(alpha = 0.35f), CyberCutShape)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "DIAGNOSTIC PLAY JEUX v2",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.secondaryNeon
+                )
+                Text(
+                    text = "Statut : ${playGamesStatus.statusNoteFr}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textPrimary
+                )
+                Text(
+                    text = "App ID : ${playGamesStatus.configuredProjectId.ifBlank { "Non configuré" }} • Auth : ${if (playGamesStatus.isAuthenticated) "Connecté ✓" else "Hors-ligne"} • Transmis : ${playGamesStatus.lastSyncedAchievementsCount}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textMuted
+                )
+            }
 
             if (statusMessageFr != null) {
                 Text(
@@ -771,13 +795,25 @@ private fun AchievementsTabContent(
                 )
             }
 
-            PixelButton(
-                text = "PLAY JEUX // VOIR LES SUCCÈS CLOUD",
-                onClick = onOpenPlayGamesAchievements,
-                filled = false,
-                accentColor = colors.primaryNeon,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PixelButton(
+                    text = "SYNCHRONISER",
+                    onClick = onSyncPlayGamesNow,
+                    filled = false,
+                    accentColor = colors.secondaryNeon,
+                    modifier = Modifier.weight(1f)
+                )
+                PixelButton(
+                    text = "PLAY JEUX CLOUD",
+                    onClick = onOpenPlayGamesAchievements,
+                    filled = false,
+                    accentColor = colors.primaryNeon,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 
@@ -893,13 +929,23 @@ private fun AiDatasetTabContent(
             )
 
             TelemetryKeyValueRow(
-                label = "Échantillons résolus assimilés par l'IA",
-                value = "${adaptiveLearning.completedSamplesCount} décisions",
+                label = "Maturité du modèle IA local",
+                value = adaptiveLearning.maturityLabelFr,
                 valueColor = colors.primaryNeon
             )
             TelemetryKeyValueRow(
-                label = "Cellules d'états apprises (dés × pot × phase)",
-                value = "${adaptiveLearning.activeStateBucketsCount} états actifs",
+                label = "Échantillons assimilés (Ouvert / Fermé)",
+                value = "${adaptiveLearning.completedSamplesCount} (${adaptiveLearning.openedSamplesCount} / ${adaptiveLearning.unopenedSamplesCount})",
+                valueColor = colors.primaryNeon
+            )
+            TelemetryKeyValueRow(
+                label = "Couverture des états (dés × pot × phase)",
+                value = "${adaptiveLearning.activeStateBucketsCount} / 72 (${adaptiveLearning.bucketCoveragePercent} %)",
+                valueColor = colors.secondaryNeon
+            )
+            TelemetryKeyValueRow(
+                label = "Trajectoires finies (Victoires / Défaites)",
+                value = "${adaptiveLearning.winTrajectoriesCount} V / ${adaptiveLearning.lossTrajectoriesCount} D",
                 valueColor = colors.secondaryNeon
             )
             TelemetryKeyValueRow(
@@ -981,7 +1027,7 @@ private fun AiDatasetTabContent(
 
             if (decisionLogsCount > 0) {
                 PixelButton(
-                    text = "PURGER LE JOURNAL DES DÉCISIONS",
+                    text = "RÉINITIALISER APPRENTISSAGE IA (STATS CONSERVÉES)",
                     onClick = onClearDataset,
                     filled = false,
                     accentColor = colors.alertNeon,

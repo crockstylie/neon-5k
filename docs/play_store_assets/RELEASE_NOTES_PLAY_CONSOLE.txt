@@ -1,98 +1,98 @@
 <en-US>
-🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
-• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
-• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
-• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
-• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
+🚀 Neon 5K v1.0.4 — Audio, Bot Speed & Polish Update:
+• 8-bit retro synthesized sound effects (toggleable in Customization, zero bloat).
+• AI Bot Speed selector (Normal ×1, Fast ×2, Turbo ×4, Instant ⚡) right on the game board.
+• Enriched end-of-match summary dialog (standings, best turn & unlocked achievements) + first-roll tip.
+• Local AI learning inspector with targeted reset & detailed Play Games v2 sync diagnostics.
 </en-US>
 <en-AU>
-🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
-• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
-• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
-• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
-• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
+🚀 Neon 5K v1.0.4 — Audio, Bot Speed & Polish Update:
+• 8-bit retro synthesized sound effects (toggleable in Customization, zero bloat).
+• AI Bot Speed selector (Normal ×1, Fast ×2, Turbo ×4, Instant ⚡) right on the game board.
+• Enriched end-of-match summary dialog (standings, best turn & unlocked achievements) + first-roll tip.
+• Local AI learning inspector with targeted reset & detailed Play Games v2 sync diagnostics.
 </en-AU>
 <en-CA>
-🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
-• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
-• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
-• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
-• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
+🚀 Neon 5K v1.0.4 — Audio, Bot Speed & Polish Update:
+• 8-bit retro synthesized sound effects (toggleable in Customization, zero bloat).
+• AI Bot Speed selector (Normal ×1, Fast ×2, Turbo ×4, Instant ⚡) right on the game board.
+• Enriched end-of-match summary dialog (standings, best turn & unlocked achievements) + first-roll tip.
+• Local AI learning inspector with targeted reset & detailed Play Games v2 sync diagnostics.
 </en-CA>
 <en-GB>
-🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
-• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
-• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
-• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
-• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
+🚀 Neon 5K v1.0.4 — Audio, Bot Speed & Polish Update:
+• 8-bit retro synthesized sound effects (toggleable in Customization, zero bloat).
+• AI Bot Speed selector (Normal ×1, Fast ×2, Turbo ×4, Instant ⚡) right on the game board.
+• Enriched end-of-match summary dialog (standings, best turn & unlocked achievements) + first-roll tip.
+• Local AI learning inspector with targeted reset & detailed Play Games v2 sync diagnostics.
 </en-GB>
 <en-IN>
-🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
-• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
-• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
-• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
-• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
+🚀 Neon 5K v1.0.4 — Audio, Bot Speed & Polish Update:
+• 8-bit retro synthesized sound effects (toggleable in Customization, zero bloat).
+• AI Bot Speed selector (Normal ×1, Fast ×2, Turbo ×4, Instant ⚡) right on the game board.
+• Enriched end-of-match summary dialog (standings, best turn & unlocked achievements) + first-roll tip.
+• Local AI learning inspector with targeted reset & detailed Play Games v2 sync diagnostics.
 </en-IN>
 <en-SG>
-🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
-• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
-• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
-• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
-• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
+🚀 Neon 5K v1.0.4 — Audio, Bot Speed & Polish Update:
+• 8-bit retro synthesized sound effects (toggleable in Customization, zero bloat).
+• AI Bot Speed selector (Normal ×1, Fast ×2, Turbo ×4, Instant ⚡) right on the game board.
+• Enriched end-of-match summary dialog (standings, best turn & unlocked achievements) + first-roll tip.
+• Local AI learning inspector with targeted reset & detailed Play Games v2 sync diagnostics.
 </en-SG>
 <en-ZA>
-🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
-• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
-• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
-• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
-• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
+🚀 Neon 5K v1.0.4 — Audio, Bot Speed & Polish Update:
+• 8-bit retro synthesized sound effects (toggleable in Customization, zero bloat).
+• AI Bot Speed selector (Normal ×1, Fast ×2, Turbo ×4, Instant ⚡) right on the game board.
+• Enriched end-of-match summary dialog (standings, best turn & unlocked achievements) + first-roll tip.
+• Local AI learning inspector with targeted reset & detailed Play Games v2 sync diagnostics.
 </en-ZA>
 <es-419>
-🚀 Neon 5K v1.0.3 — Play Juegos y Ergonomía:
-• Integración de Google Play Juegos v2: sincronización en la nube y panel nativo de los 20 logros (1000 XP).
-• Pausa y avance paso a paso en turnos de bots IA (ideal para partidas 100 % bots).
-• Nombres personalizados para jugadores y bots + historial legible para partidas de 3 a 8 jugadores.
-• Mejoras visuales de borde a borde (Android 15+), migración segura de datos y ajustes en Easter Eggs.
+🚀 Neon 5K v1.0.4 — Audio 8-bit, Velocidad Bots y Mejoras:
+• Efectos de sonido retro de 8 bits sintetizados (configurables en Personalización).
+• Selector de velocidad para bots IA (Normal ×1, Rápido ×2, Turbo ×4, Instantáneo ⚡) en el tablero.
+• Resumen completo al final de la partida (clasificación, mejor turno y logros) y ayuda inicial.
+• Inspector de IA local con reinicio selectivo y diagnóstico detallado de Play Juegos v2.
 </es-419>
 <es-ES>
-🚀 Neon 5K v1.0.3 — Play Juegos y Ergonomía:
-• Integración de Google Play Juegos v2: sincronización en la nube y panel nativo de los 20 logros (1000 XP).
-• Pausa y avance paso a paso en turnos de bots IA (ideal para partidas 100 % bots).
-• Nombres personalizados para jugadores y bots + historial legible para partidas de 3 a 8 jugadores.
-• Mejoras visuales de borde a borde (Android 15+), migración segura de datos y ajustes en Easter Eggs.
+🚀 Neon 5K v1.0.4 — Audio 8-bit, Velocidad Bots y Mejoras:
+• Efectos de sonido retro de 8 bits sintetizados (configurables en Personalización).
+• Selector de velocidad para bots IA (Normal ×1, Rápido ×2, Turbo ×4, Instantáneo ⚡) en el tablero.
+• Resumen completo al final de la partida (clasificación, mejor turno y logros) y ayuda inicial.
+• Inspector de IA local con reinicio selectivo y diagnóstico detallado de Play Juegos v2.
 </es-ES>
 <es-US>
-🚀 Neon 5K v1.0.3 — Play Juegos y Ergonomía:
-• Integración de Google Play Juegos v2: sincronización en la nube y panel nativo de los 20 logros (1000 XP).
-• Pausa y avance paso a paso en turnos de bots IA (ideal para partidas 100 % bots).
-• Nombres personalizados para jugadores y bots + historial legible para partidas de 3 a 8 jugadores.
-• Mejoras visuales de borde a borde (Android 15+), migración segura de datos y ajustes en Easter Eggs.
+🚀 Neon 5K v1.0.4 — Audio 8-bit, Velocidad Bots y Mejoras:
+• Efectos de sonido retro de 8 bits sintetizados (configurables en Personalización).
+• Selector de velocidad para bots IA (Normal ×1, Rápido ×2, Turbo ×4, Instantáneo ⚡) en el tablero.
+• Resumen completo al final de la partida (clasificación, mejor turno y logros) y ayuda inicial.
+• Inspector de IA local con reinicio selectivo y diagnóstico detallado de Play Juegos v2.
 </es-US>
 <fr-CA>
-🚀 Neon 5K v1.0.3 — Play Jeux & Ergonomie :
-• Google Play Jeux v2 actif : synchronisation cloud et fenêtre native des 20 succès (1 000 XP).
-• Pause et mode pas-à-pas sur les tours des bots IA (idéal pour suivre les parties 100 % bots).
-• Nommage libre de tous les joueurs et bots + historique multi-joueurs (3 à 8) réagencé.
-• Conformité bord à bord Android 15+, migration sécurisée des sauvegardes et correctifs Easter Eggs.
+🚀 Neon 5K v1.0.4 — Audio 8-bit, Vitesse Bots & Polish :
+• Effets sonores 8-bit rétro synthétisés (désactivables dans Personnalisation).
+• Sélecteur de vitesse des Bots IA (Normal ×1, Rapide ×2, Turbo ×4, Instantané ⚡) sur le plateau.
+• Récapitulatif enrichi de fin de partie (classement, meilleur tour, succès) & astuce de 1er lancer.
+• Inspecteur d'IA locale (reset ciblé) & diagnostic détaillé Google Play Jeux v2.
 </fr-CA>
 <fr-FR>
-🚀 Neon 5K v1.0.3 — Play Jeux & Ergonomie :
-• Google Play Jeux v2 actif : synchronisation cloud et fenêtre native des 20 succès (1 000 XP).
-• Pause et mode pas-à-pas sur les tours des bots IA (idéal pour suivre les parties 100 % bots).
-• Nommage libre de tous les joueurs et bots + historique multi-joueurs (3 à 8) réagencé.
-• Conformité bord à bord Android 15+, migration sécurisée des sauvegardes et correctifs Easter Eggs.
+🚀 Neon 5K v1.0.4 — Audio 8-bit, Vitesse Bots & Polish :
+• Effets sonores 8-bit rétro synthétisés (désactivables dans Personnalisation).
+• Sélecteur de vitesse des Bots IA (Normal ×1, Rapide ×2, Turbo ×4, Instantané ⚡) sur le plateau.
+• Récapitulatif enrichi de fin de partie (classement, meilleur tour, succès) & astuce de 1er lancer.
+• Inspecteur d'IA locale (reset ciblé) & diagnostic détaillé Google Play Jeux v2.
 </fr-FR>
 <pt-BR>
-🚀 Neon 5K v1.0.3 — Play Jogos e Ergonomia:
-• Integração com Google Play Jogos v2: sincronização na nuvem e painel nativo das 20 conquistas (1.000 XP).
-• Pausa e avanço passo a passo nos turnos dos bots de IA (ideal para partidas 100% bots).
-• Nomes personalizados para jogadores e bots + histórico aprimorado para 3 a 8 jogadores.
-• Melhorias de tela cheia (Android 15+), migração segura de dados e ajustes nos Easter Eggs.
+🚀 Neon 5K v1.0.4 — Áudio 8-bit, Velocidade dos Bots e Melhorias:
+• Efeitos sonoros retrô de 8 bits sintetizados (configuráveis em Personalização).
+• Seletor de velocidade dos bots de IA (Normal ×1, Rápido ×2, Turbo ×4, Instantâneo ⚡) no tabuleiro.
+• Resumo completo de fim de partida (classificação, melhor turno e conquistas) + dica inicial.
+• Inspetor de IA local com reinício seletivo e diagnóstico detalhado do Play Jogos v2.
 </pt-BR>
 <pt-PT>
-🚀 Neon 5K v1.0.3 — Play Jogos e Ergonomia:
-• Integração com Google Play Jogos v2: sincronização na nuvem e painel nativo das 20 proezas (1 000 XP).
-• Pausa e avanço passo a passo nos turnos dos bots de IA (ideal para partidas 100% bots).
-• Nomes personalizados para jogadores e bots + histórico melhorado para 3 a 8 jogadores.
-• Melhorias de ecrã inteiro (Android 15+), migração segura de dados e ajustes nos Easter Eggs.
+🚀 Neon 5K v1.0.4 — Áudio 8-bit, Velocidade dos Bots e Melhorias:
+• Efeitos sonoros retro de 8 bits sintetizados (configuráveis em Personalização).
+• Seletor de velocidade dos bots de IA (Normal ×1, Rápido ×2, Turbo ×4, Instantâneo ⚡) no tabuleiro.
+• Resumo completo de fim de partida (classificação, melhor turno e proezas) + dica inicial.
+• Inspetor de IA local com reinício seletivo e diagnóstico detalhado do Play Jogos v2.
 </pt-PT>

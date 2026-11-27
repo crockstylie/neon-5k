@@ -133,6 +133,48 @@ class AchievementEvaluatorTest {
     }
 
     @Test
+    fun `bots cannot unlock or advance achievements`() {
+        val initial = AchievementEvaluator.initialProgressMap()
+
+        // Partie 100 % bots : même si un bot atteint la cible exacte, aucun succès ne doit bouger
+        val botOnlyOutcome = AchievementEvaluator.evaluate(
+            currentMap = initial,
+            event = TelemetryGameEvent.MatchCompleted(
+                humanWon = true,
+                wonWithExactTarget = true,
+                defeatedBotSafe = true,
+                defeatedBotBalanced = true,
+                defeatedBotKamikaze = true,
+                hasHumanPlayer = false
+            )
+        )
+        assertTrue(botOnlyOutcome.notifications.isEmpty())
+        AchievementId.entries.forEach { id ->
+            val progress = botOnlyOutcome.updatedProgressMap.getValue(id)
+            assertFalse("Achievement $id must stay locked for bot-only match", progress.isUnlocked)
+            assertEquals(0, progress.lifetimeCount)
+        }
+
+        // Partie Humain vs Bot gagnée par le Bot (avec score exact) : seul ENTROPY_MASTER (partie humaine terminée)
+        // progresse ; PIXEL_PERFECT_5000 et BEAT_THE_MACHINE restent verrouillés.
+        val botWonOutcome = AchievementEvaluator.evaluate(
+            currentMap = initial,
+            event = TelemetryGameEvent.MatchCompleted(
+                humanWon = false,
+                wonWithExactTarget = true,
+                defeatedBotSafe = false,
+                defeatedBotBalanced = false,
+                defeatedBotKamikaze = false,
+                hasHumanPlayer = true
+            )
+        )
+        assertTrue(botWonOutcome.notifications.isEmpty())
+        assertEquals(1, botWonOutcome.updatedProgressMap.getValue(AchievementId.ENTROPY_MASTER).progressSteps)
+        assertFalse(botWonOutcome.updatedProgressMap.getValue(AchievementId.PIXEL_PERFECT_5000).isUnlocked)
+        assertFalse(botWonOutcome.updatedProgressMap.getValue(AchievementId.BEAT_THE_MACHINE).isUnlocked)
+    }
+
+    @Test
     fun `generate 20 Play Console 512x512 PNG achievement icons from 16x16 Pixel Art matrices`() {
         val currentDir = File(System.getProperty("user.dir") ?: ".")
         val projectRoot = if (currentDir.name == "app") currentDir.parentFile ?: currentDir else currentDir

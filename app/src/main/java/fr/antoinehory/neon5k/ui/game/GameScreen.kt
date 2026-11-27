@@ -51,9 +51,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import fr.antoinehory.neon5k.data.preferences.UserPreferences
+import fr.antoinehory.neon5k.domain.achievement.AchievementUnlockNotification
 import fr.antoinehory.neon5k.domain.ai.BotProfile
+import fr.antoinehory.neon5k.domain.ai.BotSpeed
 import fr.antoinehory.neon5k.domain.model.MatchState
 import fr.antoinehory.neon5k.domain.model.PlayerState
+import fr.antoinehory.neon5k.domain.model.PlayerType
 import fr.antoinehory.neon5k.domain.model.RollHistoryEntry
 import fr.antoinehory.neon5k.domain.model.TurnPhase
 import fr.antoinehory.neon5k.domain.rules.FiveThousandEngine
@@ -131,6 +134,30 @@ fun GameScreen(
         )
     }
 
+    if (uiState.showMatchSummaryDialog && match.isFinished) {
+        MatchSummaryDialog(
+            match = match,
+            unlockedAchievements = uiState.matchUnlockedAchievements,
+            onRestart = {
+                triggerHaptic()
+                onEvent(GameUiEvent.RestartMatch)
+            },
+            onSetup = {
+                triggerHaptic()
+                onNavigateSetup()
+            },
+            onDismiss = {
+                triggerHaptic()
+                onEvent(GameUiEvent.ToggleMatchSummaryDialog)
+            }
+        )
+    }
+
+    val showFirstRollTip = !preferences.hasCompletedFirstRollTutorial &&
+        !match.isFinished &&
+        activePlayer.type == PlayerType.HUMAN &&
+        turn.phase == TurnPhase.SELECTING_DICE
+
     val screenModifier = if (preferences.keepScreenOn) {
         modifier.fillMaxSize().keepScreenOn()
     } else {
@@ -164,6 +191,7 @@ fun GameScreen(
                         GameTopBar(
                             match = match,
                             isBotPaused = uiState.isBotPaused,
+                            botSpeed = preferences.botSpeed,
                             onNavigateHome = {
                                 triggerHaptic()
                                 onNavigateHome()
@@ -183,6 +211,10 @@ fun GameScreen(
                             onToggleBotPause = {
                                 triggerHaptic()
                                 onEvent(GameUiEvent.ToggleBotPause)
+                            },
+                            onCycleBotSpeed = {
+                                triggerHaptic()
+                                onEvent(GameUiEvent.CycleBotSpeed)
                             }
                         )
                         AutoCenteredPlayerCarousel(
@@ -218,6 +250,14 @@ fun GameScreen(
                         modifier = colMod.fillMaxHeight(),
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
+                        if (showFirstRollTip) {
+                            FirstRollOnboardingBanner(
+                                onDismiss = {
+                                    triggerHaptic()
+                                    onEvent(GameUiEvent.DismissFirstRollTutorial)
+                                }
+                            )
+                        }
                         DiceBoardPanel(
                             match = match,
                             activePlayer = activePlayer,
@@ -273,6 +313,7 @@ fun GameScreen(
                     GameTopBar(
                         match = match,
                         isBotPaused = uiState.isBotPaused,
+                        botSpeed = preferences.botSpeed,
                         onNavigateHome = {
                             triggerHaptic()
                             onNavigateHome()
@@ -292,6 +333,10 @@ fun GameScreen(
                         onToggleBotPause = {
                             triggerHaptic()
                             onEvent(GameUiEvent.ToggleBotPause)
+                        },
+                        onCycleBotSpeed = {
+                            triggerHaptic()
+                            onEvent(GameUiEvent.CycleBotSpeed)
                         }
                     )
                     AutoCenteredPlayerCarousel(
@@ -330,6 +375,15 @@ fun GameScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (showFirstRollTip) {
+                        FirstRollOnboardingBanner(
+                            onDismiss = {
+                                triggerHaptic()
+                                onEvent(GameUiEvent.DismissFirstRollTutorial)
+                            }
+                        )
+                    }
+
                     DiceBoardPanel(
                         match = match,
                         activePlayer = activePlayer,
@@ -367,15 +421,17 @@ fun GameScreen(
 private fun GameTopBar(
     match: MatchState,
     isBotPaused: Boolean,
+    botSpeed: BotSpeed,
     onNavigateHome: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenEntropy: () -> Unit,
-    onToggleBotPause: () -> Unit
+    onToggleBotPause: () -> Unit,
+    onCycleBotSpeed: () -> Unit
 ) {
     val colors = LocalNeon5KColors.current
     val snapshot = match.turn.lastEntropySnapshot
-    val hasBotsInMatch = match.players.any { it.type != fr.antoinehory.neon5k.domain.model.PlayerType.HUMAN }
+    val hasBotsInMatch = match.players.any { it.type != PlayerType.HUMAN }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -412,8 +468,30 @@ private fun GameTopBar(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Bouton Pause rapide pour les bots
+            // Sélecteur de vitesse & Pause rapide pour les bots
             if (hasBotsInMatch) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            if (botSpeed != BotSpeed.NORMAL) colors.primaryNeon.copy(alpha = 0.16f) else colors.surface,
+                            CyberCutShape
+                        )
+                        .border(
+                            1.dp,
+                            if (botSpeed != BotSpeed.NORMAL) colors.primaryNeon else colors.secondaryNeon.copy(alpha = 0.7f),
+                            CyberCutShape
+                        )
+                        .clickable(onClick = onCycleBotSpeed)
+                        .padding(horizontal = 7.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = botSpeed.badgeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (botSpeed != BotSpeed.NORMAL) colors.primaryNeon else colors.secondaryNeon
+                    )
+                }
+
                 Box(
                     modifier = Modifier
                         .background(
@@ -720,7 +798,7 @@ private fun TurnStatusPanel(
             Text(
                 text = if (isBotThinking) {
                     "⚡ ${activePlayer.name} calcule sa trajectoire optimale..."
-                } else if (isBotPaused && activePlayer.type != fr.antoinehory.neon5k.domain.model.PlayerType.HUMAN) {
+                } else if (isBotPaused && activePlayer.type != PlayerType.HUMAN) {
                     "⏸ Pause active sur le tour de ${activePlayer.name} — utilisez [Pas à pas] ou [Reprendre]"
                 } else {
                     turn.statusMessageFr
@@ -946,7 +1024,7 @@ private fun DiceBoardPanel(
 ) {
     val colors = LocalNeon5KColors.current
     val turn = match.turn
-    val isHumanTurn = activePlayer.type == fr.antoinehory.neon5k.domain.model.PlayerType.HUMAN && !isBotThinking
+    val isHumanTurn = activePlayer.type == PlayerType.HUMAN && !isBotThinking
     val canSelectAll = isHumanTurn &&
         turn.phase == TurnPhase.SELECTING_DICE &&
         turn.dice.any { !it.isLocked && it.canScoreOnCurrentRoll && !it.isSelected }
@@ -1093,22 +1171,46 @@ private fun ActionControlsSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
                         Text(
-                            text = "🏆 VICTOIRE DE ${winner?.name?.uppercase() ?: "JOUEUR"}",
+                            text = "🏆 ${winner?.name?.uppercase() ?: "JOUEUR"}",
                             style = MaterialTheme.typography.titleMedium,
                             color = colors.secondaryNeon,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Score : ${winner?.score ?: 0} pts • ${match.totalRollsInMatch} lancers",
+                            text = "${winner?.score ?: 0} pts • ${match.totalRollsInMatch} lancers",
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.textPrimary,
                             maxLines = 1
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(colors.secondaryNeon.copy(alpha = 0.18f), CyberCutShape)
+                                .border(1.dp, colors.secondaryNeon, CyberCutShape)
+                                .clickable {
+                                    onTriggerHaptic()
+                                    onEvent(GameUiEvent.ToggleMatchSummaryDialog)
+                                }
+                                .padding(horizontal = 8.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = "RÉCAP",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.secondaryNeon
+                            )
+                        }
                         PixelButton(
                             text = "REVANCHE",
                             onClick = {
@@ -1117,22 +1219,24 @@ private fun ActionControlsSection(
                             },
                             accentColor = colors.primaryNeon
                         )
-                        PixelButton(
-                            text = "CONFIG",
-                            filled = false,
-                            onClick = {
-                                onTriggerHaptic()
-                                onNavigateSetup()
-                            },
-                            accentColor = colors.secondaryNeon
-                        )
+                        if (!compactLandscape) {
+                            PixelButton(
+                                text = "CONFIG",
+                                filled = false,
+                                onClick = {
+                                    onTriggerHaptic()
+                                    onNavigateSetup()
+                                },
+                                accentColor = colors.secondaryNeon
+                            )
+                        }
                     }
                 }
             }
             return@Box
         }
 
-        if (activePlayer.type != fr.antoinehory.neon5k.domain.model.PlayerType.HUMAN) {
+        if (activePlayer.type != PlayerType.HUMAN) {
             CyberPanel(
                 modifier = Modifier.fillMaxSize(),
                 borderColor = if (isBotPaused) colors.alertNeon else colors.secondaryNeon
@@ -1553,5 +1657,254 @@ private fun EntropyRollButton(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+/**
+ * Bulle d'aide discrète affichée uniquement lors du tout premier lancer humain tant qu'aucune action
+ * de relance/banque n'a encore été effectuée.
+ */
+@Composable
+private fun FirstRollOnboardingBanner(
+    onDismiss: () -> Unit
+) {
+    val colors = LocalNeon5KColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.secondaryNeon.copy(alpha = 0.14f), CyberCutShape)
+            .border(1.dp, colors.secondaryNeon.copy(alpha = 0.8f), CyberCutShape)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "💡 ASTUCE : Touchez les dés scorants (ou TOUT PRENDRE), puis RELANCER ou BANQUER.",
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.textPrimary,
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 8.dp)
+        )
+        Box(
+            modifier = Modifier
+                .background(colors.secondaryNeon, CyberCutShape)
+                .clickable(onClick = onDismiss)
+                .padding(horizontal = 9.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = "OK",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.background
+            )
+        }
+    }
+}
+
+/**
+ * Modale récapitulative de fin de match (Lot 4.5) :
+ * - Classement complet des joueurs,
+ * - Faits marquants du match (meilleur tour banqué, lancers, mains pleines, coups nuls),
+ * - Succès débloqués durant la partie,
+ * - Boutons Revanche, Configuration et Fermer.
+ */
+@Composable
+private fun MatchSummaryDialog(
+    match: MatchState,
+    unlockedAchievements: List<AchievementUnlockNotification>,
+    onRestart: () -> Unit,
+    onSetup: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = LocalNeon5KColors.current
+    val winner = match.winnerPlayer
+    val sortedPlayers = match.players.sortedByDescending { it.score }
+
+    // Calcul exact du meilleur tour banqué à partir de la pile des paliers de chaque joueur
+    var bestTurnHolder = ""
+    var bestTurnDelta = 0
+    for (player in match.players) {
+        val stack = player.normalizedCheckpoints()
+        var prev = 0
+        for (cp in stack) {
+            val delta = cp.score - prev
+            if (delta > bestTurnDelta) {
+                bestTurnDelta = delta
+                bestTurnHolder = player.name
+            }
+            prev = cp.score
+        }
+    }
+    val hotDiceCount = match.rollHistoryLog.count { it.isHotDice }
+    val bustCount = match.rollHistoryLog.count { it.isBust }
+
+    Dialog(onDismissRequest = onDismiss) {
+        CyberPanel(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 580.dp),
+            borderColor = colors.secondaryNeon
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PixelIconCanvas(icon = PixelIconId.TROPHY, tint = colors.secondaryNeon, iconSize = 20.dp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "PARTIE TERMINÉE // BILAN",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.secondaryNeon
+                        )
+                        Text(
+                            text = "🏆 Vainqueur : ${winner?.name ?: "Joueur"} (${winner?.score ?: 0} pts)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryNeon
+                        )
+                    }
+                }
+
+                // Classement final
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "CLASSEMENT FINAL",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = colors.primaryNeon
+                    )
+                    sortedPlayers.forEachIndexed { idx, player ->
+                        val isWinner = player.id == winner?.id
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (isWinner) colors.secondaryNeon.copy(alpha = 0.14f) else colors.background.copy(alpha = 0.6f),
+                                    CyberCutShape
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isWinner) colors.secondaryNeon else colors.textMuted.copy(alpha = 0.3f),
+                                    shape = CyberCutShape
+                                )
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "#${idx + 1} ${player.name}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isWinner) FontWeight.ExtraBold else FontWeight.Medium,
+                                color = if (isWinner) colors.secondaryNeon else colors.textPrimary,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${player.score} pts",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isWinner) colors.primaryNeon else colors.textPrimary
+                            )
+                        }
+                    }
+                }
+
+                // Faits marquants du match
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.background.copy(alpha = 0.6f), CyberCutShape)
+                        .border(1.dp, colors.primaryNeon.copy(alpha = 0.35f), CyberCutShape)
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "FAITS MARQUANTS DU MATCH",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = colors.primaryNeon
+                    )
+                    Text(
+                        text = "• Lancers totaux : ${match.totalRollsInMatch} • Tours : ${match.turn.turnNumber}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.textPrimary
+                    )
+                    if (bestTurnDelta > 0) {
+                        Text(
+                            text = "• Meilleur tour banqué : +$bestTurnDelta pts ($bestTurnHolder)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.secondaryNeon
+                        )
+                    }
+                    Text(
+                        text = "• Mains pleines : $hotDiceCount • Coups nuls (Glitch) : $bustCount",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (bustCount > hotDiceCount) colors.alertNeon else colors.textMuted
+                    )
+                }
+
+                // Succès débloqués pendant la partie
+                if (unlockedAchievements.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.alertNeon.copy(alpha = 0.12f), CyberCutShape)
+                            .border(1.dp, colors.alertNeon.copy(alpha = 0.7f), CyberCutShape)
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "★ SUCCÈS DÉBLOQUÉS (${unlockedAchievements.size})",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = colors.alertNeon
+                        )
+                        unlockedAchievements.forEach { ach ->
+                            Text(
+                                text = "• ${ach.achievementId.titleFr} (+${ach.achievementId.playGamesXp} XP)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.textPrimary
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PixelButton(
+                        text = "REVANCHE",
+                        icon = PixelIconId.PLAY,
+                        onClick = onRestart,
+                        accentColor = colors.primaryNeon,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PixelButton(
+                        text = "CONFIG",
+                        icon = PixelIconId.GRID,
+                        filled = false,
+                        onClick = onSetup,
+                        accentColor = colors.secondaryNeon,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                PixelButton(
+                    text = "FERMER LE RÉCAP",
+                    icon = PixelIconId.BACK,
+                    filled = false,
+                    onClick = onDismiss,
+                    accentColor = colors.textMuted,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 }

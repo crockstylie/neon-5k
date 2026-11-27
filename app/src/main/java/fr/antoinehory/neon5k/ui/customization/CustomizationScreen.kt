@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fr.antoinehory.neon5k.data.preferences.UserPreferences
+import fr.antoinehory.neon5k.domain.ai.BotSpeed
 import fr.antoinehory.neon5k.domain.model.DieState
 import fr.antoinehory.neon5k.domain.theme.CyberPalette
 import fr.antoinehory.neon5k.domain.theme.CyberThemePreset
@@ -76,6 +77,8 @@ fun CustomizationScreen(
     onToggleScanlines: (Boolean) -> Unit,
     onToggleLeftHanded: (Boolean) -> Unit,
     onToggleHaptic: (Boolean) -> Unit,
+    onToggleSound: (Boolean) -> Unit,
+    onSelectBotSpeed: (BotSpeed) -> Unit,
     onToggleShakeToRoll: (Boolean) -> Unit,
     onToggleKeepScreenOn: (Boolean) -> Unit,
     onBack: () -> Unit,
@@ -354,6 +357,40 @@ fun CustomizationScreen(
                     checked = preferences.hapticEnabled,
                     onCheckedChange = onToggleHaptic
                 )
+
+                PreferenceSwitchRow(
+                    title = "Effets sonores 8-bit rétro",
+                    subtitle = "Synthèse audio chiptune légère (lancers, sélections, main pleine, banque, glitch).",
+                    checked = preferences.soundEnabled,
+                    onCheckedChange = onToggleSound
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Vitesse des Bots IA",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = "Cadence d'exécution des tours IA (modifiable aussi en direct sur le plateau).",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.textMuted
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BotSpeed.entries.forEach { speed ->
+                            val isSelected = preferences.botSpeed == speed
+                            PixelButton(
+                                text = speed.labelFr,
+                                filled = isSelected,
+                                accentColor = if (isSelected) colors.secondaryNeon else colors.textMuted,
+                                onClick = { onSelectBotSpeed(speed) }
+                            )
+                        }
+                    }
+                }
 
                 PreferenceSwitchRow(
                     title = "Secouer l'appareil pour lancer",

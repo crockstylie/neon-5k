@@ -116,11 +116,11 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
 ---
 
 ## Lot 4.5 : Pré-Lot 5 — Polish Audio 8-bit, Vitesse Bots & Audit Qualité (Avant Multijoueur Local)
-- [ ] **Sélecteur de vitesse des Bots (`BotSpeed` : `NORMAL ×1`, `FAST ×2`, `INSTANT`)** : préférence persistée dans `UserPreferencesRepository` et raccourci direct sur `GameScreen` (complémentaire à la pause `⏸` pour les parties 100 % Bots)
-- [ ] **Synthèse Audio 8-bit Rétro sans asset lourd (`SoundEffectsEngine`)** : génération PCM légère en Kotlin (`AudioTrack`) pour lancers, sélection de dés, Glitch/Crash, Main pleine, banque et victoire, avec toggle `soundEnabled` dans `CustomizationScreen`
-- [ ] **Version dynamique & Diagnostic Play Jeux (`InfoScreen` / `StatsScreen`)** : lecture dynamique de `versionName` / `versionCode` via `PackageManager` (remplacement du texte figé `v1.0.0 (BUILD 1)`) et statut détaillé de synchronisation PGS v2
-- [ ] **Inspecteur & Reset IA (`StatsScreen`)** : visualisation enrichie des statistiques `AdaptiveBotLearner` (maturité par contexte/profil) et action dédiée de réinitialisation ciblée de l'apprentissage sans perte des stats joueur
-- [ ] **Polish Fin de Partie & Onboarding 1er lancement (`GameScreen`)** : micro-bulle d'aide contextuelle au premier lancer (*sélectionner les dés scorants avant de relancer/banquer*), récapitulatif de fin de match enrichi (MVP du tour, succès débloqués dans la partie, bouton *Rejouer avec les mêmes règles*) et vérification Release R8 + Play Games sur appareil réel
+- [x] **Sélecteur de vitesse des Bots (`BotSpeed` : `NORMAL ×1`, `FAST ×2`, `TURBO ×4`, `INSTANT ⚡`)** : préférence persistée dans `UserPreferencesRepository`, changement réactif à la volée sur `GameScreen` (prise en compte `<= 25 ms` même en cours d'attente) et dans `CustomizationScreen`, plus garde stricte empêchant les bots de débloquer des succès (`GameViewModel`, `GameRepository`, `AchievementEvaluator`)
+- [x] **Synthèse Audio 8-bit Rétro sans asset lourd (`SoundEffectsEngine`)** : génération PCM légère en Kotlin (`AudioTrack`) pour lancers, sélection de dés, Glitch/Crash, Main pleine, banque et victoire, avec toggle `soundEnabled` dans `CustomizationScreen`
+- [x] **Version dynamique & Diagnostic Play Jeux (`InfoScreen` / `StatsScreen`)** : lecture dynamique de `versionName` / `versionCode` via `PackageManager` (remplacement du texte figé `v1.0.0 (BUILD 1)`) et statut détaillé de synchronisation PGS v2
+- [x] **Inspecteur & Reset IA (`StatsScreen`)** : visualisation enrichie des statistiques `AdaptiveBotLearner` (maturité par contexte/profil) et action dédiée de réinitialisation ciblée de l'apprentissage sans perte des stats joueur
+- [x] **Polish Fin de Partie & Onboarding 1er lancement (`GameScreen`)** : micro-bulle d'aide contextuelle au premier lancer (*sélectionner les dés scorants avant de relancer/banquer*), récapitulatif de fin de match enrichi (MVP du tour, succès débloqués dans la partie, bouton *Rejouer avec les mêmes règles*) et vérification Release R8 + Play Games sur appareil réel
 
 ---
 

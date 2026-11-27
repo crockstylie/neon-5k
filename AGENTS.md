@@ -17,6 +17,7 @@
 | [`README.md`](./README.md) | Présentation générale du jeu, règles, fonctionnalités et commandes Gradle | Lors d'un changement majeur de fonctionnalité ou de build |
 | [`CHANGELOG.md`](./CHANGELOG.md) | Historique des versions et nouveautés | À chaque livraison de version |
 | [`PLAY_STORE.md`](./PLAY_STORE.md) | Textes Google Play Console traduits en 4 langues (`fr`, `en`, `es`, `pt`) + specs assets | Avant publication sur le Play Store |
+| [`docs/play_store_assets/RELEASE_NOTES_PLAY_CONSOLE.txt`](./docs/play_store_assets/RELEASE_NOTES_PLAY_CONSOLE.txt) | Notes de version Google Play Console (14 langues, ≤ 500 car.) | À chaque montée de version ou livraison de Lot |
 | [`POLITIQUE_DE_CONFIDENTIALITE.md`](./POLITIQUE_DE_CONFIDENTIALITE.md) | Politique de confidentialité officielle (capteurs, Play Jeux, Nearby, Firebase opt-in) | En cas d'évolution touchant aux données ou permissions |
 
 ---
@@ -32,6 +33,7 @@
     - Dès qu'un nouveau fichier Kotlin est créé ou déplacé, mets à jour la cartographie dans [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
     - Dès qu'une étape est validée, coche-la dans [`docs/ROADMAP.md`](./docs/ROADMAP.md).
     - Dès qu'une décision structurante est prise, ajoute une entrée concise dans [`docs/DECISIONS.md`](./docs/DECISIONS.md).
+    - À chaque livraison de Lot ou nouvelle version, mets à jour [`CHANGELOG.md`](./CHANGELOG.md) ainsi que [`docs/play_store_assets/RELEASE_NOTES_PLAY_CONSOLE.txt`](./docs/play_store_assets/RELEASE_NOTES_PLAY_CONSOLE.txt) pour les 14 langues Play Console (≤ 500 caractères par langue).
 
 ---
 

@@ -45,7 +45,8 @@ sealed interface TelemetryGameEvent {
         val wonWithExactTarget: Boolean,
         val defeatedBotSafe: Boolean,
         val defeatedBotBalanced: Boolean,
-        val defeatedBotKamikaze: Boolean
+        val defeatedBotKamikaze: Boolean,
+        val hasHumanPlayer: Boolean = true
     ) : TelemetryGameEvent
 }
 
@@ -227,12 +228,14 @@ object AchievementEvaluator {
             }
 
             is TelemetryGameEvent.MatchCompleted -> {
-                incrementAchievement(AchievementId.ENTROPY_MASTER, deltaCount = 1)
-                if (event.humanWon && event.wonWithExactTarget) {
-                    incrementAchievement(AchievementId.PIXEL_PERFECT_5000)
-                }
-                if (event.humanWon && event.defeatedBotKamikaze) {
-                    incrementAchievement(AchievementId.BEAT_THE_MACHINE)
+                if (event.hasHumanPlayer) {
+                    incrementAchievement(AchievementId.ENTROPY_MASTER, deltaCount = 1)
+                    if (event.humanWon && event.wonWithExactTarget) {
+                        incrementAchievement(AchievementId.PIXEL_PERFECT_5000)
+                    }
+                    if (event.humanWon && event.defeatedBotKamikaze) {
+                        incrementAchievement(AchievementId.BEAT_THE_MACHINE)
+                    }
                 }
             }
         }

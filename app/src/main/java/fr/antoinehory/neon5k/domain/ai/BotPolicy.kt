@@ -33,6 +33,58 @@ enum class BotProfile(
 }
 
 /**
+ * Vitesse d'exécution des tours de Bots IA (Lot 4.5).
+ */
+enum class BotSpeed(
+    val labelFr: String,
+    val badgeText: String,
+    val initialDelayMs: Long,
+    val rollDelayMs: Long,
+    val selectDelayMs: Long,
+    val bustDelayMs: Long
+) {
+    NORMAL(
+        labelFr = "Normal (×1)",
+        badgeText = "×1",
+        initialDelayMs = 550L,
+        rollDelayMs = 700L,
+        selectDelayMs = 650L,
+        bustDelayMs = 900L
+    ),
+    FAST(
+        labelFr = "Rapide (×2)",
+        badgeText = "×2",
+        initialDelayMs = 200L,
+        rollDelayMs = 260L,
+        selectDelayMs = 240L,
+        bustDelayMs = 340L
+    ),
+    TURBO(
+        labelFr = "Turbo (×4)",
+        badgeText = "×4",
+        initialDelayMs = 90L,
+        rollDelayMs = 120L,
+        selectDelayMs = 110L,
+        bustDelayMs = 160L
+    ),
+    INSTANT(
+        labelFr = "Instantané (⚡)",
+        badgeText = "⚡",
+        initialDelayMs = 25L,
+        rollDelayMs = 35L,
+        selectDelayMs = 30L,
+        bustDelayMs = 45L
+    );
+
+    fun next(): BotSpeed = when (this) {
+        NORMAL -> FAST
+        FAST -> TURBO
+        TURBO -> INSTANT
+        INSTANT -> NORMAL
+    }
+}
+
+/**
  * Décision finale d'un bot à l'issue de sa sélection de dés ou au début de son tour.
  */
 enum class BotTurnAction {

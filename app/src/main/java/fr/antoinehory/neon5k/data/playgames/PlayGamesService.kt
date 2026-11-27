@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
 data class PlayGamesStatus(
     val isConfiguredInManifest: Boolean = false,
     val isAuthenticated: Boolean = false,
+    val configuredProjectId: String = "",
+    val lastSyncedAchievementsCount: Int = 0,
     val statusNoteFr: String = "Suivi local actif (20 succès à compteurs infinis)"
 )
 
@@ -42,6 +44,7 @@ class GooglePlayGamesService(
         PlayGamesStatus(
             isConfiguredInManifest = isProjectConfigured,
             isAuthenticated = false,
+            configuredProjectId = if (isProjectConfigured) projectId else "",
             statusNoteFr = if (isProjectConfigured) {
                 "Google Play Jeux v2 prêt"
             } else {
@@ -69,9 +72,10 @@ class GooglePlayGamesService(
                 } else {
                     ""
                 }
-                _status.value = PlayGamesStatus(
+                _status.value = _status.value.copy(
                     isConfiguredInManifest = true,
                     isAuthenticated = isAuth,
+                    configuredProjectId = projectId,
                     statusNoteFr = if (isAuth) {
                         "Connecté à Google Play Jeux v2 (Sync cloud active)"
                     } else {
@@ -167,11 +171,13 @@ class GooglePlayGamesService(
 
     /**
      * Synchronise les succès débloqués ou incrémentiels vers Google Play Jeux si le joueur est authentifié.
+     * Retourne le nombre de succès transmis.
      */
-    fun syncAchievementsToPlayGames(progressList: Collection<AchievementProgress>) {
-        val activity = currentActivity ?: return
-        if (!isProjectConfigured || !_status.value.isAuthenticated) return
+    fun syncAchievementsToPlayGames(progressList: Collection<AchievementProgress>): Int {
+        val activity = currentActivity ?: return 0
+        if (!isProjectConfigured || !_status.value.isAuthenticated) return 0
 
+        var synced = 0
         runCatching {
             val client = PlayGames.getAchievementsClient(activity)
             for (progress in progressList) {
@@ -182,12 +188,16 @@ class GooglePlayGamesService(
                     val steps = progress.progressSteps.coerceIn(0, progress.id.targetSteps)
                     if (steps > 0) {
                         client.setSteps(pgsId, steps)
+                        synced++
                     }
                 } else if (progress.isUnlocked) {
                     client.unlock(pgsId)
+                    synced++
                 }
             }
         }
+        _status.value = _status.value.copy(lastSyncedAchievementsCount = synced)
+        return synced
     }
 
     private fun formatApiError(exception: Exception?): String {

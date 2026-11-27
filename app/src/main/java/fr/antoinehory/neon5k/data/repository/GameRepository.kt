@@ -111,9 +111,10 @@ class GameRepository(
         combinationsOnRoll: List<ScoringCombination>,
         triggeredByShake: Boolean,
         pressDurationMs: Long,
-        scoredOnSingleRemainingDie: Boolean
+        scoredOnSingleRemainingDie: Boolean,
+        actorType: PlayerType = PlayerType.HUMAN
     ): List<AchievementUnlockNotification> {
-        if (rolledFaces.isEmpty()) return emptyList()
+        if (actorType != PlayerType.HUMAN || rolledFaces.isEmpty()) return emptyList()
         val current = statsDao.getStats() ?: PlayerStatsEntity()
 
         var c1 = current.face1Count
@@ -217,8 +218,10 @@ class GameRepository(
         wasOpeningTurn: Boolean,
         hotDiceCountInTurn: Int,
         usedPiggyback: Boolean,
-        didBumpOpponent: Boolean
+        didBumpOpponent: Boolean,
+        actorType: PlayerType = PlayerType.HUMAN
     ): List<AchievementUnlockNotification> {
+        if (actorType != PlayerType.HUMAN) return emptyList()
         val current = statsDao.getStats() ?: PlayerStatsEntity()
         val updatedStats = current.copy(
             totalPointsBanked = current.totalPointsBanked + turnPoints,
@@ -259,8 +262,10 @@ class GameRepository(
      */
     suspend fun recordHumanBust(
         lostTurnPot: Int,
-        triggeredThreeStrikesPenalty: Boolean
+        triggeredThreeStrikesPenalty: Boolean,
+        actorType: PlayerType = PlayerType.HUMAN
     ): List<AchievementUnlockNotification> {
+        if (actorType != PlayerType.HUMAN) return emptyList()
         val current = statsDao.getStats() ?: PlayerStatsEntity()
         val updatedStats = current.copy(
             totalBustsCount = current.totalBustsCount + 1,
@@ -320,7 +325,8 @@ class GameRepository(
                 wonWithExactTarget = wonWithExactTarget,
                 defeatedBotSafe = humanWon && hasSafe,
                 defeatedBotBalanced = humanWon && hasBalanced,
-                defeatedBotKamikaze = humanWon && hasKamikaze
+                defeatedBotKamikaze = humanWon && hasKamikaze,
+                hasHumanPlayer = true
             ),
             distinctTripleFacesMask = updatedStats.distinctTripleFacesMask
         )

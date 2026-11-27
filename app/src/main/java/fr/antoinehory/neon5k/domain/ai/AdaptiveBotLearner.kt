@@ -9,7 +9,13 @@ data class AdaptiveLearningSummary(
     val completedSamplesCount: Int = 0,
     val activeStateBucketsCount: Int = 0,
     val averageEmpiricalRollOutcome: Int = 0,
-    val learnedConfidencePercent: Int = 0
+    val learnedConfidencePercent: Int = 0,
+    val openedSamplesCount: Int = 0,
+    val unopenedSamplesCount: Int = 0,
+    val winTrajectoriesCount: Int = 0,
+    val lossTrajectoriesCount: Int = 0,
+    val bucketCoveragePercent: Int = 0,
+    val maturityLabelFr: String = "Initialisation (Prior théorique)"
 )
 
 /**
@@ -67,6 +73,10 @@ object AdaptiveBotLearner {
 
         val map = mutableMapOf<StateBucketKey, BucketAccumulator>()
         var sumFinal = 0L
+        var openedCount = 0
+        var unopenedCount = 0
+        var winCount = 0
+        var lossCount = 0
 
         for (rec in completedRollDecisions) {
             val keptCount = rec.keptDiceCsv.split(',').count { it.isNotBlank() }
@@ -76,6 +86,12 @@ object AdaptiveBotLearner {
                 potBucket = toPotBucket(rec.turnScoreBefore),
                 isOpened = rec.isOpened
             )
+            if (rec.isOpened) openedCount++ else unopenedCount++
+            when (rec.matchWon) {
+                true -> winCount++
+                false -> lossCount++
+                null -> Unit
+            }
             // On pondère davantage les trajectoires issues de parties gagnées (imitation des stratégies gagnantes)
             val weight = when (rec.matchWon) {
                 true -> 1.35
@@ -95,12 +111,25 @@ object AdaptiveBotLearner {
         val confidence = ((completedRollDecisions.size.toDouble() / (completedRollDecisions.size + 60.0)) * 100.0)
             .toInt()
             .coerceIn(1, 99)
+        val coveragePercent = ((map.size.toDouble() / 72.0) * 100.0).toInt().coerceIn(0, 100)
+        val maturityLabel = when {
+            completedRollDecisions.size < 15 -> "Initialisation (Prior théorique)"
+            completedRollDecisions.size < 80 -> "Apprentissage actif"
+            completedRollDecisions.size < 250 -> "Calibrage confirmé"
+            else -> "Modèle mature"
+        }
 
         currentSummary = AdaptiveLearningSummary(
             completedSamplesCount = completedRollDecisions.size,
             activeStateBucketsCount = map.size,
             averageEmpiricalRollOutcome = avgOutcome,
-            learnedConfidencePercent = confidence
+            learnedConfidencePercent = confidence,
+            openedSamplesCount = openedCount,
+            unopenedSamplesCount = unopenedCount,
+            winTrajectoriesCount = winCount,
+            lossTrajectoriesCount = lossCount,
+            bucketCoveragePercent = coveragePercent,
+            maturityLabelFr = maturityLabel
         )
     }
 

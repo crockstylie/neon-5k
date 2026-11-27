@@ -82,6 +82,14 @@ fun InfoScreen(
     val uriHandler = LocalUriHandler.current
     val colors = LocalNeon5KColors.current
     val currentLang = Locale.getDefault().language.lowercase(Locale.ROOT)
+    val appVersion = remember(context) {
+        runCatching {
+            val pkgInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val name = pkgInfo.versionName ?: "1.0.0"
+            val code = pkgInfo.longVersionCode
+            name to code
+        }.getOrDefault("1.0.0" to 1L)
+    }
 
     var versionTapCount by remember { mutableIntStateOf(0) }
     var showHoloEasterEgg by remember { mutableStateOf(false) }
@@ -301,9 +309,9 @@ fun InfoScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = if (versionTapCount >= 3) {
-                        "NEON 5K v1.0.0 (BUILD 1) • [HOLO-NET : $versionTapCount / 7]"
+                        "NEON 5K v${appVersion.first} (BUILD ${appVersion.second}) • [HOLO-NET : $versionTapCount / 7]"
                     } else {
-                        "NEON 5K v1.0.0 (BUILD 1) • MINSDK 29 / TARGETSDK 37 • PIXEL & SHA-256 ENGINE"
+                        "NEON 5K v${appVersion.first} (BUILD ${appVersion.second}) • MINSDK 29 / TARGETSDK 37 • PIXEL & SHA-256 ENGINE"
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.primaryNeon,

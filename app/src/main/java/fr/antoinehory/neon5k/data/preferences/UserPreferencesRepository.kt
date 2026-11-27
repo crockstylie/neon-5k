@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import fr.antoinehory.neon5k.domain.ai.BotSpeed
 import fr.antoinehory.neon5k.domain.rules.BumpOpponentMode
 import fr.antoinehory.neon5k.domain.rules.FiveOfAKindMode
 import fr.antoinehory.neon5k.domain.rules.FourOfAKindMode
@@ -37,6 +38,9 @@ data class UserPreferences(
     val hapticEnabled: Boolean = true,
     val shakeToRollEnabled: Boolean = true,
     val keepScreenOn: Boolean = true,
+    val soundEnabled: Boolean = true,
+    val botSpeed: BotSpeed = BotSpeed.NORMAL,
+    val hasCompletedFirstRollTutorial: Boolean = false,
     val shareAnonymousAiLogs: Boolean = false,
     val favoriteRules: GameRulesConfig = GameRulesConfig.CLASSIC_5_DICE
 ) {
@@ -117,6 +121,10 @@ class UserPreferencesRepository(
                 ?: ThreeStrikesMode.DISABLED
         )
 
+        val botSpeed = prefs[KEY_BOT_SPEED]
+            ?.let { runCatching { BotSpeed.valueOf(it) }.getOrNull() }
+            ?: BotSpeed.NORMAL
+
         UserPreferences(
             themePreset = themePreset,
             customPalette = customPalette,
@@ -126,6 +134,9 @@ class UserPreferencesRepository(
             hapticEnabled = prefs[KEY_HAPTIC_ENABLED] ?: true,
             shakeToRollEnabled = prefs[KEY_SHAKE_TO_ROLL] ?: true,
             keepScreenOn = prefs[KEY_KEEP_SCREEN_ON] ?: true,
+            soundEnabled = prefs[KEY_SOUND_ENABLED] ?: true,
+            botSpeed = botSpeed,
+            hasCompletedFirstRollTutorial = prefs[KEY_FIRST_ROLL_TUTORIAL_DONE] ?: false,
             shareAnonymousAiLogs = prefs[KEY_SHARE_AI_LOGS] ?: false,
             favoriteRules = favoriteRules
         )
@@ -171,6 +182,18 @@ class UserPreferencesRepository(
         dataStore.edit { it[KEY_KEEP_SCREEN_ON] = enabled }
     }
 
+    suspend fun setSoundEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_SOUND_ENABLED] = enabled }
+    }
+
+    suspend fun setBotSpeed(speed: BotSpeed) {
+        dataStore.edit { it[KEY_BOT_SPEED] = speed.name }
+    }
+
+    suspend fun setFirstRollTutorialCompleted(completed: Boolean = true) {
+        dataStore.edit { it[KEY_FIRST_ROLL_TUTORIAL_DONE] = completed }
+    }
+
     suspend fun setShareAnonymousAiLogs(enabled: Boolean) {
         dataStore.edit { it[KEY_SHARE_AI_LOGS] = enabled }
     }
@@ -213,6 +236,9 @@ class UserPreferencesRepository(
         private val KEY_HAPTIC_ENABLED = booleanPreferencesKey("haptic_enabled")
         private val KEY_SHAKE_TO_ROLL = booleanPreferencesKey("shake_to_roll")
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        private val KEY_SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
+        private val KEY_BOT_SPEED = stringPreferencesKey("bot_speed")
+        private val KEY_FIRST_ROLL_TUTORIAL_DONE = booleanPreferencesKey("first_roll_tutorial_done")
         private val KEY_SHARE_AI_LOGS = booleanPreferencesKey("share_anonymous_ai_logs")
 
         private val KEY_RULES_PRESET = stringPreferencesKey("rules_preset")

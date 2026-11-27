@@ -130,6 +130,8 @@ fun NeonNavHost(
                         onToggleScanlines = gameViewModel::setShowScanlines,
                         onToggleLeftHanded = gameViewModel::setLeftHandedMode,
                         onToggleHaptic = gameViewModel::setHapticEnabled,
+                        onToggleSound = gameViewModel::setSoundEnabled,
+                        onSelectBotSpeed = gameViewModel::setBotSpeed,
                         onToggleShakeToRoll = gameViewModel::setShakeToRollEnabled,
                         onToggleKeepScreenOn = gameViewModel::setKeepScreenOn,
                         onBack = { destination = NeonDestination.HOME }
@@ -146,6 +148,7 @@ fun NeonNavHost(
                         decisionLogsCount = decisionLogsCount,
                         exportStatusMessageFr = uiState.exportStatusMessageFr,
                         onOpenPlayGamesAchievements = gameViewModel::openPlayGamesAchievements,
+                        onSyncPlayGamesNow = gameViewModel::syncPlayGamesNow,
                         onExportDataset = gameViewModel::exportAiDataset,
                         onClearDataset = gameViewModel::clearAiDataset,
                         onBack = { destination = NeonDestination.HOME }
