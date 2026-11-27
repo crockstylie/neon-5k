@@ -163,6 +163,7 @@ fun GameScreen(
                         }
                         GameTopBar(
                             match = match,
+                            isBotPaused = uiState.isBotPaused,
                             onNavigateHome = {
                                 triggerHaptic()
                                 onNavigateHome()
@@ -178,6 +179,10 @@ fun GameScreen(
                             onOpenEntropy = {
                                 triggerHaptic()
                                 onEvent(GameUiEvent.ToggleEntropyDialog)
+                            },
+                            onToggleBotPause = {
+                                triggerHaptic()
+                                onEvent(GameUiEvent.ToggleBotPause)
                             }
                         )
                         AutoCenteredPlayerCarousel(
@@ -191,6 +196,7 @@ fun GameScreen(
                             match = match,
                             activePlayer = activePlayer,
                             isBotThinking = uiState.isBotThinking,
+                            isBotPaused = uiState.isBotPaused,
                             errorBannerFr = uiState.errorBannerFr,
                             compact = true
                         )
@@ -232,6 +238,7 @@ fun GameScreen(
                             match = match,
                             activePlayer = activePlayer,
                             isBotThinking = uiState.isBotThinking,
+                            isBotPaused = uiState.isBotPaused,
                             leftHandedMode = preferences.leftHandedMode,
                             compactLandscape = true,
                             onTriggerHaptic = ::triggerHaptic,
@@ -265,6 +272,7 @@ fun GameScreen(
                     }
                     GameTopBar(
                         match = match,
+                        isBotPaused = uiState.isBotPaused,
                         onNavigateHome = {
                             triggerHaptic()
                             onNavigateHome()
@@ -280,6 +288,10 @@ fun GameScreen(
                         onOpenEntropy = {
                             triggerHaptic()
                             onEvent(GameUiEvent.ToggleEntropyDialog)
+                        },
+                        onToggleBotPause = {
+                            triggerHaptic()
+                            onEvent(GameUiEvent.ToggleBotPause)
                         }
                     )
                     AutoCenteredPlayerCarousel(
@@ -293,6 +305,7 @@ fun GameScreen(
                         match = match,
                         activePlayer = activePlayer,
                         isBotThinking = uiState.isBotThinking,
+                        isBotPaused = uiState.isBotPaused,
                         errorBannerFr = uiState.errorBannerFr,
                         compact = false
                     )
@@ -337,6 +350,7 @@ fun GameScreen(
                         match = match,
                         activePlayer = activePlayer,
                         isBotThinking = uiState.isBotThinking,
+                        isBotPaused = uiState.isBotPaused,
                         leftHandedMode = preferences.leftHandedMode,
                         compactLandscape = false,
                         onTriggerHaptic = ::triggerHaptic,
@@ -352,13 +366,16 @@ fun GameScreen(
 @Composable
 private fun GameTopBar(
     match: MatchState,
+    isBotPaused: Boolean,
     onNavigateHome: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenEntropy: () -> Unit
+    onOpenEntropy: () -> Unit,
+    onToggleBotPause: () -> Unit
 ) {
     val colors = LocalNeon5KColors.current
     val snapshot = match.turn.lastEntropySnapshot
+    val hasBotsInMatch = match.players.any { it.type != fr.antoinehory.neon5k.domain.model.PlayerType.HUMAN }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -395,6 +412,31 @@ private fun GameTopBar(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Bouton Pause rapide pour les bots
+            if (hasBotsInMatch) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            if (isBotPaused) colors.alertNeon.copy(alpha = 0.2f) else colors.surface,
+                            CyberCutShape
+                        )
+                        .border(
+                            1.dp,
+                            if (isBotPaused) colors.alertNeon else colors.secondaryNeon.copy(alpha = 0.7f),
+                            CyberCutShape
+                        )
+                        .clickable(onClick = onToggleBotPause)
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = if (isBotPaused) "▶" else "⏸",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isBotPaused) colors.alertNeon else colors.secondaryNeon
+                    )
+                }
+            }
+
             // Bouton Journal / Historique des lancers & paliers
             Box(
                 modifier = Modifier
@@ -612,6 +654,7 @@ private fun TurnStatusPanel(
     match: MatchState,
     activePlayer: PlayerState,
     isBotThinking: Boolean,
+    isBotPaused: Boolean,
     errorBannerFr: String?,
     compact: Boolean
 ) {
@@ -677,6 +720,8 @@ private fun TurnStatusPanel(
             Text(
                 text = if (isBotThinking) {
                     "⚡ ${activePlayer.name} calcule sa trajectoire optimale..."
+                } else if (isBotPaused && activePlayer.type != fr.antoinehory.neon5k.domain.model.PlayerType.HUMAN) {
+                    "⏸ Pause active sur le tour de ${activePlayer.name} — utilisez [Pas à pas] ou [Reprendre]"
                 } else {
                     turn.statusMessageFr
                 },
@@ -1019,6 +1064,7 @@ private fun ActionControlsSection(
     match: MatchState,
     activePlayer: PlayerState,
     isBotThinking: Boolean,
+    isBotPaused: Boolean,
     leftHandedMode: Boolean,
     compactLandscape: Boolean,
     onTriggerHaptic: () -> Unit,
@@ -1086,20 +1132,58 @@ private fun ActionControlsSection(
             return@Box
         }
 
-        if (isBotThinking) {
+        if (activePlayer.type != fr.antoinehory.neon5k.domain.model.PlayerType.HUMAN) {
             CyberPanel(
-                modifier = Modifier.fillMaxWidth(),
-                borderColor = colors.secondaryNeon
+                modifier = Modifier.fillMaxSize(),
+                borderColor = if (isBotPaused) colors.alertNeon else colors.secondaryNeon
             ) {
-                Text(
-                    text = "TOUR DE ${activePlayer.name.uppercase()} (IA EN COURS...)",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.secondaryNeon,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
+                        Text(
+                            text = "TOUR DE ${activePlayer.name.uppercase()}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isBotPaused) colors.alertNeon else colors.secondaryNeon,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = if (isBotPaused) "Pause active • inspectez les dés ou avancez pas à pas" else if (isBotThinking) "IA en cours de réflexion..." else "Tour IA en cours...",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.textMuted,
+                            maxLines = 1
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PixelButton(
+                            text = if (isBotPaused) "▶ REPRENDRE" else "⏸ PAUSE IA",
+                            accentColor = if (isBotPaused) colors.primaryNeon else colors.alertNeon,
+                            filled = isBotPaused,
+                            onClick = {
+                                onTriggerHaptic()
+                                onEvent(GameUiEvent.ToggleBotPause)
+                            }
+                        )
+                        if (isBotPaused) {
+                            PixelButton(
+                                text = "⏭ PAS À PAS",
+                                accentColor = colors.secondaryNeon,
+                                filled = false,
+                                onClick = {
+                                    onTriggerHaptic()
+                                    onEvent(GameUiEvent.StepBotTurn)
+                                }
+                            )
+                        }
+                    }
+                }
             }
             return@Box
         }

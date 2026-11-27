@@ -1,5 +1,7 @@
 package fr.antoinehory.neon5k.ui.setup
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import fr.antoinehory.neon5k.domain.model.PlayerState
 import fr.antoinehory.neon5k.domain.model.PlayerType
@@ -34,6 +40,7 @@ import fr.antoinehory.neon5k.domain.rules.FourOfAKindMode
 import fr.antoinehory.neon5k.domain.rules.GameRulesConfig
 import fr.antoinehory.neon5k.domain.rules.RulesPreset
 import fr.antoinehory.neon5k.domain.rules.ThreeStrikesMode
+import fr.antoinehory.neon5k.ui.components.CyberCutShape
 import fr.antoinehory.neon5k.ui.components.CyberPanel
 import fr.antoinehory.neon5k.ui.components.NeonSubScreenTopBar
 import fr.antoinehory.neon5k.ui.components.PixelButton
@@ -138,16 +145,57 @@ fun SetupScreen(
 
                 players.forEachIndexed { index, player ->
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.background.copy(alpha = 0.55f), CyberCutShape)
+                            .border(1.dp, colors.secondaryNeon.copy(alpha = 0.35f), CyberCutShape)
+                            .padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "#${index + 1} • ${player.name}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = colors.textPrimary
-                            )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "#${index + 1}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = colors.secondaryNeon
+                                )
+                                BasicTextField(
+                                    value = player.name,
+                                    onValueChange = { newName ->
+                                        players[index] = player.copy(name = newName.take(18))
+                                    },
+                                    textStyle = MaterialTheme.typography.titleMedium.copy(
+                                        color = colors.textPrimary
+                                    ),
+                                    cursorBrush = SolidColor(colors.primaryNeon),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(colors.surface.copy(alpha = 0.65f), CyberCutShape)
+                                        .border(1.dp, colors.secondaryNeon.copy(alpha = 0.35f), CyberCutShape)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    decorationBox = { innerTextField ->
+                                        if (player.name.isEmpty()) {
+                                            Text(
+                                                text = "Nom du joueur...",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = colors.textMuted
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                )
+                            }
                             Text(
                                 text = playerTypeDescription(player.type),
                                 style = MaterialTheme.typography.labelSmall,
@@ -160,7 +208,9 @@ fun SetupScreen(
                             accentColor = if (player.type == PlayerType.HUMAN) colors.primaryNeon else colors.secondaryNeon,
                             onClick = {
                                 val nextType = cyclePlayerType(player.type)
-                                val nextName = defaultNameForType(index, nextType)
+                                val currentDefault = defaultNameForType(index, player.type)
+                                val isUsingDefaultName = player.name.isBlank() || player.name == currentDefault
+                                val nextName = if (isUsingDefaultName) defaultNameForType(index, nextType) else player.name
                                 players[index] = player.copy(name = nextName, type = nextType)
                             }
                         )

@@ -65,6 +65,7 @@ data class GameUiState(
     ),
     val hasActiveMatch: Boolean = false,
     val isBotThinking: Boolean = false,
+    val isBotPaused: Boolean = false,
     val rollTriggerCounter: Int = 0,
     val showEntropyDialog: Boolean = false,
     val showRulesDialog: Boolean = false,
@@ -95,6 +96,8 @@ sealed interface GameUiEvent {
     data object SelectAllScoring : GameUiEvent
     data object BankTurn : GameUiEvent
     data object AcknowledgeBust : GameUiEvent
+    data object ToggleBotPause : GameUiEvent
+    data object StepBotTurn : GameUiEvent
     data object RestartMatch : GameUiEvent
     data object ToggleEntropyDialog : GameUiEvent
     data object ToggleRulesDialog : GameUiEvent
@@ -320,6 +323,25 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 val current = _uiState.value.match
                 if (current.activePlayer.type != PlayerType.HUMAN) return
                 executeAcknowledgeBust(current, isHumanActor = true)
+            }
+
+            GameUiEvent.ToggleBotPause -> {
+                val nextPaused = !_uiState.value.isBotPaused
+                if (nextPaused) {
+                    botTurnJob?.cancel()
+                    _uiState.update { it.copy(isBotPaused = true, isBotThinking = false) }
+                } else {
+                    _uiState.update { it.copy(isBotPaused = false) }
+                    scheduleBotTurnIfNeeded(_uiState.value.match)
+                }
+            }
+
+            GameUiEvent.StepBotTurn -> {
+                val current = _uiState.value.match
+                val botProfile = BotProfile.fromPlayerType(current.activePlayer.type)
+                if (botProfile != null && !current.isFinished) {
+                    executeSingleBotStep(current, botProfile)
+                }
             }
 
             GameUiEvent.RestartMatch -> {
@@ -686,12 +708,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { it.copy(isBotThinking = false) }
             return
         }
+        if (_uiState.value.isBotPaused) {
+            _uiState.update { it.copy(isBotThinking = false) }
+            return
+        }
 
         botTurnJob = viewModelScope.launch {
             _uiState.update { it.copy(isBotThinking = true) }
             delay(550L)
 
             while (true) {
+                if (_uiState.value.isBotPaused) break
                 val current = _uiState.value.match
                 val currentProfile = BotProfile.fromPlayerType(current.activePlayer.type)
                 if (current.isFinished || currentProfile == null) break
@@ -745,6 +772,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
                         _uiState.update { it.copy(match = workingState) }
                         delay(650L)
+                        if (_uiState.value.isBotPaused) break
 
                         if (plan.nextAction == BotTurnAction.BANK) {
                             val beforeTurnNum = workingState.turn.turnNumber
@@ -788,6 +816,96 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             _uiState.update { it.copy(isBotThinking = false) }
+        }
+    }
+
+    private fun executeSingleBotStep(current: MatchState, currentProfile: BotProfile) {
+        when (current.turn.phase) {
+            TurnPhase.AWAITING_INITIAL_ROLL -> {
+                val acceptPiggyback = botPolicy.shouldAcceptPiggyback(current, currentProfile)
+                executeRoll(
+                    state = current,
+                    touchX = 0f,
+                    touchY = 0f,
+                    pressDurationMs = 0L,
+                    triggeredByShake = false,
+                    isPiggyback = acceptPiggyback,
+                    isHumanActor = false
+                )
+            }
+
+            TurnPhase.HOT_DICE_MANDATORY_REROLL -> {
+                executeRoll(
+                    state = current,
+                    touchX = 0f,
+                    touchY = 0f,
+                    pressDurationMs = 0L,
+                    triggeredByShake = false,
+                    isPiggyback = false,
+                    isHumanActor = false
+                )
+            }
+
+            TurnPhase.SELECTING_DICE -> {
+                val plan = botPolicy.planMove(current, currentProfile)
+                val unselectedPlanIndices = plan.indicesToSelect.filter { idx ->
+                    val d = current.turn.dice.getOrNull(idx)
+                    d != null && !d.isLocked && !d.isSelected && d.canScoreOnCurrentRoll
+                }
+
+                if (unselectedPlanIndices.isNotEmpty() || !current.turn.isSelectionValid) {
+                    var workingState = current
+                    for (dieIndex in plan.indicesToSelect) {
+                        val die = workingState.turn.dice.getOrNull(dieIndex)
+                        if (die != null && !die.isLocked && !die.isSelected && die.canScoreOnCurrentRoll) {
+                            val res = FiveThousandEngine.toggleDieSelection(workingState, dieIndex)
+                            if (res is EngineResult.Success) {
+                                workingState = res.state
+                            }
+                        }
+                    }
+                    if (!workingState.turn.isSelectionValid) {
+                        val fallback = FiveThousandEngine.selectAllScoringDice(current)
+                        if (fallback is EngineResult.Success) {
+                            workingState = fallback.state
+                        }
+                    }
+                    _uiState.update { it.copy(match = workingState) }
+                    viewModelScope.launch { gameRepository.saveMatchState(workingState) }
+                } else {
+                    if (plan.nextAction == BotTurnAction.BANK) {
+                        val beforeTurnNum = current.turn.turnNumber
+                        executeBankTurn(current, isHumanActor = false)
+                        if (_uiState.value.match.turn.turnNumber == beforeTurnNum &&
+                            !_uiState.value.match.isFinished
+                        ) {
+                            executeRoll(
+                                state = _uiState.value.match,
+                                touchX = 0f,
+                                touchY = 0f,
+                                pressDurationMs = 0L,
+                                triggeredByShake = false,
+                                isPiggyback = false,
+                                isHumanActor = false
+                            )
+                        }
+                    } else {
+                        executeRoll(
+                            state = current,
+                            touchX = 0f,
+                            touchY = 0f,
+                            pressDurationMs = 0L,
+                            triggeredByShake = false,
+                            isPiggyback = false,
+                            isHumanActor = false
+                        )
+                    }
+                }
+            }
+
+            TurnPhase.BUSTED, TurnPhase.OVERFLOW_BUSTED -> {
+                executeAcknowledgeBust(current, isHumanActor = false)
+            }
         }
     }
 

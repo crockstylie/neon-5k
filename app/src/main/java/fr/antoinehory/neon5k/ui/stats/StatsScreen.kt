@@ -603,19 +603,35 @@ private fun FinishedMatchHistoryCard(
                 )
             }
 
-            // Résumé compact des joueurs
-            Row(
+            // Résumé des scores des joueurs (FlowRow responsive anti-tassement)
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 players.sortedByDescending { it.score }.forEach { player ->
                     val isWinner = player.id == winner?.id
-                    Text(
-                        text = "${player.name}: ${player.score} pts",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (isWinner) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isWinner) colors.primaryNeon else colors.textPrimary
-                    )
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = if (isWinner) colors.primaryNeon.copy(alpha = 0.15f) else colors.surface.copy(alpha = 0.5f),
+                                shape = CyberCutShape
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isWinner) colors.primaryNeon.copy(alpha = 0.7f) else colors.secondaryNeon.copy(alpha = 0.3f),
+                                shape = CyberCutShape
+                            )
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "${player.name}: ${player.score} pts",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isWinner) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isWinner) colors.primaryNeon else colors.textPrimary,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
 
