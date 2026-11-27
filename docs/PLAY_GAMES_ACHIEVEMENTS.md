@@ -4,16 +4,28 @@
 
 ---
 
-## 1. L'archive ZIP « Import en 1 clic » (20 Succès + 4 Langues + 20 Icônes 512×512)
+## 1. L'archive ZIP « Import en 1 clic » (3 CSV officiels + 20 Icônes 512×512)
 
-La Google Play Console propose un bouton **« Importer des succès »** (*Import achievements*) qui accepte une archive `.zip` contenant :
-1. `AchievementsMetadata.csv` (sans ligne d'en-tête, avec la langue par défaut `en-US` suivie des traductions `fr-FR`, `es-ES` et `pt-PT` sur chaque ligne).
-2. Les 20 fichiers d'icônes `achievement_01_first_boot.png` à `achievement_20_entropy_master.png` (`512 × 512 px` PNG 32-bit).
+La Google Play Console propose un bouton **« Importer des réussites »** (*Import achievements*) qui exige une archive `.zip` contenant exactement **4 éléments à sa racine** (sans ligne d'en-tête dans les CSV et sans virgule à l'intérieur des textes) :
+1. **[`AchievementsMetadata.csv`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/AchievementsMetadata.csv)** (`Name,Description,Incremental,Steps,Initial State,Points,Sort Order`) — informations des 20 réussites dans la langue par défaut du projet.
+2. **[`AchievementsLocalizations.csv`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/AchievementsLocalizations.csv)** (`Name,Localized Name,Localized Description,Locale`) — traductions des noms et descriptions dans les autres langues (sans répéter la langue par défaut).
+3. **[`AchievementsIconsMappings.csv`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/AchievementsIconsMappings.csv)** (`Name,Icon File`) — association entre le nom de chaque réussite et son fichier PNG.
+4. **Les 20 icônes PNG (`512 × 512 px`)** : `achievement_01_first_boot.png` à `achievement_20_entropy_master.png`.
 
-Cette archive prête à l'emploi a été générée automatiquement dans :
-- **[`docs/play_store_assets/play_games_achievements_import_fr_en.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_import_fr_en.zip)**
-- Le fichier CSV seul est également consultable dans **[`docs/play_store_assets/AchievementsMetadata.csv`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/AchievementsMetadata.csv)**
-- Les 20 icônes individuelles sont dans **[`docs/play_console_achievements_icons/`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_console_achievements_icons)**
+Selon les **langues activées dans tes Propriétés Services de jeux Play** (*Services de jeux Play > Configuration et gestion > Configuration > Propriétés > Gérer les traductions*), plusieurs archives `.zip` prêtes à l'emploi sont générées dans [`docs/play_store_assets/`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets) :
+
+> ⚠️ **Pourquoi l'erreur « Paramètres régionaux non pris en charge » apparaît-elle si on importe `AchievementsLocalizations.csv` directement ?**
+> Les **Services de jeux Play** possèdent leur propre liste de langues activées (indépendante de la fiche du Play Store !). Par défaut, un nouveau projet Play Jeux n'a **qu'une seule langue activée** (sa langue par défaut). Si `AchievementsLocalizations.csv` contient `fr-FR`, `es-ES` ou `pt-PT` alors que ces langues n'ont pas encore été cochées dans **Services de jeux Play > Configuration et gestion > Configuration > Propriétés > Gérer les traductions**, la Play Console refuse le fichier.
+
+- **Option 1 (Import immédiat sans configurer de langues supplémentaires dans Play Jeux — `AchievementsLocalizations.csv` vide)** :
+  - Si ton projet Play Jeux est en **Français (`fr-FR`)** : **[`docs/play_store_assets/play_games_achievements_ONLY_FR.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_ONLY_FR.zip)**
+  - Si ton projet Play Jeux est en **Anglais (`en-US`)** : **[`docs/play_store_assets/play_games_achievements_ONLY_EN.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_ONLY_EN.zip)**
+- **Option 2 (Bilingue FR + EN — après avoir ajouté `en-US` ou `fr-FR` dans les Propriétés Play Jeux)** :
+  - Défaut `fr-FR` + traduction `en-US` : **[`docs/play_store_assets/play_games_achievements_FR_plus_EN.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_FR_plus_EN.zip)**
+  - Défaut `en-US` + traduction `fr-FR` : **[`docs/play_store_assets/play_games_achievements_EN_plus_FR.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_EN_plus_FR.zip)**
+- **Option 3 (4 langues `en-US` + `fr-FR` + `es-ES` + `pt-PT` — après avoir activé ces 4 langues dans les Propriétés Play Jeux)** :
+  - Défaut `en-US` : **[`docs/play_store_assets/play_games_achievements_default_EN.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_default_EN.zip)**
+  - Défaut `fr-FR` : **[`docs/play_store_assets/play_games_achievements_default_FR.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_default_FR.zip)**
 
 ---
 
@@ -32,21 +44,20 @@ Les deux visuels principaux exigés par la fiche Google Play Store ont égalemen
 ### Étape A — Créer le projet Services de jeux Play & Lier les certificats SHA-1
 1. Ouvre la **Google Play Console** → sélectionne l'application **Neon 5K**.
 2. Dans le menu de gauche, va dans **Croissance > Services de jeux Play > Configuration et gestion > Configuration**.
-3. Sélectionne **« Non, mon jeu n'utilise pas les API Google »** → clique sur **Créer** (la langue par défaut conseillée pour l'import CSV et la traduction auto est **English (United States) – `en-US`**).
+3. Sélectionne **« Non, mon jeu n'utilise pas les API Google »** → clique sur **Créer**.
 4. Dans la section **Identifiants** (*Credentials*) :
    - Clique sur **Ajouter un identifiant** (*Add credential*) → Type **Android**.
-   - Crée un identifiant OAuth pour ta **clé de signature de publication (Release / Play App Signing)** et un second pour ta **clé Debug** (pour tester sur ton téléphone/émulateur en développement).
-   - Pour afficher ton SHA-1 Debug sous Android Studio / terminal :
-     ```bash
-     ./gradlew signingReport
-     ```
+   - Crée un identifiant OAuth pour ta **clé de signature de publication (`C:\android\KeyStorePass` / alias `OCRAurebesh`)** :
+     - **SHA-1 Release** : `86:7A:8E:13:C3:F1:06:30:CA:F1:F5:46:E5:F9:28:61:D0:D5:85:AE`
+   - Crée un second identifiant OAuth pour ta **clé Debug** (pour tester directement depuis Android Studio) :
+     - **SHA-1 Debug** : `21:05:A9:54:6A:65:21:21:FE:86:42:2F:8D:46:D1:27:97:BD:B7:DF`
 5. En haut de la page **Configuration**, copie l'**ID du projet** à 12 chiffres (ex. `123456789012`).
 
-### Étape B — Importer les 20 succès en 1 clic via le ZIP
-1. Va dans **Services de jeux Play > Configuration et gestion > Succès**.
-2. Clique sur le bouton **Importer des succès** (*Import achievements*).
-3. Sélectionne le fichier **[`docs/play_store_assets/play_games_achievements_import_fr_en.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_import_fr_en.zip)**.
-4. La Play Console crée automatiquement les **20 succès** (total = **1 000 XP**), attache leurs **20 icônes Pixel Art `512 × 512 px`** et remplit les traductions **`en-US`**, **`fr-FR`**, **`es-ES`** et **`pt-PT`** !
+### Étape B — Importer les 20 réussites en 1 clic via le ZIP
+1. Va dans **Services de jeux Play > Configuration et gestion > Réussites**.
+2. Clique sur le bouton **Importer des réussites** (*Import achievements*).
+3. Sélectionne **[`play_games_achievements_default_EN.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_default_EN.zip)** (si la langue par défaut de ton projet Play Jeux est `en-US`) ou **[`play_games_achievements_default_FR.zip`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/docs/play_store_assets/play_games_achievements_default_FR.zip)** (si la langue par défaut de ton projet Play Jeux est `fr-FR`).
+4. La Play Console crée automatiquement les **20 réussites** (total = **1 000 XP**), associe leurs **20 icônes Pixel Art `512 × 512 px`** via `AchievementsIconsMappings.csv` et importe les traductions via `AchievementsLocalizations.csv` !
 
 ### Étape C — Copier les IDs générés dans `games-ids.xml`
 1. En haut de la page **Succès** dans la Play Console, clique sur **Obtenir les ressources** (*Get resources*).

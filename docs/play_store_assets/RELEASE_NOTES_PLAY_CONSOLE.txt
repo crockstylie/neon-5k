@@ -1,0 +1,98 @@
+<en-US>
+🎲 Welcome to Neon 5K (v1.0.0)!
+• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
+• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
+• Self-learning local AI bots + up to 8-player Pass & Play.
+• 14 themes (including colorblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+</en-US>
+<en-AU>
+🎲 Welcome to Neon 5K (v1.0.0)!
+• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
+• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
+• Self-learning local AI bots + up to 8-player Pass & Play.
+• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+</en-AU>
+<en-CA>
+🎲 Welcome to Neon 5K (v1.0.0)!
+• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
+• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
+• Self-learning local AI bots + up to 8-player Pass & Play.
+• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+</en-CA>
+<en-GB>
+🎲 Welcome to Neon 5K (v1.0.0)!
+• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
+• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
+• Self-learning local AI bots + up to 8-player Pass & Play.
+• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+</en-GB>
+<en-IN>
+🎲 Welcome to Neon 5K (v1.0.0)!
+• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
+• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
+• Self-learning local AI bots + up to 8-player Pass & Play.
+• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+</en-IN>
+<en-SG>
+🎲 Welcome to Neon 5K (v1.0.0)!
+• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
+• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
+• Self-learning local AI bots + up to 8-player Pass & Play.
+• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+</en-SG>
+<en-ZA>
+🎲 Welcome to Neon 5K (v1.0.0)!
+• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
+• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
+• Self-learning local AI bots + up to 8-player Pass & Play.
+• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+</en-ZA>
+<es-419>
+🎲 ¡Bienvenido a Neon 5K (v1.0.0)!
+• Juego de dados 5000 / Farkle completo (5 o 6 dados) con todas las variantes (banca en múltiplos de 100, robo de bote, derribo, penalización de 3 fallos, escaleras de 5 y 6 dados).
+• Tiradas con entropía física SHA-256 + opción de agitar para lanzar.
+• Bots de IA con autoaprendizaje local + modo Pass & Play hasta 8 jugadores.
+• 14 temas (incl. daltonismo), 3 estilos de dados píxel, gráficos y 20 logros Play Juegos.
+</es-419>
+<es-ES>
+🎲 ¡Bienvenido a Neon 5K (v1.0.0)!
+• Juego de dados 5000 / Farkle completo (5 o 6 dados) con todas las variantes (banca en múltiplos de 100, robo de bote, derribo, penalización de 3 fallos, escaleras de 5 y 6 dados).
+• Tiradas con entropía física SHA-256 + opción de agitar para lanzar.
+• Bots de IA con autoaprendizaje local + modo Pass & Play hasta 8 jugadores.
+• 14 temas (incl. daltonismo), 3 estilos de dados píxel, gráficos y 20 logros Play Juegos.
+</es-ES>
+<es-US>
+🎲 ¡Bienvenido a Neon 5K (v1.0.0)!
+• Juego de dados 5000 / Farkle completo (5 o 6 dados) con todas las variantes (banca en múltiplos de 100, robo de bote, derribo, penalización de 3 fallos, escaleras de 5 y 6 dados).
+• Tiradas con entropía física SHA-256 + opción de agitar para lanzar.
+• Bots de IA con autoaprendizaje local + modo Pass & Play hasta 8 jugadores.
+• 14 temas (incl. daltonismo), 3 estilos de dados píxel, gráficos y 20 logros Play Juegos.
+</es-US>
+<fr-CA>
+🎲 Bienvenue dans Neon 5K (v1.0.0) !
+• Jeu de dés 5000 complet (5 ou 6 dés) avec toutes les variantes (banque en multiple de 100, repiquage, chapeau, recul de palier 3 encoches, suites 5 et 6 dés).
+• Lancers à entropie physique SHA-256 + option secouer pour lancer.
+• Bots IA auto-apprenants en local + mode Pass & Play jusqu'à 8 joueurs.
+• 14 thèmes (dont daltonisme et monochrome), 3 styles de dés pixel, graphiques stats et 20 succès Play Jeux.
+</fr-CA>
+<fr-FR>
+🎲 Bienvenue dans Neon 5K (v1.0.0) !
+• Jeu de dés 5000 complet (5 ou 6 dés) avec toutes les variantes (banque en multiple de 100, repiquage, chapeau, recul de palier 3 encoches, suites 5 et 6 dés).
+• Lancers à entropie physique SHA-256 + option secouer pour lancer.
+• Bots IA auto-apprenants en local + mode Pass & Play jusqu'à 8 joueurs.
+• 14 thèmes (dont daltonisme et monochrome), 3 styles de dés pixel, graphiques stats et 20 succès Play Jeux.
+</fr-FR>
+<pt-BR>
+🎲 Bem-vindo ao Neon 5K (v1.0.0)!
+• Jogo de dados 5000 / Farkle completo (5 ou 6 dados) com todas as variantes (guardar em múltiplos de 100, retoma, queda, recuo de 3 marcas, sequências de 5 e 6 dados).
+• Lançamentos com entropia física SHA-256 + opção de agitar para lançar.
+• Bots de IA com autoaprendizagem local + Pass & Play até 8 jogadores.
+• 14 temas (incl. daltonismo), 3 estilos de dados pixel, gráficos de estatísticas e 20 conquistas Play Jogos.
+</pt-BR>
+<pt-PT>
+🎲 Bem-vindo ao Neon 5K (v1.0.0)!
+• Jogo de dados 5000 / Farkle completo (5 ou 6 dados) com todas as variantes (guardar em múltiplos de 100, retoma, queda, recuo de 3 marcas, sequências de 5 e 6 dados).
+• Lançamentos com entropia física SHA-256 + opção de agitar para lançar.
+• Bots de IA com autoaprendizagem local + Pass & Play até 8 jogadores.
+• 14 temas (incl. daltonismo), 3 estilos de dados pixel, gráficos de estatísticas e 20 conquistas Play Jogos.
+</pt-PT>

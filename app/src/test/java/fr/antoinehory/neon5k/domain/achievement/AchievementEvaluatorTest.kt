@@ -426,14 +426,15 @@ class AchievementEvaluatorTest {
         assertTrue(bannerFile.exists() && bannerFile.length() > 100)
 
         // =========================================================================
-        // 3. ARCHIVE ZIP OFFICIELLE GOOGLE PLAY CONSOLE — IMPORT EN MASSE DES 20 SUCCÈS
-        // (AchievementsMetadata.csv + 20 icônes PNG 512×512)
+        // 3. ARCHIVES ZIP OFFICIELLES GOOGLE PLAY CONSOLE — IMPORT EN MASSE DES 20 SUCCÈS
+        // La Play Console exige 4 éléments à la racine du fichier .zip :
+        //   1. AchievementsMetadata.csv       (7 colonnes : Name,Description,Incremental,Steps,Initial State,Points,Sort Order)
+        //   2. AchievementsLocalizations.csv  (4 colonnes : Name,Localized Name,Localized Description,Locale)
+        //   3. AchievementsIconsMappings.csv  (2 colonnes : Name,Icon File)
+        //   4. Les 20 icônes PNG 512×512
         // =========================================================================
         val iconsDir = File(projectRoot, "docs/play_console_achievements_icons")
-        val zipFile = File(storeDir, "play_games_achievements_import_fr_en.zip")
 
-        // Format officiel Play Console Bulk Import CSV (sans en-tête) :
-        // Name,Description,Incremental,Steps,Initial State,Points,Sort Order,Icon filename[,Locale,Localized Name,Localized Description...]
         val esTranslations = mapOf(
             AchievementId.FIRST_BOOT to ("First Boot" to "Supera el umbral de apertura por primera vez."),
             AchievementId.HIGH_VOLTAGE_OPENING to ("High Voltage Opening" to "Abre tu marcador con al menos 1 500 puntos en un solo turno."),
@@ -480,60 +481,166 @@ class AchievementEvaluatorTest {
             AchievementId.ENTROPY_MASTER to ("Entropy Master" to "Conclua 50 partidas completas com entropia SHA-256.")
         )
 
-        fun csvEscape(value: String): String =
-            if (value.contains(',') || value.contains('"')) "\"${value.replace("\"", "\"\"")}\"" else value
+        // Le parseur CSV de la Play Console interdit toute virgule dans Name et Description
+        fun sanitizePlayCsvField(raw: String): String =
+            raw.replace(Regex("(\\d),(\\d)"), "$1 $2")
+                .replace(",", " -")
+                .replace("\"", "")
+                .trim()
 
-        val csvLines = AchievementId.entries.mapIndexed { idx, ach ->
-            val num = String.format("%02d", idx + 1)
-            val iconFileName = "achievement_${num}_${ach.name.lowercase()}.png"
-            val isIncremental = ach.targetSteps > 1
-            val stepsField = if (isIncremental) ach.targetSteps.toString() else ""
-            val (esTitle, esDesc) = esTranslations.getValue(ach)
-            val (ptTitle, ptDesc) = ptTranslations.getValue(ach)
-            // Défaut en en-US + traductions fr-FR, es-ES et pt-PT intégrées sur la même ligne
-            listOf(
-                csvEscape(ach.titleEn),
-                csvEscape(ach.descriptionEn),
-                if (isIncremental) "True" else "False",
-                stepsField,
-                "Revealed",
-                ach.playGamesXp.toString(),
-                (idx + 1).toString(),
-                iconFileName,
-                "fr-FR",
-                csvEscape(ach.titleFr),
-                csvEscape(ach.descriptionFr),
-                "es-ES",
-                csvEscape(esTitle),
-                csvEscape(esDesc),
-                "pt-PT",
-                csvEscape(ptTitle),
-                csvEscape(ptDesc)
-            ).joinToString(",")
-        }
-        val csvContent = csvLines.joinToString("\n")
-        val csvFile = File(storeDir, "AchievementsMetadata.csv")
-        csvFile.writeText(csvContent, Charsets.UTF_8)
+        fun buildPlayGamesAchievementZip(
+            targetZipFile: File,
+            defaultIsFrench: Boolean,
+            extraLocales: Set<String>,
+            exportLooseCsvs: Boolean
+        ) {
+            val metadataLines = mutableListOf<String>()
+            val localizationLines = mutableListOf<String>()
+            val iconMappingLines = mutableListOf<String>()
 
-        java.util.zip.ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
-            // 1. AchievementsMetadata.csv à la racine du ZIP
-            zos.putNextEntry(java.util.zip.ZipEntry("AchievementsMetadata.csv"))
-            zos.write(csvContent.toByteArray(Charsets.UTF_8))
-            zos.closeEntry()
-
-            // 2. Les 20 icônes PNG 512x512 à la racine du ZIP
             AchievementId.entries.forEachIndexed { idx, ach ->
                 val num = String.format("%02d", idx + 1)
                 val iconFileName = "achievement_${num}_${ach.name.lowercase()}.png"
-                val pngFile = File(iconsDir, iconFileName)
-                if (pngFile.exists()) {
-                    zos.putNextEntry(java.util.zip.ZipEntry(iconFileName))
-                    zos.write(pngFile.readBytes())
-                    zos.closeEntry()
+                val isIncremental = ach.targetSteps > 1
+                val stepsField = if (isIncremental) ach.targetSteps.toString() else ""
+
+                val defaultName = sanitizePlayCsvField(if (defaultIsFrench) ach.titleFr else ach.titleEn)
+                val defaultDesc = sanitizePlayCsvField(if (defaultIsFrench) ach.descriptionFr else ach.descriptionEn)
+
+                // 1. AchievementsMetadata.csv : Name,Description,Incremental,Steps,Initial State,Points,Sort Order
+                metadataLines.add(
+                    listOf(
+                        defaultName,
+                        defaultDesc,
+                        if (isIncremental) "True" else "False",
+                        stepsField,
+                        "Revealed",
+                        ach.playGamesXp.toString(),
+                        (idx + 1).toString()
+                    ).joinToString(",")
+                )
+
+                // 2. AchievementsLocalizations.csv : Name,Localized Name,Localized Description,Locale
+                // IMPORTANT : Chaque Locale listée ici DOIT être activée au préalable dans
+                // "Services de jeux Play > Configuration > Propriétés du jeu > Traductions" (et ne pas être la langue par défaut).
+                if ("en-US" in extraLocales && defaultIsFrench) {
+                    localizationLines.add(
+                        listOf(
+                            defaultName,
+                            sanitizePlayCsvField(ach.titleEn),
+                            sanitizePlayCsvField(ach.descriptionEn),
+                            "en-US"
+                        ).joinToString(",")
+                    )
+                }
+                if ("fr-FR" in extraLocales && !defaultIsFrench) {
+                    localizationLines.add(
+                        listOf(
+                            defaultName,
+                            sanitizePlayCsvField(ach.titleFr),
+                            sanitizePlayCsvField(ach.descriptionFr),
+                            "fr-FR"
+                        ).joinToString(",")
+                    )
+                }
+                if ("es-ES" in extraLocales) {
+                    val (esTitle, esDesc) = esTranslations.getValue(ach)
+                    localizationLines.add(
+                        listOf(
+                            defaultName,
+                            sanitizePlayCsvField(esTitle),
+                            sanitizePlayCsvField(esDesc),
+                            "es-ES"
+                        ).joinToString(",")
+                    )
+                }
+                if ("pt-PT" in extraLocales) {
+                    val (ptTitle, ptDesc) = ptTranslations.getValue(ach)
+                    localizationLines.add(
+                        listOf(
+                            defaultName,
+                            sanitizePlayCsvField(ptTitle),
+                            sanitizePlayCsvField(ptDesc),
+                            "pt-PT"
+                        ).joinToString(",")
+                    )
+                }
+
+                // 3. AchievementsIconsMappings.csv : Name,Icon File
+                iconMappingLines.add("$defaultName,$iconFileName")
+            }
+
+            val metadataCsv = metadataLines.joinToString("\n")
+            val localizationsCsv = localizationLines.joinToString("\n")
+            val iconsMappingsCsv = iconMappingLines.joinToString("\n")
+
+            if (exportLooseCsvs) {
+                File(storeDir, "AchievementsMetadata.csv").writeText(metadataCsv, Charsets.UTF_8)
+                File(storeDir, "AchievementsLocalizations.csv").writeText(localizationsCsv, Charsets.UTF_8)
+                File(storeDir, "AchievementsIconsMappings.csv").writeText(iconsMappingsCsv, Charsets.UTF_8)
+            }
+
+            java.util.zip.ZipOutputStream(FileOutputStream(targetZipFile)).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("AchievementsMetadata.csv"))
+                zos.write(metadataCsv.toByteArray(Charsets.UTF_8))
+                zos.closeEntry()
+
+                zos.putNextEntry(java.util.zip.ZipEntry("AchievementsLocalizations.csv"))
+                zos.write(localizationsCsv.toByteArray(Charsets.UTF_8))
+                zos.closeEntry()
+
+                zos.putNextEntry(java.util.zip.ZipEntry("AchievementsIconsMappings.csv"))
+                zos.write(iconsMappingsCsv.toByteArray(Charsets.UTF_8))
+                zos.closeEntry()
+
+                AchievementId.entries.forEachIndexed { idx, ach ->
+                    val num = String.format("%02d", idx + 1)
+                    val iconFileName = "achievement_${num}_${ach.name.lowercase()}.png"
+                    val pngFile = File(iconsDir, iconFileName)
+                    if (pngFile.exists()) {
+                        zos.putNextEntry(java.util.zip.ZipEntry(iconFileName))
+                        zos.write(pngFile.readBytes())
+                        zos.closeEntry()
+                    }
                 }
             }
         }
-        assertTrue(zipFile.exists() && zipFile.length() > 1000)
+
+        // 1. Archives "1 seule langue" (AchievementsLocalizations.csv vide) — marche immédiatement sans configurer de langues supplémentaires dans Play Jeux
+        val zipOnlyFr = File(storeDir, "play_games_achievements_ONLY_FR.zip")
+        val zipOnlyEn = File(storeDir, "play_games_achievements_ONLY_EN.zip")
+        buildPlayGamesAchievementZip(targetZipFile = zipOnlyFr, defaultIsFrench = true, extraLocales = emptySet(), exportLooseCsvs = false)
+        buildPlayGamesAchievementZip(targetZipFile = zipOnlyEn, defaultIsFrench = false, extraLocales = emptySet(), exportLooseCsvs = false)
+
+        // 2. Archives Bilingues FR + EN
+        val zipFrPlusEn = File(storeDir, "play_games_achievements_FR_plus_EN.zip")
+        val zipEnPlusFr = File(storeDir, "play_games_achievements_EN_plus_FR.zip")
+        buildPlayGamesAchievementZip(targetZipFile = zipFrPlusEn, defaultIsFrench = true, extraLocales = setOf("en-US"), exportLooseCsvs = false)
+        buildPlayGamesAchievementZip(targetZipFile = zipEnPlusFr, defaultIsFrench = false, extraLocales = setOf("fr-FR"), exportLooseCsvs = false)
+
+        // 3. Archives 4 langues (en-US, fr-FR, es-ES, pt-PT) — nécessite d'avoir activé ces 4 langues dans Services de jeux Play > Configuration
+        val zipEnDefault = File(storeDir, "play_games_achievements_default_EN.zip")
+        val zipFrDefault = File(storeDir, "play_games_achievements_default_FR.zip")
+        val zipLegacyAlias = File(storeDir, "play_games_achievements_import_fr_en.zip")
+
+        buildPlayGamesAchievementZip(
+            targetZipFile = zipEnDefault,
+            defaultIsFrench = false,
+            extraLocales = setOf("fr-FR", "es-ES", "pt-PT"),
+            exportLooseCsvs = true
+        )
+        buildPlayGamesAchievementZip(
+            targetZipFile = zipFrDefault,
+            defaultIsFrench = true,
+            extraLocales = setOf("en-US", "es-ES", "pt-PT"),
+            exportLooseCsvs = false
+        )
+        zipEnDefault.copyTo(zipLegacyAlias, overwrite = true)
+
+        assertTrue(zipOnlyFr.exists() && zipOnlyFr.length() > 1000)
+        assertTrue(zipOnlyEn.exists() && zipOnlyEn.length() > 1000)
+        assertTrue(zipEnDefault.exists() && zipEnDefault.length() > 1000)
+        assertTrue(zipFrDefault.exists() && zipFrDefault.length() > 1000)
     }
 
     /**
