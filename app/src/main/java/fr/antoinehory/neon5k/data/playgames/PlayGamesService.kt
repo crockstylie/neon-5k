@@ -2,8 +2,9 @@ package fr.antoinehory.neon5k.data.playgames
 
 import android.app.Activity
 import android.content.Context
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.games.PlayGames
-import com.google.android.gms.games.PlayGamesSdk
 import fr.antoinehory.neon5k.R
 import fr.antoinehory.neon5k.domain.achievement.AchievementId
 import fr.antoinehory.neon5k.domain.achievement.AchievementProgress
@@ -23,6 +24,7 @@ data class PlayGamesStatus(
 /**
  * Service d'intégration Google Play Jeux v2 (Lot 4).
  * - Fonctionne à 100 % hors-ligne grâce à la persistance Room locale (`AchievementEntity`).
+ * - L'initialisation globale du SDK (`PlayGamesSdk.initialize`) est assurée dans [fr.antoinehory.neon5k.Neon5KApplication].
  * - Si `game_services_project_id` est renseigné avec l'ID Play Console (`!= 000000000000`) et qu'une `Activity`
  *   est présente, synchronise silencieusement les déblocages (`unlock`) et étapes (`setSteps`) vers Google Play Jeux.
  */
@@ -52,14 +54,6 @@ class GooglePlayGamesService(
     @Volatile
     private var currentActivity: Activity? = null
 
-    init {
-        if (isProjectConfigured) {
-            runCatching {
-                PlayGamesSdk.initialize(appContext)
-            }
-        }
-    }
-
     /**
      * Attache l'activité courante et vérifie l'authentification silencieuse PGS v2.
      */
@@ -70,16 +64,26 @@ class GooglePlayGamesService(
             val signInClient = PlayGames.getGamesSignInClient(activity)
             signInClient.isAuthenticated.addOnCompleteListener { task ->
                 val isAuth = task.isSuccessful && (task.result?.isAuthenticated == true)
+                val diagSuffix = if (!task.isSuccessful) {
+                    " [${formatApiError(task.exception)}]"
+                } else {
+                    ""
+                }
                 _status.value = PlayGamesStatus(
                     isConfiguredInManifest = true,
                     isAuthenticated = isAuth,
                     statusNoteFr = if (isAuth) {
                         "Connecté à Google Play Jeux v2 (Sync cloud active)"
                     } else {
-                        "Google Play Jeux non connecté (Progression sauvegardée localement)"
+                        "Google Play Jeux non connecté$diagSuffix (Progression locale active)"
                     }
                 )
             }
+        }.onFailure { err ->
+            _status.value = _status.value.copy(
+                isAuthenticated = false,
+                statusNoteFr = "Google Play Jeux indisponible (${err.localizedMessage ?: "erreur init"})"
+            )
         }
     }
 
@@ -105,28 +109,39 @@ class GooglePlayGamesService(
             signInClient.isAuthenticated.addOnCompleteListener { authTask ->
                 val isAuth = authTask.isSuccessful && (authTask.result?.isAuthenticated == true)
                 if (isAuth) {
+                    _status.value = _status.value.copy(
+                        isAuthenticated = true,
+                        statusNoteFr = "Connecté à Google Play Jeux v2 (Sync cloud active)"
+                    )
                     openNativeAchievementsOverlay(activity, onFallbackMessage)
                 } else {
                     signInClient.signIn().addOnCompleteListener { signInTask ->
                         val signedIn = signInTask.isSuccessful && (signInTask.result?.isAuthenticated == true)
+                        val diagSuffix = if (!signedIn && !signInTask.isSuccessful) {
+                            " [${formatApiError(signInTask.exception)}]"
+                        } else {
+                            ""
+                        }
                         _status.value = _status.value.copy(
                             isAuthenticated = signedIn,
                             statusNoteFr = if (signedIn) {
-                                "Connecté à Google Play Jeux v2"
+                                "Connecté à Google Play Jeux v2 (Sync cloud active)"
                             } else {
-                                "Connexion Play Jeux refusée ou indisponible (Suivi local actif)"
+                                "Connexion Play Jeux refusée ou indisponible$diagSuffix (Suivi local actif)"
                             }
                         )
                         if (signedIn) {
                             openNativeAchievementsOverlay(activity, onFallbackMessage)
                         } else {
-                            onFallbackMessage("Connexion Google Play Jeux indisponible sur cet appareil.")
+                            onFallbackMessage(
+                                "Connexion Google Play Jeux indisponible$diagSuffix."
+                            )
                         }
                     }
                 }
             }
-        }.onFailure {
-            onFallbackMessage("Service Google Play Jeux indisponible.")
+        }.onFailure { err ->
+            onFallbackMessage("Service Google Play Jeux indisponible (${err.localizedMessage ?: "erreur"}).")
         }
     }
 
@@ -140,8 +155,12 @@ class GooglePlayGamesService(
                 .addOnSuccessListener { intent ->
                     activity.startActivityForResult(intent, RC_ACHIEVEMENTS_UI)
                 }
-                .addOnFailureListener {
-                    onFallbackMessage("Impossible d'ouvrir la fenêtre Google Play Jeux.")
+                .addOnFailureListener { err ->
+                    val diag = formatApiError(err)
+                    _status.value = _status.value.copy(
+                        statusNoteFr = "Erreur overlay Play Jeux [$diag]"
+                    )
+                    onFallbackMessage("Impossible d'ouvrir les succès Google Play Jeux ($diag).")
                 }
         }
     }
@@ -151,7 +170,7 @@ class GooglePlayGamesService(
      */
     fun syncAchievementsToPlayGames(progressList: Collection<AchievementProgress>) {
         val activity = currentActivity ?: return
-        if (!isProjectConfigured) return
+        if (!isProjectConfigured || !_status.value.isAuthenticated) return
 
         runCatching {
             val client = PlayGames.getAchievementsClient(activity)
@@ -160,7 +179,7 @@ class GooglePlayGamesService(
                 if (pgsId.isBlank() || pgsId.startsWith("CgkI_placeholder_")) continue
 
                 if (progress.id.targetSteps > 1) {
-                    val steps = progress.progressSteps.coerceIn(1, progress.id.targetSteps)
+                    val steps = progress.progressSteps.coerceIn(0, progress.id.targetSteps)
                     if (steps > 0) {
                         client.setSteps(pgsId, steps)
                     }
@@ -169,6 +188,21 @@ class GooglePlayGamesService(
                 }
             }
         }
+    }
+
+    private fun formatApiError(exception: Exception?): String {
+        val apiEx = exception as? ApiException
+        if (apiEx != null) {
+            val code = apiEx.statusCode
+            val label = when (code) {
+                CommonStatusCodes.SIGN_IN_REQUIRED -> "SIGN_IN_REQUIRED"
+                CommonStatusCodes.DEVELOPER_ERROR -> "DEVELOPER_ERROR / SHA-1 ou Config Play Console"
+                CommonStatusCodes.NETWORK_ERROR -> "NETWORK_ERROR"
+                else -> CommonStatusCodes.getStatusCodeString(code)
+            }
+            return "code $code ($label)"
+        }
+        return exception?.localizedMessage?.take(60) ?: "non authentifié"
     }
 
     private fun resolvePlayGamesAchievementId(id: AchievementId): String {

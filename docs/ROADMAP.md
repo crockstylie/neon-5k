@@ -104,6 +104,23 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
         - **Refonte `GameScreen`** : carrousel joueurs centré automatiquement (`LazyRow`), bandeau tour/pot sur 1 ligne, historique en direct des lancers & paliers d'encoches (`✕`) au centre + modale dédiée, hauteur du bloc d'actions sous les dés verrouillée (zéro saut des dés), bouton retour avec icône Pixel Art `BACK`, et mode Paysage 2 colonnes sans scroll
         - **Correction `NEON_WIREFRAME`** : points `2×2` dessinés en bloc unifié (sans effet « mini-fenêtre »)
         - **Graphiques & Historique des parties (`StatsScreen`)** : onglet `PARTIES` (journal dépliable des parties et lancers) + graphiques Compose `Canvas` (camemberts/donuts, courbe de scores, barres verticales)
+    - **Recettage Play Store, Ergonomie Bots & Easter Eggs (v1.0.3 / `versionCode 4`)** :
+        - **Play Games Services v2 & Release** : intégration des identifiants officiels Google Play Console (`res/values/games-ids.xml`, App ID `59639547526`, 20 succès), initialisation `PlayGamesSdk.initialize()` dans `Neon5KApplication.onCreate()`, auto-sync des succès locaux à la connexion + diagnostic `ApiException`, et passage en `versionCode = 4` / `versionName = "1.0.3"`
+        - **Conformité Play Console (Edge-to-Edge & SDK)** : mise à jour forcée de `androidx.fragment:fragment` (`1.1.0` → `1.9.1`), `enableEdgeToEdge()` avant `super.onCreate()`, `decorFitsSystemWindows = false` + `WindowInsets.safeDrawing` sur `StarWars42EasterEggDialog`, et `app/proguard-rules.pro` conservant `EdgeToEdge.enable*` pour l'analyseur statique R8
+        - **Room Migration `v2 -> v3` (`AppDatabase`)** : migration non-destructive de `saved_matches` préservant l'historique et les parties en cours lors des mises à jour
+        - **Historique Multi-Joueurs (`StatsScreen`)** : remplacement de la ligne tassée par un `FlowRow` responsive de badges de scores (`3` à `8` joueurs)
+        - **Pause & Pas-à-Pas Bots (`GameViewModel` / `GameScreen`)** : bouton rapide `⏸` / `▶` et bandeau de pause sur les tours de bots (dont parties 100 % Bots) avec mise en pause automatique sur `ON_PAUSE` pour inspecter les lancers
+        - **Nommage Joueurs & Bots (`SetupScreen`)** : champ d'édition du nom disponible pour tous les emplacements (humains et bots) avec conservation du nom personnalisé lors du changement de profil IA
+        - **Correctifs Easter Eggs (`EasterEggOverlay.kt`)** : départ du crawl Star Wars `42` depuis le tout bas de l'écran (`TransformOrigin(0.5f, 0f)` + `maxHeightPx`), fondu progressif (`fade out`) de la phrase bleue à l'approche du `42` jaune, et délai anti-fermeture accidentelle (`900 ms`) sur les 3 modales Easter Egg
+
+---
+
+## Lot 4.5 : Pré-Lot 5 — Polish Audio 8-bit, Vitesse Bots & Audit Qualité (Avant Multijoueur Local)
+- [ ] **Sélecteur de vitesse des Bots (`BotSpeed` : `NORMAL ×1`, `FAST ×2`, `INSTANT`)** : préférence persistée dans `UserPreferencesRepository` et raccourci direct sur `GameScreen` (complémentaire à la pause `⏸` pour les parties 100 % Bots)
+- [ ] **Synthèse Audio 8-bit Rétro sans asset lourd (`SoundEffectsEngine`)** : génération PCM légère en Kotlin (`AudioTrack`) pour lancers, sélection de dés, Glitch/Crash, Main pleine, banque et victoire, avec toggle `soundEnabled` dans `CustomizationScreen`
+- [ ] **Version dynamique & Diagnostic Play Jeux (`InfoScreen` / `StatsScreen`)** : lecture dynamique de `versionName` / `versionCode` via `PackageManager` (remplacement du texte figé `v1.0.0 (BUILD 1)`) et statut détaillé de synchronisation PGS v2
+- [ ] **Inspecteur & Reset IA (`StatsScreen`)** : visualisation enrichie des statistiques `AdaptiveBotLearner` (maturité par contexte/profil) et action dédiée de réinitialisation ciblée de l'apprentissage sans perte des stats joueur
+- [ ] **Polish Fin de Partie & Onboarding 1er lancement (`GameScreen`)** : micro-bulle d'aide contextuelle au premier lancer (*sélectionner les dés scorants avant de relancer/banquer*), récapitulatif de fin de match enrichi (MVP du tour, succès débloqués dans la partie, bouton *Rejouer avec les mêmes règles*) et vérification Release R8 + Play Games sur appareil réel
 
 ---
 

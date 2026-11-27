@@ -104,7 +104,15 @@
     2. Prendre en charge les variantes classiques de table : interdiction de banquer un score non multiple de 100 (`5` isolé interdit en banque seule), seuil minimal par tour après ouverture (`200/250/500`), sprint final des `1 000` derniers points en un seul tour, découplage entre Quinte (`×4 brelan` / `5×Cinq = 5 000`) et Victoire instantanée sur `5×As`, et distinction en mode 6 dés entre Suite à 5 dés (`1-5` / `2-6`) et Grande Suite à 6 dés (`1-2-3-4-5-6`).
 - **Décision** :
     1. Créer `AdaptiveBotLearner` (`domain/ai/AdaptiveBotLearner.kt`) en Kotlin pur : un apprenant par renforcement tabulaire contextuel (`(remainingDice, potBucket, isOpened)`) avec régularisation bayésienne empirique (`PRIOR_WEIGHT = 10.0`) qui pondère les trajectoires issues de parties gagnées et hybride en temps réel l'espérance empirique multi-lancers observée avec l'espérance théorique à 1 coup de `RollProbabilityTable`.
-    2. Étendre `GameRulesConfig`, `DiceScorer` et `FiveThousandEngine` avec `requireMultipleOf100ToBank`, `minTurnScoreAfterOpening`, `finalSprintLast1000InOneTurn`, `instantWinOnFiveOnes`, `FiveOfAKindMode.FIVE_FIVES_5000` et `fullStraight6DiceScore`, tout en préservant la compatibilité du schéma Room `version = 2`.
+    2. Étendre `GameRulesConfig`, `DiceScorer` et `FiveThousandEngine` avec `requireMultipleOf100ToBank`, `minTurnScoreAfterOpening`, `finalSprintLast1000InOneTurn`, `instantWinOnFiveOnes`, `FiveOfAKindMode.FIVE_FIVES_5000` et `fullStraight6DiceScore`, tout en préservant la compatibilité du schéma Room `version = 2` (puis migration explicite `MIGRATION_2_3` en `version = 3`).
 - **Conséquences** : Une IA locale vivante qui progresse en < 2 ms de RAM sans dépendance externe, et une couverture exhaustive des règles officielles et familiales du 5000.
+
+## ADR-015 : Lot intermédiaire Pré-Lot 5 (Audio PCM 8-bit, Contrôle Bots & Qualité) avant le Multijoueur Local
+- **Date** : 2026-11-27
+- **Contexte** : Avant d'introduire la couche réseau Nearby Connections (Lot 5), le recettage en conditions réelles et l'audit produit ont mis en évidence le besoin de peaufiner l'expérience solo/bots (pause & vitesse de jeu des bots, nommage complet, synthèse sonore 8-bit légère, lecture dynamique de version et inspecteur IA).
+- **Décision** :
+    1. Ajouter un **Lot 4.5 (Pré-Lot 5)** dédié au polish solo/ergonomie avant de démarrer le Lot 5.
+    2. Pour les effets sonores rétro (Lot 4.5), privilégier une synthèse PCM 8-bit générée en Kotlin (`AudioTrack`) plutôt que d'embarquer des fichiers audio compressés, afin de respecter l'ADR-005 (zéro dépendance lourde et APK minimal).
+- **Conséquences** : Socle solo/local irréprochable avant d'aborder la complexité temps réel du multijoueur Nearby.
 
 

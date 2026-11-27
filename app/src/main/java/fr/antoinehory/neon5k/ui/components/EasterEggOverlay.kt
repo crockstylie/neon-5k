@@ -16,11 +16,14 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +42,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -53,6 +58,9 @@ import kotlin.random.Random
 private val StarWarsYellow = Color(0xFFFFE81F)
 private val DeepSpaceBlack = Color(0xFF020308)
 private val IntroCyan = Color(0xFF4BD5EE)
+
+// Délai de sécurité anti-fermeture accidentelle lors de clics rapides à l'ouverture d'un Easter Egg
+private const val EASTER_EGG_DISMISS_COOLDOWN_MS = 900L
 
 // Matrice 5x7 du chiffre '4' composée de dés (valeur > 0 = face du dé à afficher, 0 = espace vide)
 private val DIGIT_4_DICE_GRID: List<IntArray> = listOf(
@@ -106,11 +114,10 @@ private val RANDOM_STARFIELD: List<StarPoint> = buildList {
 /**
  * Easter Egg #1 (42 taps sur la zone des dés de l'écran d'accueil) :
  * 1. Séquence d'ouverture Star Wars fidèle : *"A long time ago in a dice tavern far, far away...."*
- *    s'affiche seul au centre de l'écran noir étoilé en cyan, puis s'efface complètement.
- * 2. Générique incliné en perspective 3D (avec inclinaison renforcée en mode portrait) :
- *    un grand **42** jaune composé de vrais dés Pixel Art du jeu (`PixelDiceCanvas`),
- *    suivi de *"Answer to the Ultimate Question of Life, the Universe, and Everything"* (en anglais original)
- *    défile du bas vers l'horizon spatial.
+ *    s'affiche au centre de l'écran noir étoilé en cyan.
+ * 2. Le grand **42** jaune composé de vrais dés Pixel Art (`PixelDiceCanvas`) et son générique
+ *    défilent depuis tout en bas de l'écran en perspective 3D ; lorsque le texte jaune s'approche
+ *    de la phrase bleue centrale, celle-ci s'efface en fondu doux (`fade out`).
  */
 @Composable
 fun StarWars42EasterEggDialog(
@@ -120,19 +127,23 @@ fun StarWars42EasterEggDialog(
     val crawlProgress = remember { Animatable(0f) }
     var sequenceKey by remember { mutableIntStateOf(0) }
     var rollTick by remember { mutableIntStateOf(1) }
+    var isDismissArmed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(EASTER_EGG_DISMISS_COOLDOWN_MS)
+        isDismissArmed = true
+    }
 
     LaunchedEffect(sequenceKey) {
         crawlProgress.snapTo(0f)
         introAlpha.snapTo(0f)
         // Phase 1 : Apparition au centre de "A long time ago in a dice tavern far, far away...."
         introAlpha.animateTo(1f, animationSpec = tween(durationMillis = 650, easing = LinearEasing))
-        delay(2000L)
-        introAlpha.animateTo(0f, animationSpec = tween(durationMillis = 650, easing = LinearEasing))
-        delay(250L)
-        // Phase 2 : Défilement en perspective du grand 42 en dés et du texte jaune Star Wars
+        delay(1100L)
+        // Phase 2 : Le crawl part de tout en bas ; la phrase bleue s'efface gentiment quand le jaune s'approche
         crawlProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 27000, easing = LinearEasing)
+            animationSpec = tween(durationMillis = 26000, easing = LinearEasing)
         )
     }
 
@@ -148,9 +159,10 @@ fun StarWars42EasterEggDialog(
     )
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (isDismissArmed) onDismiss() },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
             dismissOnBackPress = true,
             dismissOnClickOutside = false
         )
@@ -161,6 +173,8 @@ fun StarWars42EasterEggDialog(
                 .background(DeepSpaceBlack)
         ) {
             val isPortrait = maxHeight > maxWidth
+            val maxHeightPx = constraints.maxHeight.toFloat().coerceAtLeast(1f)
+            var crawlContentHeightPx by remember { mutableIntStateOf(0) }
 
             // Champ d'étoiles pseudo-aléatoires sans alignement diagonal
             StarfieldCanvas(
@@ -168,8 +182,13 @@ fun StarWars42EasterEggDialog(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Phase 1 : Texte d'introduction centré au milieu de l'écran, qui disparaît avant le crawl
-            if (introAlpha.value > 0.01f) {
+            val p = crawlProgress.value
+            // La phrase bleue reste visible tant que le texte jaune remonte du bas,
+            // puis fade out doucement entre p = 0.12 (y ≈ 85%) et p = 0.28 (y ≈ 64%) avant d'atteindre le centre.
+            val approachFade = (1f - ((p - 0.12f) / 0.16f).coerceIn(0f, 1f))
+            val effectiveIntroAlpha = introAlpha.value * approachFade
+
+            if (effectiveIntroAlpha > 0.01f) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -182,33 +201,39 @@ fun StarWars42EasterEggDialog(
                             fontWeight = FontWeight.Medium,
                             lineHeight = 32.sp
                         ),
-                        color = IntroCyan.copy(alpha = introAlpha.value),
+                        color = IntroCyan.copy(alpha = effectiveIntroAlpha),
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // Phase 2 : Conteneur en perspective 3D Star Wars (inclinaison plus prononcée en portrait)
-            val p = crawlProgress.value
-            if (p > 0.001f) {
+            // Phase 2 : Conteneur en perspective 3D Star Wars ancré tout en haut du bloc (TransformOrigin y=0)
+            // afin que le haut du "42" démarre exactement sous le bord inférieur de l'écran (maxHeightPx).
+            if (p > 0.0005f) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = if (isPortrait) 8.dp else 32.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    val startOffsetPx = if (isPortrait) 640f else 480f
-                    val translateY = (1f - p * 1.72f) * startOffsetPx
-                    val distanceScale = (1.08f - p * 0.78f).coerceAtLeast(0.18f)
-                    val distanceAlpha = (1.20f - p * 0.92f).coerceIn(0.10f, 1f)
-                    val tiltAngleX = if (isPortrait) 68f else 58f
-                    val camDistFactor = if (isPortrait) 8.2f else 12.5f
+                    val startY = maxHeightPx
+                    val endY = -maxOf(maxHeightPx * 0.28f, crawlContentHeightPx * 0.35f)
+                    val translateY = startY + (endY - startY) * p
+                    val distanceScale = (1.02f - p * 0.80f).coerceAtLeast(0.18f)
+                    val distanceAlpha = if (p < 0.78f) {
+                        1f
+                    } else {
+                        (1f - (p - 0.78f) / 0.22f).coerceIn(0f, 1f)
+                    }
+                    val tiltAngleX = if (isPortrait) 64f else 56f
+                    val camDistFactor = if (isPortrait) 9.5f else 12.5f
 
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .onSizeChanged { crawlContentHeightPx = it.height }
                             .graphicsLayer {
-                                transformOrigin = TransformOrigin(0.5f, 0.08f)
+                                transformOrigin = TransformOrigin(0.5f, 0.0f)
                                 rotationX = tiltAngleX
                                 cameraDistance = camDistFactor * density
                                 translationY = translateY
@@ -287,12 +312,13 @@ fun StarWars42EasterEggDialog(
                     )
             )
 
-            // Barre de contrôle inférieure
+            // Barre de contrôle inférieure (protégée par les insets safeDrawing en mode bord à bord)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .background(DeepSpaceBlack.copy(alpha = 0.85f))
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -312,7 +338,7 @@ fun StarWars42EasterEggDialog(
                     icon = PixelIconId.BACK,
                     filled = true,
                     accentColor = StarWarsYellow,
-                    onClick = onDismiss,
+                    onClick = { if (isDismissArmed) onDismiss() },
                     modifier = Modifier.weight(1.3f)
                 )
             }
@@ -387,6 +413,7 @@ private fun StarfieldCanvas(
 /**
  * Easter Egg #2 (13 taps sur le panneau "SYSTÈME D'ALÉATOIRE HYBRIDE ACTIF" de l'écran d'accueil) :
  * Terminal "OVERCLOCK 1337 // WHITE RABBIT ENTROPY" avec pluie matricielle de dés Phosphor.
+ * Protégé par un délai anti-fermeture accidentelle ([EASTER_EGG_DISMISS_COOLDOWN_MS]).
  */
 @Composable
 fun Matrix1337EasterEggDialog(
@@ -395,8 +422,14 @@ fun Matrix1337EasterEggDialog(
     val phosphorGreen = Color(0xFF39FF14)
     val matrixBg = Color(0xFF030A04)
     var rollTick by remember { mutableIntStateOf(1) }
+    var isDismissArmed by remember { mutableStateOf(false) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    LaunchedEffect(Unit) {
+        delay(EASTER_EGG_DISMISS_COOLDOWN_MS)
+        isDismissArmed = true
+    }
+
+    Dialog(onDismissRequest = { if (isDismissArmed) onDismiss() }) {
         Surface(
             shape = CyberCutShape,
             color = matrixBg,
@@ -446,7 +479,7 @@ fun Matrix1337EasterEggDialog(
                     text = "JACK OUT (1337)",
                     icon = PixelIconId.BOLT,
                     accentColor = phosphorGreen,
-                    onClick = onDismiss,
+                    onClick = { if (isDismissArmed) onDismiss() },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -457,6 +490,7 @@ fun Matrix1337EasterEggDialog(
 /**
  * Easter Egg #3 (7 taps sur le badge de version en bas de InfoScreen) :
  * Clin d'oeil galactique à `OCRAurebesh` et au Sabacc ("NEVER TELL ME THE ODDS!").
+ * Protégé par un délai anti-fermeture accidentelle ([EASTER_EGG_DISMISS_COOLDOWN_MS]).
  */
 @Composable
 fun HoloAurebeshEasterEggDialog(
@@ -464,8 +498,14 @@ fun HoloAurebeshEasterEggDialog(
 ) {
     val colors = LocalNeon5KColors.current
     var rollTick by remember { mutableIntStateOf(1) }
+    var isDismissArmed by remember { mutableStateOf(false) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    LaunchedEffect(Unit) {
+        delay(EASTER_EGG_DISMISS_COOLDOWN_MS)
+        isDismissArmed = true
+    }
+
+    Dialog(onDismissRequest = { if (isDismissArmed) onDismiss() }) {
         Surface(
             shape = CyberCutShape,
             color = colors.background,
@@ -515,7 +555,7 @@ fun HoloAurebeshEasterEggDialog(
                     text = "FERMER L'HOLOCRON",
                     icon = PixelIconId.STAR,
                     accentColor = StarWarsYellow,
-                    onClick = onDismiss,
+                    onClick = { if (isDismissArmed) onDismiss() },
                     modifier = Modifier.fillMaxWidth()
                 )
             }

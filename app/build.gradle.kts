@@ -27,6 +27,10 @@ android {
                 enable = true
             }
             isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -54,6 +58,11 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.play.services.games.v2)
+    constraints {
+        implementation(libs.androidx.fragment) {
+            because("Play Games Services v2 tire transitivement androidx.fragment:fragment:1.1.0 signalé obsolète par la Play Console (1.2.1+ requis)")
+        }
+    }
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

@@ -47,6 +47,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -189,6 +191,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     current.copy(hasActiveMatch = activeMatch != null && !activeMatch.isFinished)
                 }
             }
+        }
+        viewModelScope.launch {
+            playGamesService.status
+                .map { it.isAuthenticated }
+                .distinctUntilChanged()
+                .collectLatest { authenticated ->
+                    if (authenticated) {
+                        val allProgress = gameRepository.getAllAchievementsProgress()
+                        playGamesService.syncAchievementsToPlayGames(allProgress)
+                    }
+                }
         }
         viewModelScope.launch {
             sensorCollector.shakeEvents.collectLatest {

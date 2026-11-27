@@ -7,7 +7,19 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ## [Unreleased]
 
-### 🚀 Lot 4 & Recettage Complet (Pré-Lot 5)
+### 🛠️ Recettage Play Store, Bots & Easter Eggs (Pré-Lot 5)
+- **Identifiants Play Jeux v2 & Fiabilisation PGS (`Neon5KApplication`, `GooglePlayGamesService`)** : ajout de `games-ids.xml` (App ID `59639547526` et les 20 IDs de succès), initialisation officielle `PlayGamesSdk.initialize()` dans `Neon5KApplication.onCreate()`, synchronisation automatique des succès locaux dès l'authentification Play Jeux et remontée des codes `ApiException` dans le diagnostic, ainsi que migration Room non-destructive `v2 -> v3` (`AppDatabase`).
+- **Conformité Play Console (`EdgeToEdge`, `androidx.fragment`)** : contrainte Gradle vers `androidx.fragment:fragment:1.9.1` (remplace `1.1.0` tiré transitivement), appel `enableEdgeToEdge()` avant `super.onCreate()`, `decorFitsSystemWindows = false` + `safeDrawing` sur le plein écran `StarWars42EasterEggDialog` et conservation R8 de `EdgeToEdge.enable*` via `app/proguard-rules.pro`.
+- **Pause & Pas-à-Pas sur les tours de Bots (`GameViewModel`, `GameScreen`)** : bouton rapide `⏸` / `▶` permettant de suspendre une partie IA (y compris 100 % Bots) pour inspecter chaque lancer ou avancer coup par coup, avec mise en pause automatique lorsque l'écran passe en arrière-plan.
+- **Nommage personnalisé des joueurs & bots (`SetupScreen`)** : édition libre du nom de chaque participant (humain comme IA) avec conservation du nom personnalisé lors du changement de profil de bot.
+- **Historique multi-joueurs lisible (`StatsScreen`)** : remplacement du résumé en ligne tassé par un `FlowRow` responsive de badges de scores (de 3 à 8 joueurs).
+- **Correctifs Easter Eggs (`EasterEggOverlay.kt`)** :
+  - Générique Star Wars `42` démarrant depuis tout en bas de l'écran dès `p > 0` (`TransformOrigin(0.5f, 0f)` + hauteur réelle du conteneur), avec fondu doux (`fade out`) de la phrase d'intro cyan à l'approche du `42` jaune.
+  - Délai de sécurité anti-fermeture accidentelle (`900 ms`) sur les 3 Easter Eggs (`StarWars42`, `Matrix1337`, `HoloAurebesh`) pour ignorer les clics rapides consécutifs à l'ouverture.
+
+---
+
+## [1.0.3] - Lot 4 & Recettage Plateau / IA / Graphiques
 - **Nouvelles variantes paramétrables du 5000 (`GameRulesConfig`, `DiceScorer`, `FiveThousandEngine`)** :
   - **Chiffre rond obligatoire pour banquer (`requireMultipleOf100ToBank`)** : impose un multiple de `100` pts pour banquer un tour (interdit de banquer un `5` isolé ou un total finissant par `50`).
   - **Seuil minimal par tour après ouverture (`minTurnScoreAfterOpening`)** : configurable à `0` (libre), `200`, `250` ou `500` pts.

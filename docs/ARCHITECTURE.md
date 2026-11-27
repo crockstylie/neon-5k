@@ -131,9 +131,11 @@ fr.antoinehory.neon5k/
 | `app/src/main/res/drawable/ic_launcher_background.xml` | Fond vectoriel XML cyberpunk (`#090A10` avec micro-grille discrète) | Actif |
 | `app/src/main/res/values/colors.xml` | Couleurs de base et fond du Splash Screen | Actif |
 | `app/src/main/res/values/themes.xml` | Configuration `Theme.Neon5K.Starting` (`core-splashscreen`) | Actif |
-| `gradle/libs.versions.toml` | Catalogue des dépendances (Compose BOM, Lifecycle, Splashscreen) | Actif |
+| `gradle/libs.versions.toml` | Catalogue des dépendances (Compose BOM, Lifecycle, Splashscreen, `androidx.fragment:1.9.1`) | Actif |
 | `app/build.gradle.kts` | Configuration `:app` (`fr.antoinehory.neon5k`, `minSdk = 29`, `targetSdk = 37`, R8 global) | Actif |
-| `app/src/main/AndroidManifest.xml` | Manifest (`Theme.Neon5K.Starting`, capteurs gyroscope/accéléromètre optionnels) | Actif |
+| `app/proguard-rules.pro` | Règles R8 complémentaires (`EdgeToEdge.enable*` pour l'analyseur Play Console API 35+) | Actif |
+| `app/src/main/AndroidManifest.xml` | Manifest (`Neon5KApplication`, `Theme.Neon5K.Starting`, `APP_ID` Play Jeux, capteurs optionnels) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/Neon5KApplication.kt` | Classe `Application` initialisant `PlayGamesSdk.initialize()` au démarrage du processus (PGS v2) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/MainActivity.kt` | Activité principale (`installSplashScreen()`, `enableEdgeToEdge()`, `NeonNavHost`) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/domain/rules/GameRulesConfig.kt` | Configuration immuable des règles et presets du 5000 + `fingerprint()` | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/domain/rules/ScoringCombination.kt` | Modèles `CombinationKind`, `ScoringCombination` et `SelectionEvaluation` | Actif |
@@ -162,7 +164,7 @@ fr.antoinehory.neon5k/
 | `app/src/main/java/fr/antoinehory/neon5k/domain/ai/AdaptiveBotLearner.kt` | Apprentissage par renforcement tabulaire à régularisation bayésienne nourri par `decision_logs` | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/domain/ai/BotPolicy.kt` | Contrat de stratégie IA et profils `BotProfile` (`SAFE_RUNNER`, `CYBER_BALANCED`, `OVERCLOCK_KAMIKAZE`) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicy.kt` | IA probabiliste V1+ hybridant l'EV mathématique exacte ($6^N$) et l'apprentissage empirique `AdaptiveBotLearner` | Actif |
-| `app/src/main/java/fr/antoinehory/neon5k/data/local/AppDatabase.kt` | Base Room `neon_5k.db` | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/data/local/AppDatabase.kt` | Base Room `neon_5k.db` (`version = 3`, migration non-destructive `MIGRATION_2_3`) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/SavedMatchEntity.kt` | Entité Room de sauvegarde/reprise de partie et mappers JSON | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/PlayerStatsEntity.kt` | Entité Room des statistiques locales cumulées | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/local/entity/DecisionLogEntity.kt` | Entité Room du journal des décisions pour dataset IA | Actif |
@@ -173,9 +175,9 @@ fr.antoinehory.neon5k/
 | `app/src/main/java/fr/antoinehory/neon5k/data/preferences/UserPreferencesRepository.kt` | Préférences DataStore (thème, palette custom, style dés, règles favorites, ergonomie) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/export/AiDatasetExporter.kt` | Export SAF `.jsonl` / `.csv` des logs IA sans permission de stockage | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/components/ColorPickerDialog.kt` | Sélecteur de couleur hybride HSV / RGB (`0..255`) + bouton Random + `#RRGGBB` avec contrôle contraste WCAG 2.1 | Actif |
-| `app/src/main/java/fr/antoinehory/neon5k/ui/components/EasterEggOverlay.kt` | Système d'Easter Eggs multi-taps (Générique Star Wars `42` en dés Pixel Art, Matrix Overclock `1337`, Holocron Aurebesh `7`) | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/components/EasterEggOverlay.kt` | Système d'Easter Eggs multi-taps (Crawl Star Wars `42` depuis le bas + fade out intro, Matrix `1337`, Holocron `7` avec cooldown 900 ms) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/customization/CustomizationScreen.kt` | Studio de personnalisation du thème (Cyberpunk, Gris, Sépia, Daltonisme, Random), des dés et de l'ergonomie | Actif |
-| `app/src/main/java/fr/antoinehory/neon5k/ui/stats/StatsScreen.kt` | Écran des statistiques locales et de l'export SAF du dataset IA | Actif |
+| `app/src/main/java/fr/antoinehory/neon5k/ui/stats/StatsScreen.kt` | Statistiques, historique dépliable multi-joueurs (`FlowRow`), graphiques `Canvas`, succès & export dataset IA | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/rules/RulesScreen.kt` | Codex des règles du 5000, simulateur interactif de barème Pixel Art et modale `[?]` en partie | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/info/InfoScreen.kt` | Fiche Informations & Crédits (modèle `OCRAurebesh` + 6 réseaux sociaux + PayPal + Play Store `pub:Crock` + sélecteur 4 langues) | Actif |
 | `app/src/main/res/drawable/ic_*_logo.xml` | 6 icônes vectorielles XML de réseaux sociaux (`linkedin`, `behance`, `instagram`, `facebook`, `spotify`, `steam`) | Actif |
@@ -187,9 +189,10 @@ fr.antoinehory.neon5k/
 | `app/src/main/java/fr/antoinehory/neon5k/data/local/dao/AchievementDao.kt` | DAO Room des 20 succès | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/data/playgames/PlayGamesService.kt` | Intégration Google Play Jeux v2 (`PlayGamesSdk`, auth silencieuse, `unlock`/`setSteps`, UI native) | Actif |
 | `app/src/main/java/fr/antoinehory/neon5k/ui/components/PixelAchievementIconCanvas.kt` | Badge Pixel Art `16×16` des succès + bannière toast néon `AchievementToastBanner` en partie | Actif |
-| `app/src/main/res/values/games-ids.xml` | Identifiants Google Play Console (`game_services_project_id` + 20 IDs `achievement_*`) | Actif |
+| `app/src/main/res/values/games-ids.xml` | Identifiants Google Play Console (`app_id` `59639547526` + 20 IDs `achievement_*`) | Actif |
 | `docs/PLAY_GAMES_ACHIEVEMENTS.md` | Guide pas-à-pas de déclaration des 20 succès dans Google Play Console + barème 1 000 XP | Actif |
 | `docs/play_console_achievements_icons/*.png` | 20 icônes PNG `512 × 512 px` générées automatiquement pour la Google Play Console | Actif |
+| `docs/play_store_assets/*` | Icône Play Store `512 × 512`, bannière `1024 × 500`, CSV Play Console & release notes multilingues | Actif |
 | `app/src/test/java/fr/antoinehory/neon5k/domain/ai/HeuristicBotPolicyTest.kt` | Tests unitaires JVM de `RollProbabilityTable` et `HeuristicBotPolicy` | Actif |
 | `app/src/test/java/fr/antoinehory/neon5k/domain/achievement/AchievementEvaluatorTest.kt` | Tests unitaires JVM de `AchievementEvaluator` et générateur des 20 icônes PNG `512 × 512 px` | Actif |
 | `app/src/androidTest/java/fr/antoinehory/neon5k/data/local/NeonDatabaseInstrumentedTest.kt` | Tests instrumentés Room (`MatchDao` & `DecisionLogDao`) | Actif |
