@@ -5,6 +5,13 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.0.5] - Blindage Google Play Jeux v2 & Splits Play Store
+- **Correction Play Store `split_config.<lang>.apk` (`games-ids.xml`, `AndroidManifest.xml`)** : ajout de la clé dédiée non-traduite `pgs_app_id` pour `com.google.android.gms.games.APP_ID` afin d'empêcher Google Play d'écraser l'App ID par d'anciennes traductions en cache (`000000000000`), avec vérification `translatable="false"` exclusive dans `res/values/games-ids.xml`.
+- **Repli déterministe Kotlin (`Neon5KApplication`, `GooglePlayGamesService`)** : résolution sécurisée du Project ID (`59639547526`) et des 20 IDs de succès Play Jeux (`CgkIho2tlt4BEAIQ...`) si un split localisé renvoie un placeholder.
+- **Documentation Play App Signing (`PLAY_GAMES_ACHIEVEMENTS.md`)** : ajout du certificat SHA-1 de signature Google Play (`AE:21:8F:...`) pour la configuration OAuth de production.
+
+---
+
 ## [1.0.4] - Lot 4.5 (Audio 8-bit, Vitesse Bots & Polish Pré-Lot 5)
 - **Sélecteur de vitesse des Bots (`BotSpeed`)** : cadence réglable `Normal ×1`, `Rapide ×2`, `Turbo ×4` ou `Instantané ⚡` (persistée dans DataStore, modifiable à la volée sur le plateau `GameScreen` avec prise en compte réactive sous `25 ms` et dans `CustomizationScreen`).
 - **Succès strictement réservés aux joueurs humains** : garde-fou multi-couches (`GameViewModel`, `GameRepository`, `AchievementEvaluator`) garantissant qu'aucun lancer, banque, crash ou victoire d'un bot IA ne peut débloquer ni faire progresser un succès.

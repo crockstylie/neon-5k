@@ -2,6 +2,7 @@ package fr.antoinehory.neon5k
 
 import android.app.Application
 import com.google.android.gms.games.PlayGamesSdk
+import fr.antoinehory.neon5k.data.playgames.GooglePlayGamesService
 
 /**
  * Classe [Application] de Neon 5K.
@@ -12,8 +13,8 @@ class Neon5KApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        val projectId = runCatching { getString(R.string.game_services_project_id) }.getOrDefault("")
-        if (projectId.isNotBlank() && projectId != "000000000000") {
+        val projectId = GooglePlayGamesService.resolveProjectId(this)
+        if (projectId.isNotBlank() && projectId != GooglePlayGamesService.PLACEHOLDER_PROJECT_ID) {
             runCatching {
                 PlayGamesSdk.initialize(this)
             }

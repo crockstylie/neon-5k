@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -81,7 +82,9 @@ fun InfoScreen(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val colors = LocalNeon5KColors.current
-    val currentLang = Locale.getDefault().language.lowercase(Locale.ROOT)
+    val configuration = LocalConfiguration.current
+    val currentLang = (configuration.locales.takeIf { !it.isEmpty }?.get(0)?.language ?: "fr")
+        .lowercase(Locale.ROOT)
     val appVersion = remember(context) {
         runCatching {
             val pkgInfo = context.packageManager.getPackageInfo(context.packageName, 0)

@@ -121,6 +121,7 @@ Légende : `[x]` Terminé | `[/]` En cours | `[ ]` À faire
 - [x] **Version dynamique & Diagnostic Play Jeux (`InfoScreen` / `StatsScreen`)** : lecture dynamique de `versionName` / `versionCode` via `PackageManager` (remplacement du texte figé `v1.0.0 (BUILD 1)`) et statut détaillé de synchronisation PGS v2
 - [x] **Inspecteur & Reset IA (`StatsScreen`)** : visualisation enrichie des statistiques `AdaptiveBotLearner` (maturité par contexte/profil) et action dédiée de réinitialisation ciblée de l'apprentissage sans perte des stats joueur
 - [x] **Polish Fin de Partie & Onboarding 1er lancement (`GameScreen`)** : micro-bulle d'aide contextuelle au premier lancer (*sélectionner les dés scorants avant de relancer/banquer*), récapitulatif de fin de match enrichi (MVP du tour, succès débloqués dans la partie, bouton *Rejouer avec les mêmes règles*) et vérification Release R8 + Play Games sur appareil réel
+- [x] **Blindage Play Store PGS v2 (`v1.0.5 / BUILD 6`)** : verrouillage `translatable="false"` + `tools:ignore="MissingTranslation"` dans `res/values/games-ids.xml`, nouvelle clé `pgs_app_id` dans `AndroidManifest.xml` (immunité contre l'écrasement `split_config.<lang>.apk` par les caches de traduction Play Console `v1.0.0`), repli Kotlin dans `Neon5KApplication` / `GooglePlayGamesService` et documentation du SHA-1 Play App Signing (`AE:21:8F:...`)
 
 ---
 

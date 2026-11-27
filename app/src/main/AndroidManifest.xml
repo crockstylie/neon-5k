@@ -23,7 +23,7 @@
         android:theme="@style/Theme.Neon5K.Starting">
         <meta-data
             android:name="com.google.android.gms.games.APP_ID"
-            android:value="@string/game_services_project_id" />
+            android:value="@string/pgs_app_id" />
 
         <activity
             android:name=".MainActivity"

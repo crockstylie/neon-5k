@@ -47,11 +47,15 @@ Les deux visuels principaux exigés par la fiche Google Play Store ont égalemen
 3. Sélectionne **« Non, mon jeu n'utilise pas les API Google »** → clique sur **Créer**.
 4. Dans la section **Identifiants** (*Credentials*) :
    - Clique sur **Ajouter un identifiant** (*Add credential*) → Type **Android**.
-   - Crée un identifiant OAuth pour ta **clé de signature de publication (`C:\android\KeyStorePass` / alias `OCRAurebesh`)** :
-     - **SHA-1 Release** : `86:7A:8E:13:C3:F1:06:30:CA:F1:F5:46:E5:F9:28:61:D0:D5:85:AE`
-   - Crée un second identifiant OAuth pour ta **clé Debug** (pour tester directement depuis Android Studio) :
+   - **Obligatoire pour la version Play Store** — Crée un identifiant OAuth pour la **clé de signature de l'application Google Play (Play App Signing)** visible dans *Tester et publier > Configuration > Signature de l'application* :
+     - **SHA-1 Play App Signing (Production)** : `AE:21:8F:76:6A:3B:DB:12:BB:1E:A5:A3:85:59:AF:6C:8E:78:E2:4F`
+     - **SHA-256 Play App Signing** : `78:5D:B0:8C:41:DB:F7:42:A4:8E:5A:ED:D9:80:5E:8E:CF:F9:0E:67:B6:7E:A6:35:42:44:EE:0E:D4:FE:08:92`
+   - Crée un identifiant OAuth pour ta **clé d'importation / upload (`C:\android\KeyStorePass` / alias `OCRAurebesh`)** :
+     - **SHA-1 Upload / Release local** : `86:7A:8E:13:C3:F1:06:30:CA:F1:F5:46:E5:F9:28:61:D0:D5:85:AE`
+   - Crée un identifiant OAuth pour ta **clé Debug** (pour tester directement depuis Android Studio) :
      - **SHA-1 Debug** : `21:05:A9:54:6A:65:21:21:FE:86:42:2F:8D:46:D1:27:97:BD:B7:DF`
-5. En haut de la page **Configuration**, copie l'**ID du projet** à 12 chiffres (ex. `123456789012`).
+5. En haut de la page **Configuration**, copie l'**ID du projet** à 12 chiffres (`59639547526`).
+6. > ⚠️ **Piège connu Play Console (`split_config.<lang>.apk`)** : les clés de [`app/src/main/res/values/games-ids.xml`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/app/src/main/res/values/games-ids.xml) doivent porter `translatable="false"` et n'exister dans aucun dossier `values-fr/`, `values-en/`, etc. De plus, `AndroidManifest.xml` pointe vers `@string/pgs_app_id` et [`GooglePlayGamesService`](file:///C:/Users/hory/AndroidStudioProjects/Neon5K/app/src/main/java/fr/antoinehory/neon5k/data/playgames/PlayGamesService.kt) embarque un repli automatique en Kotlin pour rester immunisé même si Google Play réinjecte d'anciennes traductions `v1.0.0` (`000000000000` / `CgkI_placeholder_*`) dans ses splits de langue.
 
 ### Étape B — Importer les 20 réussites en 1 clic via le ZIP
 1. Va dans **Services de jeux Play > Configuration et gestion > Réussites**.

@@ -33,12 +33,10 @@ data class PlayGamesStatus(
 class GooglePlayGamesService(
     private val appContext: Context
 ) {
-    private val projectId: String = runCatching {
-        appContext.getString(R.string.game_services_project_id)
-    }.getOrDefault("000000000000")
+    private val projectId: String = resolveProjectId(appContext)
 
     private val isProjectConfigured: Boolean =
-        projectId.isNotBlank() && projectId != "000000000000"
+        projectId.isNotBlank() && projectId != PLACEHOLDER_PROJECT_ID
 
     private val _status = MutableStateFlow(
         PlayGamesStatus(
@@ -238,10 +236,59 @@ class GooglePlayGamesService(
             AchievementId.BEAT_THE_MACHINE -> R.string.achievement_beat_the_machine
             AchievementId.ENTROPY_MASTER -> R.string.achievement_entropy_master
         }
-        return runCatching { appContext.getString(resId) }.getOrDefault("")
+        val fromResources = runCatching { appContext.getString(resId).trim() }.getOrDefault("")
+        if (fromResources.isNotBlank() && !fromResources.startsWith(PLACEHOLDER_ACHIEVEMENT_PREFIX)) {
+            return fromResources
+        }
+        return OFFICIAL_ACHIEVEMENT_IDS[id].orEmpty()
     }
 
     companion object {
         private const val RC_ACHIEVEMENTS_UI = 9003
+        const val PLACEHOLDER_PROJECT_ID = "000000000000"
+        private const val PLACEHOLDER_ACHIEVEMENT_PREFIX = "CgkI_placeholder_"
+        const val OFFICIAL_PROJECT_ID = "59639547526"
+
+        val OFFICIAL_ACHIEVEMENT_IDS: Map<AchievementId, String> = mapOf(
+            AchievementId.FIRST_BOOT to "CgkIho2tlt4BEAIQDA",
+            AchievementId.HIGH_VOLTAGE_OPENING to "CgkIho2tlt4BEAIQFA",
+            AchievementId.TRIPLE_ACE_PROTOCOL to "CgkIho2tlt4BEAIQDQ",
+            AchievementId.BRELAN_COLLECTOR to "CgkIho2tlt4BEAIQBg",
+            AchievementId.QUAD_CORE to "CgkIho2tlt4BEAIQCw",
+            AchievementId.FIVE_OF_A_KIND to "CgkIho2tlt4BEAIQCQ",
+            AchievementId.STRAIGHT_RUNNER to "CgkIho2tlt4BEAIQBQ",
+            AchievementId.TWIN_MATRIX to "CgkIho2tlt4BEAIQBA",
+            AchievementId.FULL_HOUSE_CYBER to "CgkIho2tlt4BEAIQAQ",
+            AchievementId.HOT_DICE to "CgkIho2tlt4BEAIQDw",
+            AchievementId.FULL_OVERCLOCK to "CgkIho2tlt4BEAIQBw",
+            AchievementId.ONE_DIE_MIRACLE to "CgkIho2tlt4BEAIQEw",
+            AchievementId.SYSTEM_CRASH to "CgkIho2tlt4BEAIQEg",
+            AchievementId.THREE_STRIKES_OUT to "CgkIho2tlt4BEAIQEA",
+            AchievementId.PIXEL_PERFECT_5000 to "CgkIho2tlt4BEAIQAg",
+            AchievementId.OVERKILL_TURN to "CgkIho2tlt4BEAIQCA",
+            AchievementId.HIJACKER to "CgkIho2tlt4BEAIQDg",
+            AchievementId.HEADSHOT to "CgkIho2tlt4BEAIQEQ",
+            AchievementId.BEAT_THE_MACHINE to "CgkIho2tlt4BEAIQAw",
+            AchievementId.ENTROPY_MASTER to "CgkIho2tlt4BEAIQCg"
+        )
+
+        /**
+         * Résout l'ID du projet Play Games Services en privilégiant les ressources non localisées,
+         * avec repli automatique sur l'ID officiel si un pack de langue Play Store injecte un ancien placeholder.
+         */
+        fun resolveProjectId(context: Context): String {
+            val candidateResIds = listOf(
+                R.string.pgs_app_id,
+                R.string.game_services_project_id,
+                R.string.app_id
+            )
+            for (resId in candidateResIds) {
+                val value = runCatching { context.getString(resId).trim() }.getOrDefault("")
+                if (value.isNotBlank() && value != PLACEHOLDER_PROJECT_ID) {
+                    return value
+                }
+            }
+            return OFFICIAL_PROJECT_ID
+        }
     }
 }

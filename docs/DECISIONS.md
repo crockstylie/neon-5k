@@ -115,4 +115,14 @@
     2. Pour les effets sonores rétro (Lot 4.5), privilégier une synthèse PCM 8-bit générée en Kotlin (`AudioTrack`) plutôt que d'embarquer des fichiers audio compressés, afin de respecter l'ADR-005 (zéro dépendance lourde et APK minimal).
 - **Conséquences** : Socle solo/local irréprochable avant d'aborder la complexité temps réel du multijoueur Nearby.
 
+## ADR-016 : Verrouillage & Blindage des Identifiants Play Jeux v2 contre les Splits de Langue Play Store
+- **Date** : 2026-11-27
+- **Contexte** : L'inspection directe des APK générés par Google Play (`split_config.fr.apk` et `split_config.en.apk` sur appareil réel en `v1.0.4`) a montré que Play Store réinjectait par nom les anciens placeholders `v1.0.0` (`000000000000` pour `game_services_project_id` et `CgkI_placeholder_*` pour les 20 `achievement_*`), bien que le `.aab` local contienne les vrais identifiants dans `base/resources.pb` et `translatable="false"` dans `values/games-ids.xml`. Ce comportement cassait à la fois le diagnostic in-app et l'initialisation manifeste `com.google.android.gms.games.APP_ID`.
+- **Décision** :
+    1. Verrouiller `res/values/games-ids.xml` exclusivement dans `res/values/` avec `translatable="false"` sur chaque entrée et `tools:ignore="MissingTranslation"`, sans aucun doublon dans `values-fr/`, `values-en/`, `values-es/`, `values-pt/`.
+    2. Introduire la clé neuve `pgs_app_id` (absente du cache `v1.0.0` Play Console) pour `com.google.android.gms.games.APP_ID` dans `AndroidManifest.xml`.
+    3. Ajouter dans `GooglePlayGamesService` et `Neon5KApplication` un repli déterministe vers les identifiants officiels (`59639547526` et la table des 20 IDs `CgkIho2tlt4BEAIQ...`) si `getString(...)` retourne une valeur vide ou un placeholder.
+    4. Documenter le SHA-1 de production **Google Play App Signing** (`AE:21:8F:76:6A:3B:DB:12:BB:1E:A5:A3:85:59:AF:6C:8E:78:E2:4F`) dans `docs/PLAY_GAMES_ACHIEVEMENTS.md`.
+- **Conséquences** : Le manifeste fusionné et l'exécution sur Google Play Store restent insensibles aux caches de traduction historiques, tout en conservant `games-ids.xml` propre et sans avertissement Lint.
+
 

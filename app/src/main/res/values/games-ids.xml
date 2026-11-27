@@ -3,8 +3,10 @@
   Identifiants officiels Google Play Games Services v2 (PGS v2) — Neon 5K.
   Générés par la Google Play Console (Project ID : 59639547526).
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- ID du projet Google Play Games Services (utilisé par AndroidManifest.xml et PlayGamesService) -->
+    <!-- pgs_app_id est une clé dédiée protégée contre d'éventuelles anciennes traductions Play Console sur game_services_project_id -->
+    <string name="pgs_app_id" translatable="false">59639547526</string>
     <string name="game_services_project_id" translatable="false">59639547526</string>
     <string name="app_id" translatable="false">59639547526</string>
     <string name="package_name" translatable="false">fr.antoinehory.neon5k</string>
