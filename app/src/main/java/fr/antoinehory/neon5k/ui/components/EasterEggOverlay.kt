@@ -10,6 +10,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,24 +26,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -53,6 +62,7 @@ import fr.antoinehory.neon5k.domain.model.DieState
 import fr.antoinehory.neon5k.domain.theme.DiceVisualStyle
 import fr.antoinehory.neon5k.ui.theme.LocalNeon5KColors
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 import kotlin.random.Random
 
 private val StarWarsYellow = Color(0xFFFFE81F)
@@ -116,15 +126,19 @@ private val RANDOM_STARFIELD: List<StarPoint> = buildList {
  * 1. Séquence d'ouverture Star Wars fidèle : *"A long time ago in a dice tavern far, far away...."*
  *    s'affiche au centre de l'écran noir étoilé en cyan.
  * 2. Le grand **42** jaune composé de vrais dés Pixel Art (`PixelDiceCanvas`) et son générique
- *    défilent depuis tout en bas de l'écran en perspective 3D ; lorsque le texte jaune s'approche
- *    de la phrase bleue centrale, celle-ci s'efface en fondu doux (`fade out`).
+ *    défilent depuis tout en bas de l'écran en perspective 3D fixe à vitesse constante le long du plan incliné ;
+ *    lorsque le texte jaune s'approche de la phrase bleue centrale, celle-ci s'efface en fondu doux (`fade out`).
+ * 3. Toucher l'écran met le défilement en pause ; glisser vers le haut ou le bas fait défiler manuellement
+ *    le texte vers le fond (avant) ou vers le bas (retour).
  */
 @Composable
 fun StarWars42EasterEggDialog(
     onDismiss: () -> Unit
 ) {
     val introAlpha = remember { Animatable(0f) }
-    val crawlProgress = remember { Animatable(0f) }
+    var crawlProgress by remember { mutableFloatStateOf(0f) }
+    var crawlStarted by remember { mutableStateOf(false) }
+    var isUserTouching by remember { mutableStateOf(false) }
     var sequenceKey by remember { mutableIntStateOf(0) }
     var rollTick by remember { mutableIntStateOf(1) }
     var isDismissArmed by remember { mutableStateOf(false) }
@@ -135,16 +149,33 @@ fun StarWars42EasterEggDialog(
     }
 
     LaunchedEffect(sequenceKey) {
-        crawlProgress.snapTo(0f)
+        crawlProgress = 0f
+        crawlStarted = false
         introAlpha.snapTo(0f)
         // Phase 1 : Apparition au centre de "A long time ago in a dice tavern far, far away...."
         introAlpha.animateTo(1f, animationSpec = tween(durationMillis = 650, easing = LinearEasing))
-        delay(1100L)
-        // Phase 2 : Le crawl part de tout en bas ; la phrase bleue s'efface gentiment quand le jaune s'approche
-        crawlProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 26000, easing = LinearEasing)
-        )
+
+        // Pause de lecture de l'intro (~1100 ms), gelée tant que le joueur garde le doigt appuyé
+        var introHoldElapsedMs = 0L
+        while (introHoldElapsedMs < 1100L && !crawlStarted) {
+            delay(25L)
+            if (!isUserTouching) {
+                introHoldElapsedMs += 25L
+            }
+        }
+        crawlStarted = true
+
+        // Phase 2 : Défilement temps réel à vitesse constante (pause instantanée au toucher, reprise au relâchement)
+        var lastFrameNanos = withFrameNanos { it }
+        val totalCrawlDurationSec = 34f
+        while (true) {
+            val frameNanos = withFrameNanos { it }
+            val dtSec = ((frameNanos - lastFrameNanos).coerceIn(0L, 100_000_000L)) / 1_000_000_000f
+            lastFrameNanos = frameNanos
+            if (!isUserTouching && crawlProgress < 1f) {
+                crawlProgress = (crawlProgress + dtSec / totalCrawlDurationSec).coerceAtMost(1f)
+            }
+        }
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "starsTwinkle")
@@ -175,71 +206,114 @@ fun StarWars42EasterEggDialog(
             val isPortrait = maxHeight > maxWidth
             val maxHeightPx = constraints.maxHeight.toFloat().coerceAtLeast(1f)
             var crawlContentHeightPx by remember { mutableIntStateOf(0) }
+            val currentMaxHeightPx by rememberUpdatedState(maxHeightPx)
 
-            // Champ d'étoiles pseudo-aléatoires sans alignement diagonal
-            StarfieldCanvas(
-                twinkleFactor = starAlpha,
-                modifier = Modifier.fillMaxSize()
-            )
+            // Zone spatiale interactive : toucher = pause immédiate ; glisser haut/bas = avancer/reculer le générique
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        val touchSlop = viewConfiguration.touchSlop
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            isUserTouching = true
+                            var totalDragY = 0f
+                            var isDragging = false
+                            try {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val activeChanges = event.changes.filter { it.pressed }
+                                    if (activeChanges.isEmpty()) break
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+                                        ?: activeChanges.first()
+                                    val dy = change.positionChange().y
+                                    if (dy != 0f) {
+                                        totalDragY += dy
+                                        if (!isDragging && abs(totalDragY) > touchSlop) {
+                                            isDragging = true
+                                            crawlStarted = true
+                                        }
+                                        if (isDragging) {
+                                            change.consume()
+                                            val travelPx = currentMaxHeightPx + crawlContentHeightPx.coerceAtLeast(1)
+                                            // Glisser vers le haut (dy < 0) avance le texte vers le fond ; vers le bas (dy > 0) le ramène vers l'avant
+                                            val deltaP = (-dy * 1.65f) / travelPx.coerceAtLeast(1f)
+                                            crawlProgress = (crawlProgress + deltaP).coerceIn(0f, 1f)
+                                        }
+                                    }
+                                }
+                            } finally {
+                                isUserTouching = false
+                            }
+                        }
+                    }
+            ) {
+                // Champ d'étoiles pseudo-aléatoires sans alignement diagonal
+                StarfieldCanvas(
+                    twinkleFactor = starAlpha,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-            val p = crawlProgress.value
-            // La phrase bleue reste visible tant que le texte jaune remonte du bas,
-            // puis fade out doucement entre p = 0.12 (y ≈ 85%) et p = 0.28 (y ≈ 64%) avant d'atteindre le centre.
-            val approachFade = (1f - ((p - 0.12f) / 0.16f).coerceIn(0f, 1f))
-            val effectiveIntroAlpha = introAlpha.value * approachFade
+                val p = crawlProgress
+                // La phrase bleue reste visible tant que le texte jaune remonte du bas,
+                // puis fade out doucement entre p = 0.10 et p = 0.26 avant d'atteindre le centre.
+                val approachFade = (1f - ((p - 0.10f) / 0.16f).coerceIn(0f, 1f))
+                val effectiveIntroAlpha = introAlpha.value * approachFade
 
-            if (effectiveIntroAlpha > 0.01f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 28.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "A long time ago in a dice tavern\nfar, far away....",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            lineHeight = 32.sp
-                        ),
-                        color = IntroCyan.copy(alpha = effectiveIntroAlpha),
-                        textAlign = TextAlign.Center
-                    )
+                if (effectiveIntroAlpha > 0.01f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 28.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "A long time ago in a dice tavern\nfar, far away....",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 32.sp
+                            ),
+                            color = IntroCyan.copy(alpha = effectiveIntroAlpha),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
-            }
 
-            // Phase 2 : Conteneur en perspective 3D Star Wars ancré tout en haut du bloc (TransformOrigin y=0)
-            // afin que le haut du "42" démarre exactement sous le bord inférieur de l'écran (maxHeightPx).
-            if (p > 0.0005f) {
+                // Plan 3D fixe incliné vers l'horizon : la perspective naturelle évite toute accélération
+                // en fin de générique (les lignes proches du bas restent grandes et lisibles à vitesse constante).
+                val tiltAngleX = if (isPortrait) 54f else 48f
+                val camDistFactor = if (isPortrait) 12.5f else 14.5f
+                val startY = maxHeightPx
+                val endY = -crawlContentHeightPx.toFloat().coerceAtLeast(maxHeightPx * 0.5f)
+                val translateY = startY + (endY - startY) * p
+                val crawlVisibilityAlpha = if (!crawlStarted && p <= 0.0005f) {
+                    0f
+                } else if (p > 0.94f) {
+                    (1f - (p - 0.94f) / 0.06f).coerceIn(0f, 1f)
+                } else {
+                    1f
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = if (isPortrait) 8.dp else 32.dp),
+                        .graphicsLayer {
+                            transformOrigin = TransformOrigin(0.5f, 0.45f)
+                            rotationX = tiltAngleX
+                            cameraDistance = camDistFactor * density
+                        }
+                        .clipToBounds(),
                     contentAlignment = Alignment.TopCenter
                 ) {
-                    val startY = maxHeightPx
-                    val endY = -maxOf(maxHeightPx * 0.28f, crawlContentHeightPx * 0.35f)
-                    val translateY = startY + (endY - startY) * p
-                    val distanceScale = (1.02f - p * 0.80f).coerceAtLeast(0.18f)
-                    val distanceAlpha = if (p < 0.78f) {
-                        1f
-                    } else {
-                        (1f - (p - 0.78f) / 0.22f).coerceIn(0f, 1f)
-                    }
-                    val tiltAngleX = if (isPortrait) 64f else 56f
-                    val camDistFactor = if (isPortrait) 9.5f else 12.5f
-
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .wrapContentHeight(align = Alignment.Top, unbounded = true)
+                            .padding(horizontal = if (isPortrait) 24.dp else 64.dp)
                             .onSizeChanged { crawlContentHeightPx = it.height }
                             .graphicsLayer {
-                                transformOrigin = TransformOrigin(0.5f, 0.0f)
-                                rotationX = tiltAngleX
-                                cameraDistance = camDistFactor * density
                                 translationY = translateY
-                                scaleX = distanceScale
-                                scaleY = distanceScale
-                                alpha = distanceAlpha
+                                alpha = crawlVisibilityAlpha
                             },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -297,50 +371,68 @@ fun StarWars42EasterEggDialog(
                         )
                     }
                 }
+
+                // Dégradé supérieur d'extinction à l'horizon spatial
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(165.dp)
+                        .align(Alignment.TopCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                0.0f to DeepSpaceBlack,
+                                0.45f to DeepSpaceBlack.copy(alpha = 0.85f),
+                                1.0f to Color.Transparent
+                            )
+                        )
+                )
             }
 
-            // Dégradé supérieur d'extinction à l'horizon spatial
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(125.dp)
-                    .align(Alignment.TopCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(DeepSpaceBlack, Color.Transparent)
-                        )
-                    )
-            )
-
             // Barre de contrôle inférieure (protégée par les insets safeDrawing en mode bord à bord)
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .background(DeepSpaceBlack.copy(alpha = 0.85f))
+                    .background(DeepSpaceBlack.copy(alpha = 0.88f))
                     .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                PixelButton(
-                    text = "REPLAY 42",
-                    icon = PixelIconId.DICE,
-                    filled = false,
-                    accentColor = StarWarsYellow,
-                    onClick = {
-                        rollTick++
-                        sequenceKey++
+                Text(
+                    text = if (isUserTouching) {
+                        "⏸ PAUSE • GLISSER ↕ POUR NAVIGUER"
+                    } else {
+                        "TOUCHER : PAUSE • GLISSER ↕ : DÉFILER"
                     },
-                    modifier = Modifier.weight(1f)
+                    style = MaterialTheme.typography.labelSmall,
+                    color = StarWarsYellow.copy(alpha = if (isUserTouching) 0.95f else 0.55f),
+                    textAlign = TextAlign.Center
                 )
-                PixelButton(
-                    text = "DON'T PANIC (EXIT)",
-                    icon = PixelIconId.BACK,
-                    filled = true,
-                    accentColor = StarWarsYellow,
-                    onClick = { if (isDismissArmed) onDismiss() },
-                    modifier = Modifier.weight(1.3f)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    PixelButton(
+                        text = "REPLAY 42",
+                        icon = PixelIconId.DICE,
+                        filled = false,
+                        accentColor = StarWarsYellow,
+                        onClick = {
+                            rollTick++
+                            sequenceKey++
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    PixelButton(
+                        text = "DON'T PANIC (EXIT)",
+                        icon = PixelIconId.BACK,
+                        filled = true,
+                        accentColor = StarWarsYellow,
+                        onClick = { if (isDismissArmed) onDismiss() },
+                        modifier = Modifier.weight(1.3f)
+                    )
+                }
             }
         }
     }

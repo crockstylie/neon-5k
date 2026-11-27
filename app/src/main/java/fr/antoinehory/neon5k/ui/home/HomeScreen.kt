@@ -91,9 +91,9 @@ fun HomeScreen(
     val bannerDice = remember {
         listOf(
             DieState(index = 0, face = 1, canScoreOnCurrentRoll = true),
-            DieState(index = 1, face = 5, isSelected = true, canScoreOnCurrentRoll = true),
+            DieState(index = 1, face = 5, isLocked = true, canScoreOnCurrentRoll = true),
             DieState(index = 2, face = 5, isSelected = true, canScoreOnCurrentRoll = true),
-            DieState(index = 3, face = 5, isSelected = true, canScoreOnCurrentRoll = true),
+            DieState(index = 3, face = 5, isLocked = true, canScoreOnCurrentRoll = true),
             DieState(index = 4, face = 1, canScoreOnCurrentRoll = true)
         )
     }
