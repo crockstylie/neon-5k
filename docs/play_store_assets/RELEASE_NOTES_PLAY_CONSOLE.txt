@@ -1,98 +1,98 @@
 <en-US>
-🎲 Welcome to Neon 5K (v1.0.0)!
-• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
-• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
-• Self-learning local AI bots + up to 8-player Pass & Play.
-• 14 themes (including colorblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
+• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
+• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
+• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
+• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
 </en-US>
 <en-AU>
-🎲 Welcome to Neon 5K (v1.0.0)!
-• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
-• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
-• Self-learning local AI bots + up to 8-player Pass & Play.
-• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
+• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
+• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
+• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
+• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
 </en-AU>
 <en-CA>
-🎲 Welcome to Neon 5K (v1.0.0)!
-• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
-• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
-• Self-learning local AI bots + up to 8-player Pass & Play.
-• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
+• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
+• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
+• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
+• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
 </en-CA>
 <en-GB>
-🎲 Welcome to Neon 5K (v1.0.0)!
-• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
-• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
-• Self-learning local AI bots + up to 8-player Pass & Play.
-• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
+• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
+• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
+• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
+• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
 </en-GB>
 <en-IN>
-🎲 Welcome to Neon 5K (v1.0.0)!
-• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
-• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
-• Self-learning local AI bots + up to 8-player Pass & Play.
-• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
+• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
+• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
+• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
+• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
 </en-IN>
 <en-SG>
-🎲 Welcome to Neon 5K (v1.0.0)!
-• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
-• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
-• Self-learning local AI bots + up to 8-player Pass & Play.
-• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
+• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
+• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
+• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
+• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
 </en-SG>
 <en-ZA>
-🎲 Welcome to Neon 5K (v1.0.0)!
-• Complete 5000 / Farkle dice game (5 or 6 dice) with all house rules (round-100 banking, piggyback, bump, 3-strikes checkpoint rollback, 5-dice & 6-dice straights).
-• Sensor-driven SHA-256 entropy dice rolls + optional shake-to-roll.
-• Self-learning local AI bots + up to 8-player Pass & Play.
-• 14 themes (including colourblind & monochrome), 3 pixel dice styles, visual stats charts & 20 Play Games achievements.
+🚀 Neon 5K v1.0.3 — Play Games & Ergonomics Update:
+• Google Play Games v2 integration: cloud sync & native overlay for all 20 achievements (1,000 XP).
+• Pause & Step-by-Step controls on AI bot turns (perfect for inspecting 100% bot matches).
+• Custom naming for all players and AI bots, plus cleaner 3–8 player match history layout.
+• Edge-to-Edge Android 15+ polish, safe database migration & Easter Egg fixes.
 </en-ZA>
 <es-419>
-🎲 ¡Bienvenido a Neon 5K (v1.0.0)!
-• Juego de dados 5000 / Farkle completo (5 o 6 dados) con todas las variantes (banca en múltiplos de 100, robo de bote, derribo, penalización de 3 fallos, escaleras de 5 y 6 dados).
-• Tiradas con entropía física SHA-256 + opción de agitar para lanzar.
-• Bots de IA con autoaprendizaje local + modo Pass & Play hasta 8 jugadores.
-• 14 temas (incl. daltonismo), 3 estilos de dados píxel, gráficos y 20 logros Play Juegos.
+🚀 Neon 5K v1.0.3 — Play Juegos y Ergonomía:
+• Integración de Google Play Juegos v2: sincronización en la nube y panel nativo de los 20 logros (1000 XP).
+• Pausa y avance paso a paso en turnos de bots IA (ideal para partidas 100 % bots).
+• Nombres personalizados para jugadores y bots + historial legible para partidas de 3 a 8 jugadores.
+• Mejoras visuales de borde a borde (Android 15+), migración segura de datos y ajustes en Easter Eggs.
 </es-419>
 <es-ES>
-🎲 ¡Bienvenido a Neon 5K (v1.0.0)!
-• Juego de dados 5000 / Farkle completo (5 o 6 dados) con todas las variantes (banca en múltiplos de 100, robo de bote, derribo, penalización de 3 fallos, escaleras de 5 y 6 dados).
-• Tiradas con entropía física SHA-256 + opción de agitar para lanzar.
-• Bots de IA con autoaprendizaje local + modo Pass & Play hasta 8 jugadores.
-• 14 temas (incl. daltonismo), 3 estilos de dados píxel, gráficos y 20 logros Play Juegos.
+🚀 Neon 5K v1.0.3 — Play Juegos y Ergonomía:
+• Integración de Google Play Juegos v2: sincronización en la nube y panel nativo de los 20 logros (1000 XP).
+• Pausa y avance paso a paso en turnos de bots IA (ideal para partidas 100 % bots).
+• Nombres personalizados para jugadores y bots + historial legible para partidas de 3 a 8 jugadores.
+• Mejoras visuales de borde a borde (Android 15+), migración segura de datos y ajustes en Easter Eggs.
 </es-ES>
 <es-US>
-🎲 ¡Bienvenido a Neon 5K (v1.0.0)!
-• Juego de dados 5000 / Farkle completo (5 o 6 dados) con todas las variantes (banca en múltiplos de 100, robo de bote, derribo, penalización de 3 fallos, escaleras de 5 y 6 dados).
-• Tiradas con entropía física SHA-256 + opción de agitar para lanzar.
-• Bots de IA con autoaprendizaje local + modo Pass & Play hasta 8 jugadores.
-• 14 temas (incl. daltonismo), 3 estilos de dados píxel, gráficos y 20 logros Play Juegos.
+🚀 Neon 5K v1.0.3 — Play Juegos y Ergonomía:
+• Integración de Google Play Juegos v2: sincronización en la nube y panel nativo de los 20 logros (1000 XP).
+• Pausa y avance paso a paso en turnos de bots IA (ideal para partidas 100 % bots).
+• Nombres personalizados para jugadores y bots + historial legible para partidas de 3 a 8 jugadores.
+• Mejoras visuales de borde a borde (Android 15+), migración segura de datos y ajustes en Easter Eggs.
 </es-US>
 <fr-CA>
-🎲 Bienvenue dans Neon 5K (v1.0.0) !
-• Jeu de dés 5000 complet (5 ou 6 dés) avec toutes les variantes (banque en multiple de 100, repiquage, chapeau, recul de palier 3 encoches, suites 5 et 6 dés).
-• Lancers à entropie physique SHA-256 + option secouer pour lancer.
-• Bots IA auto-apprenants en local + mode Pass & Play jusqu'à 8 joueurs.
-• 14 thèmes (dont daltonisme et monochrome), 3 styles de dés pixel, graphiques stats et 20 succès Play Jeux.
+🚀 Neon 5K v1.0.3 — Play Jeux & Ergonomie :
+• Google Play Jeux v2 actif : synchronisation cloud et fenêtre native des 20 succès (1 000 XP).
+• Pause et mode pas-à-pas sur les tours des bots IA (idéal pour suivre les parties 100 % bots).
+• Nommage libre de tous les joueurs et bots + historique multi-joueurs (3 à 8) réagencé.
+• Conformité bord à bord Android 15+, migration sécurisée des sauvegardes et correctifs Easter Eggs.
 </fr-CA>
 <fr-FR>
-🎲 Bienvenue dans Neon 5K (v1.0.0) !
-• Jeu de dés 5000 complet (5 ou 6 dés) avec toutes les variantes (banque en multiple de 100, repiquage, chapeau, recul de palier 3 encoches, suites 5 et 6 dés).
-• Lancers à entropie physique SHA-256 + option secouer pour lancer.
-• Bots IA auto-apprenants en local + mode Pass & Play jusqu'à 8 joueurs.
-• 14 thèmes (dont daltonisme et monochrome), 3 styles de dés pixel, graphiques stats et 20 succès Play Jeux.
+🚀 Neon 5K v1.0.3 — Play Jeux & Ergonomie :
+• Google Play Jeux v2 actif : synchronisation cloud et fenêtre native des 20 succès (1 000 XP).
+• Pause et mode pas-à-pas sur les tours des bots IA (idéal pour suivre les parties 100 % bots).
+• Nommage libre de tous les joueurs et bots + historique multi-joueurs (3 à 8) réagencé.
+• Conformité bord à bord Android 15+, migration sécurisée des sauvegardes et correctifs Easter Eggs.
 </fr-FR>
 <pt-BR>
-🎲 Bem-vindo ao Neon 5K (v1.0.0)!
-• Jogo de dados 5000 / Farkle completo (5 ou 6 dados) com todas as variantes (guardar em múltiplos de 100, retoma, queda, recuo de 3 marcas, sequências de 5 e 6 dados).
-• Lançamentos com entropia física SHA-256 + opção de agitar para lançar.
-• Bots de IA com autoaprendizagem local + Pass & Play até 8 jogadores.
-• 14 temas (incl. daltonismo), 3 estilos de dados pixel, gráficos de estatísticas e 20 conquistas Play Jogos.
+🚀 Neon 5K v1.0.3 — Play Jogos e Ergonomia:
+• Integração com Google Play Jogos v2: sincronização na nuvem e painel nativo das 20 conquistas (1.000 XP).
+• Pausa e avanço passo a passo nos turnos dos bots de IA (ideal para partidas 100% bots).
+• Nomes personalizados para jogadores e bots + histórico aprimorado para 3 a 8 jogadores.
+• Melhorias de tela cheia (Android 15+), migração segura de dados e ajustes nos Easter Eggs.
 </pt-BR>
 <pt-PT>
-🎲 Bem-vindo ao Neon 5K (v1.0.0)!
-• Jogo de dados 5000 / Farkle completo (5 ou 6 dados) com todas as variantes (guardar em múltiplos de 100, retoma, queda, recuo de 3 marcas, sequências de 5 e 6 dados).
-• Lançamentos com entropia física SHA-256 + opção de agitar para lançar.
-• Bots de IA com autoaprendizagem local + Pass & Play até 8 jogadores.
-• 14 temas (incl. daltonismo), 3 estilos de dados pixel, gráficos de estatísticas e 20 conquistas Play Jogos.
+🚀 Neon 5K v1.0.3 — Play Jogos e Ergonomia:
+• Integração com Google Play Jogos v2: sincronização na nuvem e painel nativo das 20 proezas (1 000 XP).
+• Pausa e avanço passo a passo nos turnos dos bots de IA (ideal para partidas 100% bots).
+• Nomes personalizados para jogadores e bots + histórico melhorado para 3 a 8 jogadores.
+• Melhorias de ecrã inteiro (Android 15+), migração segura de dados e ajustes nos Easter Eggs.
 </pt-PT>

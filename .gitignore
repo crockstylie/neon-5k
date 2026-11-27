@@ -14,3 +14,7 @@
 .cxx
 local.properties
 /.idea/
+
+# Archives ZIP Play Console regénérées automatiquement lors des tests unitaires (timestamps variables)
+docs/play_store_assets/*.zip
+
