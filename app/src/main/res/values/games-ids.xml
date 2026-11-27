@@ -1,30 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Identifiants Google Play Games Services v2 (PGS v2).
-  Remplacer `game_services_project_id` et les `CgkI...` par les identifiants générés
-  dans la Google Play Console (Services de jeux Play > Configurer > Succès > Obtenir les ressources).
+  Identifiants officiels Google Play Games Services v2 (PGS v2) — Neon 5K.
+  Générés par la Google Play Console (Project ID : 59639547526).
 -->
 <resources>
-    <string name="game_services_project_id" translatable="false">000000000000</string>
+    <!-- ID du projet Google Play Games Services (utilisé par AndroidManifest.xml et PlayGamesService) -->
+    <string name="game_services_project_id" translatable="false">59639547526</string>
+    <string name="app_id" translatable="false">59639547526</string>
+    <string name="package_name" translatable="false">fr.antoinehory.neon5k</string>
 
-    <string name="achievement_first_boot" translatable="false">CgkI_placeholder_01_first_boot</string>
-    <string name="achievement_high_voltage_opening" translatable="false">CgkI_placeholder_02_high_voltage_opening</string>
-    <string name="achievement_triple_ace_protocol" translatable="false">CgkI_placeholder_03_triple_ace_protocol</string>
-    <string name="achievement_brelan_collector" translatable="false">CgkI_placeholder_04_brelan_collector</string>
-    <string name="achievement_quad_core" translatable="false">CgkI_placeholder_05_quad_core</string>
-    <string name="achievement_five_of_a_kind" translatable="false">CgkI_placeholder_06_five_of_a_kind</string>
-    <string name="achievement_straight_runner" translatable="false">CgkI_placeholder_07_straight_runner</string>
-    <string name="achievement_twin_matrix" translatable="false">CgkI_placeholder_08_twin_matrix</string>
-    <string name="achievement_full_house_cyber" translatable="false">CgkI_placeholder_09_full_house_cyber</string>
-    <string name="achievement_hot_dice" translatable="false">CgkI_placeholder_10_hot_dice</string>
-    <string name="achievement_full_overclock" translatable="false">CgkI_placeholder_11_full_overclock</string>
-    <string name="achievement_one_die_miracle" translatable="false">CgkI_placeholder_12_one_die_miracle</string>
-    <string name="achievement_system_crash" translatable="false">CgkI_placeholder_13_system_crash</string>
-    <string name="achievement_three_strikes_out" translatable="false">CgkI_placeholder_14_three_strikes_out</string>
-    <string name="achievement_pixel_perfect_5000" translatable="false">CgkI_placeholder_15_pixel_perfect_5000</string>
-    <string name="achievement_overkill_turn" translatable="false">CgkI_placeholder_16_overkill_turn</string>
-    <string name="achievement_hijacker" translatable="false">CgkI_placeholder_17_hijacker</string>
-    <string name="achievement_headshot" translatable="false">CgkI_placeholder_18_headshot</string>
-    <string name="achievement_beat_the_machine" translatable="false">CgkI_placeholder_19_beat_the_machine</string>
-    <string name="achievement_entropy_master" translatable="false">CgkI_placeholder_20_entropy_master</string>
+    <!-- 01. First Boot -->
+    <string name="achievement_first_boot" translatable="false">CgkIho2tlt4BEAIQDA</string>
+
+    <!-- 02. High Voltage Opening -->
+    <string name="achievement_high_voltage_opening" translatable="false">CgkIho2tlt4BEAIQFA</string>
+
+    <!-- 03. Triple Ace Protocol -->
+    <string name="achievement_triple_ace_protocol" translatable="false">CgkIho2tlt4BEAIQDQ</string>
+
+    <!-- 04. Brelan Collector / Triple Collector (Incrémentiel 6 étapes) -->
+    <string name="achievement_brelan_collector" translatable="false">CgkIho2tlt4BEAIQBg</string>
+    <string name="achievement_triple_collector" translatable="false">CgkIho2tlt4BEAIQBg</string>
+
+    <!-- 05. Quad Core -->
+    <string name="achievement_quad_core" translatable="false">CgkIho2tlt4BEAIQCw</string>
+
+    <!-- 06. God Roll (Quinte / Five of a Kind) -->
+    <string name="achievement_five_of_a_kind" translatable="false">CgkIho2tlt4BEAIQCQ</string>
+    <string name="achievement_god_roll_five_of_a_kind" translatable="false">CgkIho2tlt4BEAIQCQ</string>
+
+    <!-- 07. Straight Runner -->
+    <string name="achievement_straight_runner" translatable="false">CgkIho2tlt4BEAIQBQ</string>
+
+    <!-- 08. Twin Matrix -->
+    <string name="achievement_twin_matrix" translatable="false">CgkIho2tlt4BEAIQBA</string>
+
+    <!-- 09. Full House Cyber -->
+    <string name="achievement_full_house_cyber" translatable="false">CgkIho2tlt4BEAIQAQ</string>
+
+    <!-- 10. Hot Dice! -->
+    <string name="achievement_hot_dice" translatable="false">CgkIho2tlt4BEAIQDw</string>
+
+    <!-- 11. Full Overclock -->
+    <string name="achievement_full_overclock" translatable="false">CgkIho2tlt4BEAIQBw</string>
+
+    <!-- 12. One Die Miracle -->
+    <string name="achievement_one_die_miracle" translatable="false">CgkIho2tlt4BEAIQEw</string>
+
+    <!-- 13. System Crash -->
+    <string name="achievement_system_crash" translatable="false">CgkIho2tlt4BEAIQEg</string>
+
+    <!-- 14. Three Strikes Out -->
+    <string name="achievement_three_strikes_out" translatable="false">CgkIho2tlt4BEAIQEA</string>
+
+    <!-- 15. Pixel Perfect 5000 -->
+    <string name="achievement_pixel_perfect_5000" translatable="false">CgkIho2tlt4BEAIQAg</string>
+
+    <!-- 16. Overkill Turn -->
+    <string name="achievement_overkill_turn" translatable="false">CgkIho2tlt4BEAIQCA</string>
+
+    <!-- 17. Hijacker (Repiquage / Piggyback) -->
+    <string name="achievement_hijacker" translatable="false">CgkIho2tlt4BEAIQDg</string>
+    <string name="achievement_hijacker_piggyback" translatable="false">CgkIho2tlt4BEAIQDg</string>
+
+    <!-- 18. Headshot (Chapeau / Bump) -->
+    <string name="achievement_headshot" translatable="false">CgkIho2tlt4BEAIQEQ</string>
+    <string name="achievement_headshot_bump" translatable="false">CgkIho2tlt4BEAIQEQ</string>
+
+    <!-- 19. Beat the Machine -->
+    <string name="achievement_beat_the_machine" translatable="false">CgkIho2tlt4BEAIQAw</string>
+
+    <!-- 20. Entropy Master (Incrémentiel 50 étapes) -->
+    <string name="achievement_entropy_master" translatable="false">CgkIho2tlt4BEAIQCg</string>
 </resources>
